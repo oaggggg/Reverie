@@ -5526,7 +5526,11 @@ textarea {
 .playlist-picker-meta strong { font-size: 12px; }
 .playlist-picker-meta small { color: var(--text-faint); font-size: 11px; }
 
-.media-detail-backdrop { z-index: 30; }
+/* Above sidebars (70), drawers/modals (100) and the search overlay (110),
+   but below toasts (200). The base .modal-backdrop rule is z-index:100;
+   without this override the popup sat at 30 and was covered by the player
+   bar and drawers. */
+.media-detail-backdrop { z-index: 120; }
 .media-detail-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38); }
 .media-detail-video { display: grid; place-items: center; min-height: 280px; background: #08090f; }
 .media-detail-video video { display: block; width: 100%; max-height: min(60vh, 560px); background: #08090f; }
