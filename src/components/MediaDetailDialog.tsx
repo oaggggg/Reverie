@@ -184,7 +184,7 @@ export default function MediaDetailDialog() {
       stage.removeEventListener("mouseleave", onLeave);
       if (timer) window.clearTimeout(timer);
     };
-  }, [url]);
+  }, [activeUrl]);
 
   // Start/pause must also wake the bar (e.g. clicking the video to pause).
   useEffect(() => {
