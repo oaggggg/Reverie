@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, normalizeSong, request } from "./client.ts";
 import type { PlaylistDynamicStats, SocialUser, Song } from "./types.ts";
 
 type Obj = Record<string, unknown>;
@@ -19,10 +19,10 @@ export async function getPlaylistAllTracks(
   offset = 0,
 ): Promise<Song[]> {
   if (!playlistId) return [];
-  const response = await request<Obj>(
+  const response = await cachedRequest<Obj>(
     "/playlist/track/all",
     { id: playlistId, limit, offset },
-    false,
+    5 * 60 * 1000,
   );
   return arr(response.songs ?? response.data ?? response.result)
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
@@ -96,10 +96,10 @@ export async function updatePlaylistOrder(
 export async function getPlaylistDynamicStats(
   playlistId: number,
 ): Promise<PlaylistDynamicStats> {
-  const response = await request<Obj>(
+  const response = await cachedRequest<Obj>(
     "/playlist/detail/dynamic",
     { id: playlistId, s: 8 },
-    false,
+    5 * 60 * 1000,
   );
   const value = obj(response.data ?? response);
   return {
@@ -119,7 +119,11 @@ export async function getPlaylistSubscribers(
   offset = 0,
 ): Promise<SocialUser[]> {
   if (!playlistId) return [];
-  const response = await request<Obj>("/playlist/subscribers", { id: playlistId, limit, offset }, false);
+  const response = await cachedRequest<Obj>(
+    "/playlist/subscribers",
+    { id: playlistId, limit, offset },
+    10 * 60 * 1000,
+  );
   const value = obj(response.data ?? response.result ?? response);
   return arr(value.subscribers ?? value.users ?? value.list ?? response.data ?? response)
     .map((raw) => {

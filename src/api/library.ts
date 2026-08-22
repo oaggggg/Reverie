@@ -1,4 +1,4 @@
-import { request } from "./client.ts";
+import { cachedRequest, request } from "./client.ts";
 import type { AlbumInfo, AlbumPrivilege, ArtistInfo } from "./types.ts";
 
 type Obj = Record<string, unknown>;
@@ -94,7 +94,7 @@ export async function getTopAlbums(area: AlbumArea = "ALL", offset = 0, limit = 
 
 export async function getAlbumPrivileges(id: number): Promise<AlbumPrivilege[]> {
   if (!id) return [];
-  const response = await request<Obj>("/album/privilege", { id }, false);
+  const response = await cachedRequest<Obj>("/album/privilege", { id }, 10 * 60 * 1000);
   const value = obj(response.data ?? response.result ?? response);
   const rows = arr(value.data ?? value.list ?? response.data ?? response);
   return rows
