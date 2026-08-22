@@ -75,6 +75,27 @@ export default function MediaDetailDialog() {
     void el.play().catch(() => {});
   };
 
+  // Promote only once playback can continue without stalling: promoting with
+  // a thin buffer makes the video hiccup right after the switch. Waits until
+  // ~1.5s is buffered past the seek target (capped by the force timer).
+  const tryPromote = (el: HTMLVideoElement, src: string) => {
+    if (pendingPromotedRef.current) return;
+    const t = el.currentTime;
+    const b = el.buffered;
+    let ahead = 0;
+    for (let i = 0; i < b.length; i++) {
+      if (b.start(i) <= t && t <= b.end(i)) {
+        ahead = b.end(i) - t;
+        break;
+      }
+    }
+    if (ahead >= 1.5) {
+      promotePending(el, src);
+      return;
+    }
+    window.setTimeout(() => tryPromote(el, src), 150);
+  };
+
   useEffect(() => {
     if (!url) return;
     if (!activeUrlRef.current) {
@@ -293,8 +314,9 @@ export default function MediaDetailDialog() {
                     i === 1
                       ? (e) => {
                           // First frame decoded. Seek the hidden video to the
-                          // current position first; promote on seeked so the
-                          // reveal never shows an unbuffers/blank frame.
+                          // current position first; promote on seeked (with
+                          // enough buffer) so the reveal never shows a blank
+                          // frame or stutters.
                           const el = e.currentTarget;
                           if (pendingPromotedRef.current) return;
                           el.playbackRate = rate;
@@ -302,21 +324,22 @@ export default function MediaDetailDialog() {
                           el.muted = volume === 0;
                           const t = videoRef.current?.currentTime ?? 0;
                           if (Math.abs(el.currentTime - t) < 0.05) {
-                            promotePending(el, src);
+                            tryPromote(el, src);
                             return;
                           }
                           el.currentTime = t;
-                          // Safety net in case `seeked` never fires.
+                          // Safety net: promote regardless after 4s (slow
+                          // network) in case `seeked`/buffer never settles.
                           window.setTimeout(
                             () => promotePending(el, src),
-                            1500,
+                            4000,
                           );
                         }
                       : undefined
                   }
                   onSeeked={
                     i === 1
-                      ? (e) => promotePending(e.currentTarget, src)
+                      ? (e) => tryPromote(e.currentTarget, src)
                       : undefined
                   }
                 />
