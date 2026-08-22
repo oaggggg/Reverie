@@ -70,6 +70,7 @@ export default function MediaDetailDialog() {
   const promotePending = (el: HTMLVideoElement, src: string) => {
     if (pendingPromotedRef.current) return;
     pendingPromotedRef.current = true;
+    delete el.dataset.finalizing;
     setActiveUrl(src);
     setPendingUrl(null);
     void el.play().catch(() => {});
@@ -77,7 +78,7 @@ export default function MediaDetailDialog() {
 
   // Promote only once playback can continue without stalling: promoting with
   // a thin buffer makes the video hiccup right after the switch. Waits until
-  // ~1.5s is buffered past the seek target (capped by the force timer).
+  // ~1.5s is buffered past the seek target, then hands off to finalize.
   const tryPromote = (el: HTMLVideoElement, src: string) => {
     if (pendingPromotedRef.current) return;
     const t = el.currentTime;
@@ -90,10 +91,25 @@ export default function MediaDetailDialog() {
       }
     }
     if (ahead >= 1.5) {
-      promotePending(el, src);
+      finalizePending(el, src);
       return;
     }
     window.setTimeout(() => tryPromote(el, src), 150);
+  };
+
+  // Frame-accurate handoff: while the buffer was filling the old video kept
+  // playing, so the preloaded position is stale. Re-align to the old video's
+  // CURRENT frame and promote the instant that (fast, in-buffer) seek lands —
+  // leaving at most a fraction of a frame of drift.
+  const finalizePending = (el: HTMLVideoElement, src: string) => {
+    if (pendingPromotedRef.current) return;
+    const t = videoRef.current?.currentTime ?? 0;
+    if (Math.abs(el.currentTime - t) <= 0.06) {
+      promotePending(el, src);
+      return;
+    }
+    el.dataset.finalizing = "1";
+    el.currentTime = t;
   };
 
   useEffect(() => {
@@ -339,7 +355,15 @@ export default function MediaDetailDialog() {
                   }
                   onSeeked={
                     i === 1
-                      ? (e) => tryPromote(e.currentTarget, src)
+                      ? (e) => {
+                          const el = e.currentTarget;
+                          if (el.dataset.finalizing) {
+                            delete el.dataset.finalizing;
+                            promotePending(el, src);
+                            return;
+                          }
+                          tryPromote(el, src);
+                        }
                       : undefined
                   }
                 />
