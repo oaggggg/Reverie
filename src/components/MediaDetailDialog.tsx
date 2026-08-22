@@ -4,7 +4,6 @@ import {
   Clapperboard,
   Heart,
   MessageCircle,
-  Play,
   X,
 } from "lucide-react";
 import type { CommentResource, SearchMediaInfo } from "../api/types.ts";
@@ -28,14 +27,12 @@ export default function MediaDetailDialog() {
   const item = useMediaStore((state) => state.item);
   const detail = useMediaStore((state) => state.detail);
   const url = useMediaStore((state) => state.url);
-  const related = useMediaStore((state) => state.related);
   const stats = useMediaStore((state) => state.stats);
   const loading = useMediaStore((state) => state.loading);
   const actionLoading = useMediaStore((state) => state.actionLoading);
   const urlLoading = useMediaStore((state) => state.urlLoading);
   const resolution = useMediaStore((state) => state.resolution);
   const close = useMediaStore((state) => state.close);
-  const open = useMediaStore((state) => state.open);
   const setResolution = useMediaStore((state) => state.setResolution);
   const toggleLike = useMediaStore((state) => state.toggleLike);
   const toggleSubscription = useMediaStore((state) => state.toggleSubscription);
@@ -161,30 +158,6 @@ export default function MediaDetailDialog() {
                 <span key={tag}>{tag}</span>
               ))}
             </div>
-          )}
-          {!!related.length && (
-            <section className="media-related">
-              <h3>相关内容</h3>
-              <div className="media-related-grid">
-                {related.slice(0, 8).map((entry) => (
-                  <button
-                    key={`${entry.kind}-${entry.id}`}
-                    onClick={() => void open(entry)}
-                  >
-                    <span className="media-related-cover">
-                      {entry.coverUrl ? (
-                        <img src={sizedImage(entry.coverUrl, 160)} alt="" />
-                      ) : (
-                        <Clapperboard size={18} />
-                      )}
-                      <Play size={13} fill="currentColor" />
-                    </span>
-                    <strong>{entry.name}</strong>
-                    <small>{entry.creatorName || "未知创作者"}</small>
-                  </button>
-                ))}
-              </div>
-            </section>
           )}
         </div>
       </div>
