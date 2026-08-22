@@ -15,7 +15,8 @@ import { sizedImage } from "../utils/image";
 import { LoadingState } from "./Page";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
-const CONTROLS_HIDE_DELAY = 2600;
+const CONTROLS_HIDE_DELAY = 3000;
+const CONTROLS_LEAVE_HIDE_DELAY = 800;
 
 function fmt(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
@@ -55,18 +56,49 @@ export default function MediaDetailDialog() {
   const qualityOpenRef = useRef(false);
   const rateOpenRef = useRef(false);
   const volumeDraggingRef = useRef(false);
-  /** Last playable URL, used to keep the video mounted during a refetch. */
-  const lastUrlRef = useRef("");
+  /** URL currently shown; pendingUrl preloads the next quality in a hidden
+   * sibling video and is promoted once its first frame is decoded. */
+  const [activeUrl, setActiveUrl] = useState("");
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const activeUrlRef = useRef("");
+  useEffect(() => {
+    activeUrlRef.current = activeUrl;
+  }, [activeUrl]);
+
+  // Promote the preloading video to active exactly once per switch.
+  const pendingPromotedRef = useRef(true);
+  const promotePending = (el: HTMLVideoElement, src: string) => {
+    if (pendingPromotedRef.current) return;
+    pendingPromotedRef.current = true;
+    setActiveUrl(src);
+    setPendingUrl(null);
+    void el.play().catch(() => {});
+  };
 
   useEffect(() => {
-    if (url) lastUrlRef.current = url;
-  }, [url]);
+    if (!url) return;
+    if (!activeUrlRef.current) {
+      // First URL for this item: becomes the visible video right away.
+      setActiveUrl(url);
+      return;
+    }
+    // Same URL again (e.g. reopen) → nothing to do; different → preload.
+    if (url !== activeUrlRef.current && url !== pendingUrl) {
+      pendingPromotedRef.current = false;
+      setPendingUrl(url);
+    }
+  }, [url, pendingUrl]);
+
   // A different item must not replay the previous item's video while its own
   // URL is still loading.
   const prevItemIdRef = useRef(item?.id);
   if (prevItemIdRef.current !== item?.id) {
     prevItemIdRef.current = item?.id;
-    lastUrlRef.current = "";
+    activeUrlRef.current = "";
+    if (activeUrl) {
+      setActiveUrl("");
+      setPendingUrl(null);
+    }
   }
 
   useEffect(() => {
@@ -83,10 +115,10 @@ export default function MediaDetailDialog() {
   }, [rateOpen]);
 
   useEffect(() => {
-    // Resolution switches replace the src; keep the chosen speed applied.
+    // A promoted video is a fresh element; keep the chosen speed applied.
     const el = videoRef.current;
     if (el) el.playbackRate = rate;
-  }, [url, rate]);
+  }, [activeUrl, rate]);
 
   useEffect(() => {
     // Exiting fullscreen animates the top-layer element flying from the
@@ -118,37 +150,41 @@ export default function MediaDetailDialog() {
     return () => document.removeEventListener("pointerdown", onDown);
   }, [qualityOpen, rateOpen]);
 
-  // Any mouse movement shows the control bar and restarts the idle timer; it
-  // hides again after a few seconds while playing, unless a popup (volume /
-  // quality) is open or the volume slider is being dragged. Listening on the
-  // document (not the stage) so wake also works in fullscreen, where WebView2
-  // may route events differently than in normal flow.
+  // Control bar follows mainstream player (YouTube/Bilibili) behavior:
+  // - move inside the player → show, idle ~3s while playing → hide (+cursor)
+  // - paused with the mouse inside → keep visible
+  // - mouse leaves the player → hide shortly (popups/dragging still pin it)
+  // - fullscreen uses the same rules (the stage is the whole screen)
   useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
     let timer: number | null = null;
-    const scheduleHide = () => {
+    const popupsPinned = () =>
+      showVolumeRef.current ||
+      qualityOpenRef.current ||
+      rateOpenRef.current ||
+      volumeDraggingRef.current;
+    const hide = (requirePlaying: boolean, delay: number) => {
       if (timer) window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        if (
-          playingRef.current &&
-          !showVolumeRef.current &&
-          !qualityOpenRef.current &&
-          !rateOpenRef.current &&
-          !volumeDraggingRef.current
-        ) {
-          setControlsVisible(false);
-        }
-      }, CONTROLS_HIDE_DELAY);
+        if (popupsPinned()) return;
+        if (requirePlaying && !playingRef.current) return;
+        setControlsVisible(false);
+      }, delay);
     };
-    const show = () => {
+    const onMove = () => {
       setControlsVisible(true);
-      scheduleHide();
+      hide(true, CONTROLS_HIDE_DELAY);
     };
-    document.addEventListener("mousemove", show);
+    const onLeave = () => hide(false, CONTROLS_LEAVE_HIDE_DELAY);
+    stage.addEventListener("mousemove", onMove);
+    stage.addEventListener("mouseleave", onLeave);
     return () => {
-      document.removeEventListener("mousemove", show);
+      stage.removeEventListener("mousemove", onMove);
+      stage.removeEventListener("mouseleave", onLeave);
       if (timer) window.clearTimeout(timer);
     };
-  }, []);
+  }, [url]);
 
   // Start/pause must also wake the bar (e.g. clicking the video to pause).
   useEffect(() => {
@@ -212,50 +248,83 @@ export default function MediaDetailDialog() {
         aria-labelledby="media-detail-title"
       >
         <div className="media-detail-video">
-          {url || lastUrlRef.current ? (
+          {urlLoading && !activeUrl ? (
+            <LoadingState label="正在获取播放地址…" />
+          ) : activeUrl ? (
             <div
               className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreen ? "is-fullscreen" : ""} ${fsExiting ? "fs-exiting" : ""}`}
               ref={stageRef}
-              onMouseLeave={() => {
-                if (
-                  playingRef.current &&
-                  !showVolumeRef.current &&
-                  !qualityOpenRef.current &&
-                  !rateOpenRef.current &&
-                  !volumeDraggingRef.current
-                ) {
-                  setControlsVisible(false);
-                }
-              }}
             >
               {/* No native controls: WebView2's built-in bar carries an
-                  overflow (three-dot) menu that cannot be disabled. While a
-                  resolution switch refetches the URL, keep the old video
-                  mounted so the stage keeps its size instead of collapsing
-                  into a thin strip and bouncing back. */}
-              <video
-                ref={videoRef}
-                src={url || lastUrlRef.current || undefined}
-                autoPlay
-                playsInline
-                onClick={togglePlay}
-                onPlay={() => setPlaying(true)}
-                onPause={() => setPlaying(false)}
-                onTimeUpdate={(e) =>
-                  setCurrentTime(e.currentTarget.currentTime)
-                }
-                onDurationChange={(e) =>
-                  setDuration(
-                    Number.isFinite(e.currentTarget.duration)
-                      ? e.currentTarget.duration
-                      : 0,
-                  )
-                }
-              />
-              {urlLoading && (
-                <div className="media-video-loading">
-                  <LoadingState label="切换画质中…" />
-                </div>
+                  overflow (three-dot) menu that cannot be disabled. Quality
+                  switches preload the new URL in a hidden sibling video and
+                  promote it once its first frame is ready — swapping src on a
+                  single element drops the picture and flashes. */}
+              {[activeUrl, pendingUrl]
+                .filter((src): src is string => Boolean(src))
+                .map((src, i) => (
+                <video
+                  key={src}
+                  ref={i === 0 ? videoRef : undefined}
+                  className={i === 0 ? undefined : "media-video-preload"}
+                  src={src}
+                  autoPlay={i === 0}
+                  preload={i === 0 ? undefined : "auto"}
+                  playsInline
+                  onClick={i === 0 ? togglePlay : undefined}
+                  onPlay={i === 0 ? () => setPlaying(true) : undefined}
+                  onPause={i === 0 ? () => setPlaying(false) : undefined}
+                  onTimeUpdate={
+                    i === 0
+                      ? (e) => setCurrentTime(e.currentTarget.currentTime)
+                      : undefined
+                  }
+                  onDurationChange={
+                    i === 0
+                      ? (e) =>
+                          setDuration(
+                            Number.isFinite(e.currentTarget.duration)
+                              ? e.currentTarget.duration
+                              : 0,
+                          )
+                      : undefined
+                  }
+                  onCanPlay={
+                    i === 1
+                      ? (e) => {
+                          // First frame decoded. Seek the hidden video to the
+                          // current position first; promote on seeked so the
+                          // reveal never shows an unbuffers/blank frame.
+                          const el = e.currentTarget;
+                          if (pendingPromotedRef.current) return;
+                          el.playbackRate = rate;
+                          el.volume = volume;
+                          el.muted = volume === 0;
+                          const t = videoRef.current?.currentTime ?? 0;
+                          if (Math.abs(el.currentTime - t) < 0.05) {
+                            promotePending(el, src);
+                            return;
+                          }
+                          el.currentTime = t;
+                          // Safety net in case `seeked` never fires.
+                          window.setTimeout(
+                            () => promotePending(el, src),
+                            1500,
+                          );
+                        }
+                      : undefined
+                  }
+                  onSeeked={
+                    i === 1
+                      ? (e) => promotePending(e.currentTarget, src)
+                      : undefined
+                  }
+                />
+              ))}
+              {pendingUrl && (
+                <span className="media-video-switch-hint">
+                  切换至 {resolution}P…
+                </span>
               )}
               {!playing && (
                 <button

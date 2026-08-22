@@ -5533,40 +5533,48 @@ textarea {
 .media-detail-backdrop { z-index: 120; }
 .media-detail-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38); }
 .media-detail-video { position: relative; display: grid; place-items: center; min-height: 280px; background: #08090f; }
-.media-video-loading { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; background: rgba(8, 9, 15, 0.55); }
 .media-detail-video video { display: block; width: 100%; max-height: min(60vh, 560px); background: #08090f; }
+/* Both videos occupy the same grid cell: the preloading one is fully painted
+   UNDER the active one, so promoting it (and unmounting the old) causes no
+   black frame and no layout shift of the controls. */
+.media-video-stage { display: grid; }
+.media-video-stage video { grid-area: 1 / 1; z-index: 1; }
+.media-video-stage video.media-video-preload { z-index: 0; }
+/* Quality-switch hint, floats just above the play/pause button. */
+.media-video-switch-hint { position: absolute; left: 14px; bottom: 66px; z-index: 3; padding: 6px 12px; border-radius: 999px; background: rgba(12, 14, 22, 0.9); color: #fff; font-size: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); pointer-events: none; }
 .media-video-stage { position: relative; width: 100%; }
 .media-video-stage video { cursor: pointer; }
+/* The center pause/play overlay stays visible even when the bar hides
+   (mainstream players keep it as the pause indicator). */
 .media-video-stage.controls-hidden { cursor: none; }
-.media-video-stage.controls-hidden .media-video-controls,
-.media-video-stage.controls-hidden .media-video-center-play { opacity: 0; pointer-events: none; }
+.media-video-stage.controls-hidden .media-video-controls { opacity: 0; pointer-events: none; }
 .media-video-controls { transition: opacity 0.22s ease; }
 .media-video-center-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer; transition: opacity 0.22s ease; }
 .media-video-center-play:hover { background: rgba(0, 0, 0, 0.75); }
-.media-video-controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); color: #fff; }
-.media-video-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.media-video-controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px 12px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); color: #fff; }
+.media-video-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #fff; font: inherit; font-size: 13px; cursor: pointer; }
 .media-video-btn:hover { background: rgba(255, 255, 255, 0.14); }
-.media-video-time { flex: none; color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; }
-.media-video-seek { flex: 1; min-width: 40px; height: 4px; accent-color: #fff; cursor: pointer; }
+.media-video-time { flex: none; color: rgba(255, 255, 255, 0.85); font-size: 12px; font-variant-numeric: tabular-nums; }
+.media-video-seek { flex: 1; min-width: 40px; height: 5px; accent-color: #fff; cursor: pointer; }
 .media-video-volume { position: relative; display: inline-flex; }
 /* Flush against the button (bottom: 28px = button height) with extra bottom
    padding so there is no hover gap between the icon and the vertical bar. */
-.media-video-volume-pop { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 6px; padding: 10px 8px 18px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.media-video-volume-pop { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 12px 10px 20px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
 /* Custom-drawn vertical volume slider (div-based, player style). */
-.media-video-volume-track { position: relative; width: 4px; height: 84px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); cursor: pointer; touch-action: none; }
+.media-video-volume-track { position: relative; width: 5px; height: 100px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); cursor: pointer; touch-action: none; }
 .media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
 .media-video-volume-thumb { position: absolute; left: 50%; width: 10px; height: 10px; transform: translate(-50%, 50%); border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
-.media-video-volume-num { color: rgba(255, 255, 255, 0.85); font-size: 10px; font-variant-numeric: tabular-nums; }
+.media-video-volume-num { color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; }
 .media-video-rate { position: relative; display: inline-flex; }
-.media-video-rate-btn { width: auto; min-width: 36px; padding: 0 6px; font-size: 11px; }
+.media-video-rate-btn { width: auto; min-width: 44px; padding: 0 8px; font-size: 12px; }
 .media-video-rate-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 66px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
-.media-video-rate-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 9px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.8); font: inherit; font-size: 11px; cursor: pointer; }
+.media-video-rate-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 11px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 12px; cursor: pointer; }
 .media-video-rate-menu button:hover { background: rgba(255, 255, 255, 0.12); }
 .media-video-rate-menu button.active { color: #fff; font-weight: 600; }
 .media-video-quality { position: relative; display: inline-flex; }
-.media-video-quality-btn { width: auto; min-width: 40px; padding: 0 6px; font-size: 11px; }
+.media-video-quality-btn { width: auto; min-width: 46px; padding: 0 8px; font-size: 12px; }
 .media-video-quality-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 76px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
-.media-video-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 9px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.8); font: inherit; font-size: 11px; cursor: pointer; }
+.media-video-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 11px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 12px; cursor: pointer; }
 .media-video-quality-menu button:hover { background: rgba(255, 255, 255, 0.12); }
 .media-video-quality-menu button.active { color: #fff; font-weight: 600; }
 .media-video-stage:fullscreen { display: flex; align-items: center; justify-content: center; background: #000; }
