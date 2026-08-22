@@ -5534,6 +5534,35 @@ textarea {
 .media-detail-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38); }
 .media-detail-video { display: grid; place-items: center; min-height: 280px; background: #08090f; }
 .media-detail-video video { display: block; width: 100%; max-height: min(60vh, 560px); background: #08090f; }
+.media-video-stage { position: relative; width: 100%; }
+.media-video-stage video { cursor: pointer; }
+.media-video-stage.controls-hidden { cursor: none; }
+.media-video-stage.controls-hidden .media-video-controls,
+.media-video-stage.controls-hidden .media-video-center-play { opacity: 0; pointer-events: none; }
+.media-video-controls { transition: opacity 0.22s ease; }
+.media-video-center-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer; transition: opacity 0.22s ease; }
+.media-video-center-play:hover { background: rgba(0, 0, 0, 0.75); }
+.media-video-controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); color: #fff; }
+.media-video-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.media-video-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.media-video-rate { width: auto; min-width: 34px; padding: 0 6px; font-size: 11px; }
+.media-video-time { flex: none; color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; }
+.media-video-seek { flex: 1; min-width: 40px; height: 4px; accent-color: #fff; cursor: pointer; }
+.media-video-volume { position: relative; display: inline-flex; }
+.media-video-volume-pop { position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 6px; padding: 10px 8px 8px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+/* Custom-drawn vertical volume slider (div-based, player style). */
+.media-video-volume-track { position: relative; width: 4px; height: 84px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); cursor: pointer; touch-action: none; }
+.media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
+.media-video-volume-thumb { position: absolute; left: 50%; width: 10px; height: 10px; transform: translate(-50%, 50%); border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+.media-video-volume-num { color: rgba(255, 255, 255, 0.85); font-size: 10px; font-variant-numeric: tabular-nums; }
+.media-video-quality { position: relative; display: inline-flex; }
+.media-video-quality-btn { width: auto; min-width: 40px; padding: 0 6px; font-size: 11px; }
+.media-video-quality-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 76px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.media-video-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 9px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.8); font: inherit; font-size: 11px; cursor: pointer; }
+.media-video-quality-menu button:hover { background: rgba(255, 255, 255, 0.12); }
+.media-video-quality-menu button.active { color: #fff; font-weight: 600; }
+.media-video-stage:fullscreen { display: flex; align-items: center; justify-content: center; background: #000; }
+.media-video-stage:fullscreen video { max-height: 100vh; }
 .media-detail-video-empty { display: grid; justify-items: center; gap: 8px; color: var(--text-faint); }
 .media-detail-body { padding: 16px 18px 20px; }
 .media-detail-head { display: flex; align-items: center; gap: 12px; }
