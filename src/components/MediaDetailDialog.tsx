@@ -37,7 +37,6 @@ export default function MediaDetailDialog() {
   const [coverFailed, setCoverFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const hideTimer = useRef<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -47,6 +46,22 @@ export default function MediaDetailDialog() {
   const [qualityOpen, setQualityOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  // Live flags for the hide timer; state values would be stale in the
+  // window.setTimeout closure after rapid interactions.
+  const playingRef = useRef(false);
+  const showVolumeRef = useRef(false);
+  const qualityOpenRef = useRef(false);
+  const volumeDraggingRef = useRef(false);
+
+  useEffect(() => {
+    playingRef.current = playing;
+  }, [playing]);
+  useEffect(() => {
+    showVolumeRef.current = showVolume;
+  }, [showVolume]);
+  useEffect(() => {
+    qualityOpenRef.current = qualityOpen;
+  }, [qualityOpen]);
 
   useEffect(() => {
     // Resolution switches replace the src; keep the chosen speed applied.
@@ -74,35 +89,44 @@ export default function MediaDetailDialog() {
     return () => document.removeEventListener("pointerdown", onDown);
   }, [qualityOpen]);
 
-  // Auto-hide the control bar while playing; any mouse movement brings it
-  // back. Popups (volume / quality) keep it pinned.
+  // Any mouse movement over the stage shows the control bar and restarts the
+  // idle timer; it hides again after a few seconds while playing, unless a
+  // popup (volume / quality) is open or the volume slider is being dragged.
   useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    let timer: number | null = null;
     const scheduleHide = () => {
-      if (hideTimer.current) window.clearTimeout(hideTimer.current);
-      hideTimer.current = window.setTimeout(() => {
-        if (playing && !showVolume && !qualityOpen) setControlsVisible(false);
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (
+          playingRef.current &&
+          !showVolumeRef.current &&
+          !qualityOpenRef.current &&
+          !volumeDraggingRef.current
+        ) {
+          setControlsVisible(false);
+        }
       }, CONTROLS_HIDE_DELAY);
     };
-    setControlsVisible(true);
-    scheduleHide();
-    return () => {
-      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    const show = () => {
+      setControlsVisible(true);
+      scheduleHide();
     };
-  }, [playing, showVolume, qualityOpen]);
+    stage.addEventListener("mousemove", show);
+    return () => {
+      stage.removeEventListener("mousemove", show);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [url]);
+
+  // Start/pause must also wake the bar (e.g. clicking the video to pause).
+  useEffect(() => {
+    setControlsVisible(true);
+  }, [playing]);
 
   if (!item) return null;
   const current = detail ?? item;
-
-  const wakeControls = () => {
-    setControlsVisible(true);
-    if (hideTimer.current) window.clearTimeout(hideTimer.current);
-    if (playing && !showVolume && !qualityOpen) {
-      hideTimer.current = window.setTimeout(
-        () => setControlsVisible(false),
-        CONTROLS_HIDE_DELAY,
-      );
-    }
-  };
 
   const togglePlay = () => {
     const el = videoRef.current;
@@ -170,10 +194,15 @@ export default function MediaDetailDialog() {
             <div
               className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreen ? "is-fullscreen" : ""}`}
               ref={stageRef}
-              onMouseMove={wakeControls}
               onMouseLeave={() => {
-                if (playing && !showVolume && !qualityOpen)
+                if (
+                  playingRef.current &&
+                  !showVolumeRef.current &&
+                  !qualityOpenRef.current &&
+                  !volumeDraggingRef.current
+                ) {
                   setControlsVisible(false);
+                }
               }}
             >
               {/* No native controls: WebView2's built-in bar carries an
@@ -237,13 +266,19 @@ export default function MediaDetailDialog() {
                 <div
                   className="media-video-volume"
                   onMouseEnter={() => setShowVolume(true)}
-                  onMouseLeave={() => setShowVolume(false)}
+                  onMouseLeave={() => {
+                    // Keep the popup while dragging: pointer capture sends the
+                    // events to the slider, but the pointer can leave the
+                    // wrapper's box mid-drag.
+                    if (!volumeDraggingRef.current) setShowVolume(false);
+                  }}
                 >
                   {showVolume && (
                     <div className="media-video-volume-pop">
                       <div
                         className="media-video-volume-track"
                         onPointerDown={(e) => {
+                          volumeDraggingRef.current = true;
                           e.currentTarget.setPointerCapture(e.pointerId);
                           const rect = e.currentTarget.getBoundingClientRect();
                           applyVolume(1 - (e.clientY - rect.top) / rect.height);
@@ -253,6 +288,12 @@ export default function MediaDetailDialog() {
                           const rect =
                             e.currentTarget.getBoundingClientRect();
                           applyVolume(1 - (e.clientY - rect.top) / rect.height);
+                        }}
+                        onPointerUp={() => {
+                          volumeDraggingRef.current = false;
+                        }}
+                        onPointerCancel={() => {
+                          volumeDraggingRef.current = false;
                         }}
                         role="slider"
                         aria-label="音量"
