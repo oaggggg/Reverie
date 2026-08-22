@@ -5577,10 +5577,11 @@ textarea {
 .media-video-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 11px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 12px; cursor: pointer; }
 .media-video-quality-menu button:hover { background: rgba(255, 255, 255, 0.12); }
 .media-video-quality-menu button.active { color: #fff; font-weight: 600; }
-.media-video-stage:fullscreen { display: flex; align-items: center; justify-content: center; background: #000; }
-.media-video-stage:fullscreen video { max-height: 100vh; }
-/* Mask the browser's exit-fullscreen fly-back animation. */
-.media-video-stage.fs-exiting { visibility: hidden; }
+/* Window-fullscreen: a fixed overlay filling the app window (not the monitor).
+   Avoids the Fullscreen API, which makes WebView2/Tauri go borderless on the
+   whole screen and shakes the layout on enter/exit. */
+.media-video-stage.window-fullscreen { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #000; }
+.media-video-stage.window-fullscreen video { max-height: 100vh; }
 .media-detail-video-empty { display: grid; justify-items: center; gap: 8px; color: var(--text-faint); }
 .media-detail-body { padding: 16px 18px 20px; overflow-y: auto; }
 .media-detail-head { display: flex; align-items: center; gap: 12px; }

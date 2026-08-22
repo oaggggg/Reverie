@@ -47,7 +47,6 @@ export default function MediaDetailDialog() {
   const [qualityOpen, setQualityOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [fsExiting, setFsExiting] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   // Live flags for the hide timer; state values would be stale in the
   // window.setTimeout closure after rapid interactions.
@@ -157,23 +156,15 @@ export default function MediaDetailDialog() {
     if (el) el.playbackRate = rate;
   }, [activeUrl, rate]);
 
+  // ESC leaves window-fullscreen, like native players.
   useEffect(() => {
-    // Exiting fullscreen animates the top-layer element flying from the
-    // fullscreen rect back to its normal spot (very visible when the app
-    // window is not maximized). Briefly hide the stage so only a clean
-    // cut remains.
-    const onFsChange = () => {
-      const active = Boolean(document.fullscreenElement);
-      setFullscreen(active);
-      if (!active) {
-        setFsExiting(true);
-        window.setTimeout(() => setFsExiting(false), 300);
-      }
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
     };
-    document.addEventListener("fullscreenchange", onFsChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", onFsChange);
-  }, []);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
 
   // Close the popups (quality / rate) when clicking anywhere outside of them.
   useEffect(() => {
@@ -263,12 +254,12 @@ export default function MediaDetailDialog() {
 
   const toggleMute = () => applyVolume(volume === 0 ? 1 : 0);
 
-  const toggleFullscreen = () => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void stage.requestFullscreen();
-  };
+  // Window-fullscreen (CSS overlay) instead of the Fullscreen API: the API
+  // makes WebView2/Tauri turn the window borderless-fullscreen on the whole
+  // monitor, resizing the viewport and shaking the layout. The overlay fills
+  // exactly the app window — which is what a non-maximized player should do —
+  // with zero viewport change and zero animation artifacts.
+  const toggleFullscreen = () => setFullscreen((f) => !f);
 
   const VolumeIcon =
     volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
@@ -289,7 +280,7 @@ export default function MediaDetailDialog() {
             <LoadingState label="正在获取播放地址…" />
           ) : activeUrl ? (
             <div
-              className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreen ? "is-fullscreen" : ""} ${fsExiting ? "fs-exiting" : ""}`}
+              className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreen ? "window-fullscreen" : ""}`}
               ref={stageRef}
             >
               {/* No native controls: WebView2's built-in bar carries an
