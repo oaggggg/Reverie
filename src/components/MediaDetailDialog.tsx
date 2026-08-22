@@ -45,6 +45,7 @@ export default function MediaDetailDialog() {
   const [showVolume, setShowVolume] = useState(false);
   const [qualityOpen, setQualityOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [fsExiting, setFsExiting] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   // Live flags for the hide timer; state values would be stale in the
   // window.setTimeout closure after rapid interactions.
@@ -52,6 +53,19 @@ export default function MediaDetailDialog() {
   const showVolumeRef = useRef(false);
   const qualityOpenRef = useRef(false);
   const volumeDraggingRef = useRef(false);
+  /** Last playable URL, used to keep the video mounted during a refetch. */
+  const lastUrlRef = useRef("");
+
+  useEffect(() => {
+    if (url) lastUrlRef.current = url;
+  }, [url]);
+  // A different item must not replay the previous item's video while its own
+  // URL is still loading.
+  const prevItemIdRef = useRef(item?.id);
+  if (prevItemIdRef.current !== item?.id) {
+    prevItemIdRef.current = item?.id;
+    lastUrlRef.current = "";
+  }
 
   useEffect(() => {
     playingRef.current = playing;
@@ -70,8 +84,18 @@ export default function MediaDetailDialog() {
   }, [url, rate]);
 
   useEffect(() => {
-    const onFsChange = () =>
-      setFullscreen(Boolean(document.fullscreenElement));
+    // Exiting fullscreen animates the top-layer element flying from the
+    // fullscreen rect back to its normal spot (very visible when the app
+    // window is not maximized). Briefly hide the stage so only a clean
+    // cut remains.
+    const onFsChange = () => {
+      const active = Boolean(document.fullscreenElement);
+      setFullscreen(active);
+      if (!active) {
+        setFsExiting(true);
+        window.setTimeout(() => setFsExiting(false), 300);
+      }
+    };
     document.addEventListener("fullscreenchange", onFsChange);
     return () =>
       document.removeEventListener("fullscreenchange", onFsChange);
@@ -89,12 +113,12 @@ export default function MediaDetailDialog() {
     return () => document.removeEventListener("pointerdown", onDown);
   }, [qualityOpen]);
 
-  // Any mouse movement over the stage shows the control bar and restarts the
-  // idle timer; it hides again after a few seconds while playing, unless a
-  // popup (volume / quality) is open or the volume slider is being dragged.
+  // Any mouse movement shows the control bar and restarts the idle timer; it
+  // hides again after a few seconds while playing, unless a popup (volume /
+  // quality) is open or the volume slider is being dragged. Listening on the
+  // document (not the stage) so wake also works in fullscreen, where WebView2
+  // may route events differently than in normal flow.
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
     let timer: number | null = null;
     const scheduleHide = () => {
       if (timer) window.clearTimeout(timer);
@@ -113,12 +137,12 @@ export default function MediaDetailDialog() {
       setControlsVisible(true);
       scheduleHide();
     };
-    stage.addEventListener("mousemove", show);
+    document.addEventListener("mousemove", show);
     return () => {
-      stage.removeEventListener("mousemove", show);
+      document.removeEventListener("mousemove", show);
       if (timer) window.clearTimeout(timer);
     };
-  }, [url]);
+  }, []);
 
   // Start/pause must also wake the bar (e.g. clicking the video to pause).
   useEffect(() => {
@@ -188,11 +212,9 @@ export default function MediaDetailDialog() {
         aria-labelledby="media-detail-title"
       >
         <div className="media-detail-video">
-          {urlLoading ? (
-            <LoadingState label="正在获取播放地址…" />
-          ) : url ? (
+          {url || lastUrlRef.current ? (
             <div
-              className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreen ? "is-fullscreen" : ""}`}
+              className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreen ? "is-fullscreen" : ""} ${fsExiting ? "fs-exiting" : ""}`}
               ref={stageRef}
               onMouseLeave={() => {
                 if (
@@ -206,10 +228,13 @@ export default function MediaDetailDialog() {
               }}
             >
               {/* No native controls: WebView2's built-in bar carries an
-                  overflow (three-dot) menu that cannot be disabled. */}
+                  overflow (three-dot) menu that cannot be disabled. While a
+                  resolution switch refetches the URL, keep the old video
+                  mounted so the stage keeps its size instead of collapsing
+                  into a thin strip and bouncing back. */}
               <video
                 ref={videoRef}
-                src={url}
+                src={url || lastUrlRef.current || undefined}
                 autoPlay
                 playsInline
                 onClick={togglePlay}
@@ -226,6 +251,11 @@ export default function MediaDetailDialog() {
                   )
                 }
               />
+              {urlLoading && (
+                <div className="media-video-loading">
+                  <LoadingState label="切换画质中…" />
+                </div>
+              )}
               {!playing && (
                 <button
                   className="media-video-center-play"

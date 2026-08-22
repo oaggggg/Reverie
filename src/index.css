@@ -5531,8 +5531,9 @@ textarea {
    without this override the popup sat at 30 and was covered by the player
    bar and drawers. */
 .media-detail-backdrop { z-index: 120; }
-.media-detail-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38); }
-.media-detail-video { display: grid; place-items: center; min-height: 280px; background: #08090f; }
+.media-detail-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38); }
+.media-detail-video { position: relative; display: grid; place-items: center; min-height: 280px; background: #08090f; }
+.media-video-loading { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; background: rgba(8, 9, 15, 0.55); }
 .media-detail-video video { display: block; width: 100%; max-height: min(60vh, 560px); background: #08090f; }
 .media-video-stage { position: relative; width: 100%; }
 .media-video-stage video { cursor: pointer; }
@@ -5565,8 +5566,10 @@ textarea {
 .media-video-quality-menu button.active { color: #fff; font-weight: 600; }
 .media-video-stage:fullscreen { display: flex; align-items: center; justify-content: center; background: #000; }
 .media-video-stage:fullscreen video { max-height: 100vh; }
+/* Mask the browser's exit-fullscreen fly-back animation. */
+.media-video-stage.fs-exiting { visibility: hidden; }
 .media-detail-video-empty { display: grid; justify-items: center; gap: 8px; color: var(--text-faint); }
-.media-detail-body { padding: 16px 18px 20px; }
+.media-detail-body { padding: 16px 18px 20px; overflow-y: auto; }
 .media-detail-head { display: flex; align-items: center; gap: 12px; }
 .media-detail-head > img, .media-detail-cover-placeholder { width: 64px; height: 64px; flex: none; border-radius: 7px; object-fit: cover; }
 .media-detail-cover-placeholder { display: grid; place-items: center; background: var(--bg-3); color: var(--text-faint); }
@@ -5578,10 +5581,10 @@ textarea {
 .segmented-control { display: inline-flex; padding: 2px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-2); }
 .segmented-control button { padding: 5px 9px; border: 0; border-radius: 5px; background: transparent; color: var(--text-faint); font: inherit; font-size: 11px; cursor: pointer; }
 .segmented-control button.active { background: var(--accent); color: #fff; }
-.media-detail-description { margin: 0; color: var(--text-2); font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+.media-detail-description { margin: 0; color: var(--text); font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
 .media-detail-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .media-detail-tags span { padding: 3px 7px; border-radius: 4px; background: var(--bg-3); color: var(--text-faint); font-size: 10px; }
-.media-detail-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; color: var(--text-dim); font-size: 11px; }
+.media-detail-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; color: var(--text-2); font-size: 11px; }
 @media (max-width: 700px) {
   .media-detail-dialog { width: calc(100vw - 16px); max-height: calc(100vh - 16px); }
 }
