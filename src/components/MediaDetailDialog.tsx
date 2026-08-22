@@ -44,6 +44,7 @@ export default function MediaDetailDialog() {
   const [volume, setVolume] = useState(1);
   const [showVolume, setShowVolume] = useState(false);
   const [qualityOpen, setQualityOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [fsExiting, setFsExiting] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -52,6 +53,7 @@ export default function MediaDetailDialog() {
   const playingRef = useRef(false);
   const showVolumeRef = useRef(false);
   const qualityOpenRef = useRef(false);
+  const rateOpenRef = useRef(false);
   const volumeDraggingRef = useRef(false);
   /** Last playable URL, used to keep the video mounted during a refetch. */
   const lastUrlRef = useRef("");
@@ -76,6 +78,9 @@ export default function MediaDetailDialog() {
   useEffect(() => {
     qualityOpenRef.current = qualityOpen;
   }, [qualityOpen]);
+  useEffect(() => {
+    rateOpenRef.current = rateOpen;
+  }, [rateOpen]);
 
   useEffect(() => {
     // Resolution switches replace the src; keep the chosen speed applied.
@@ -101,17 +106,17 @@ export default function MediaDetailDialog() {
       document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
 
-  // Close the quality menu when clicking anywhere outside of it.
+  // Close the popups (quality / rate) when clicking anywhere outside of them.
   useEffect(() => {
-    if (!qualityOpen) return;
+    if (!qualityOpen && !rateOpen) return;
     const onDown = (e: PointerEvent) => {
-      if (!(e.target as HTMLElement | null)?.closest(".media-video-quality")) {
-        setQualityOpen(false);
-      }
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest(".media-video-quality")) setQualityOpen(false);
+      if (!target?.closest(".media-video-rate")) setRateOpen(false);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
-  }, [qualityOpen]);
+  }, [qualityOpen, rateOpen]);
 
   // Any mouse movement shows the control bar and restarts the idle timer; it
   // hides again after a few seconds while playing, unless a popup (volume /
@@ -127,6 +132,7 @@ export default function MediaDetailDialog() {
           playingRef.current &&
           !showVolumeRef.current &&
           !qualityOpenRef.current &&
+          !rateOpenRef.current &&
           !volumeDraggingRef.current
         ) {
           setControlsVisible(false);
@@ -159,16 +165,10 @@ export default function MediaDetailDialog() {
     else el.pause();
   };
 
-  const cycleRate = () => {
-    setRate((r) => {
-      const next =
-        PLAYBACK_RATES[
-          (PLAYBACK_RATES.indexOf(r) + 1) % PLAYBACK_RATES.length
-        ];
-      const el = videoRef.current;
-      if (el) el.playbackRate = next;
-      return next;
-    });
+  const setRateTo = (value: number) => {
+    setRate(value);
+    const el = videoRef.current;
+    if (el) el.playbackRate = value;
   };
 
   const seekTo = (value: number) => {
@@ -221,6 +221,7 @@ export default function MediaDetailDialog() {
                   playingRef.current &&
                   !showVolumeRef.current &&
                   !qualityOpenRef.current &&
+                  !rateOpenRef.current &&
                   !volumeDraggingRef.current
                 ) {
                   setControlsVisible(false);
@@ -353,13 +354,33 @@ export default function MediaDetailDialog() {
                     <VolumeIcon size={16} />
                   </button>
                 </div>
-                <button
-                  className="media-video-btn media-video-rate"
-                  title="播放速度"
-                  onClick={cycleRate}
-                >
-                  {rate}×
-                </button>
+                <div className="media-video-rate">
+                  {rateOpen && (
+                    <div className="media-video-rate-menu">
+                      {PLAYBACK_RATES.slice()
+                        .reverse()
+                        .map((value) => (
+                          <button
+                            key={value}
+                            className={rate === value ? "active" : ""}
+                            onClick={() => {
+                              setRateOpen(false);
+                              setRateTo(value);
+                            }}
+                          >
+                            {value}×{rate === value ? " ✓" : ""}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                  <button
+                    className="media-video-btn media-video-rate-btn"
+                    title="播放速度"
+                    onClick={() => setRateOpen((open) => !open)}
+                  >
+                    {rate}×
+                  </button>
+                </div>
                 <div className="media-video-quality">
                   {qualityOpen && (
                     <div className="media-video-quality-menu">

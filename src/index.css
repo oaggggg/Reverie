@@ -5546,7 +5546,6 @@ textarea {
 .media-video-controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); color: #fff; }
 .media-video-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
 .media-video-btn:hover { background: rgba(255, 255, 255, 0.14); }
-.media-video-rate { width: auto; min-width: 34px; padding: 0 6px; font-size: 11px; }
 .media-video-time { flex: none; color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; }
 .media-video-seek { flex: 1; min-width: 40px; height: 4px; accent-color: #fff; cursor: pointer; }
 .media-video-volume { position: relative; display: inline-flex; }
@@ -5558,6 +5557,12 @@ textarea {
 .media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
 .media-video-volume-thumb { position: absolute; left: 50%; width: 10px; height: 10px; transform: translate(-50%, 50%); border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
 .media-video-volume-num { color: rgba(255, 255, 255, 0.85); font-size: 10px; font-variant-numeric: tabular-nums; }
+.media-video-rate { position: relative; display: inline-flex; }
+.media-video-rate-btn { width: auto; min-width: 36px; padding: 0 6px; font-size: 11px; }
+.media-video-rate-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 66px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.media-video-rate-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 9px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.8); font: inherit; font-size: 11px; cursor: pointer; }
+.media-video-rate-menu button:hover { background: rgba(255, 255, 255, 0.12); }
+.media-video-rate-menu button.active { color: #fff; font-weight: 600; }
 .media-video-quality { position: relative; display: inline-flex; }
 .media-video-quality-btn { width: auto; min-width: 40px; padding: 0 6px; font-size: 11px; }
 .media-video-quality-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 76px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
