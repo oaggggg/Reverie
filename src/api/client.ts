@@ -8,6 +8,7 @@ import type {
   QrKeyResponse,
   SearchResponse,
   Song,
+  PlaybackQuality,
   SongDetailResponse,
   SongUrlResponse,
   UserProfile,
@@ -297,7 +298,7 @@ const SONG_URL_CACHE_TTL = 30 * 60 * 1000;
 
 export async function getSongUrl(
   id: number,
-  level: "standard" | "higher" | "exhigh" | "lossless" = "exhigh",
+  level: PlaybackQuality = "exhigh",
 ): Promise<{ url: string | null; br: number }> {
   const key = cacheKey("/song/url/v1", { id, level });
   const hit = responseCache.get(key);
@@ -324,7 +325,7 @@ export async function getSongUrl(
 
 export async function getSongDownloadUrl(
   id: number,
-  level: "standard" | "higher" | "exhigh" | "lossless" = "exhigh",
+  level: PlaybackQuality = "exhigh",
 ): Promise<{ url: string | null; br: number }> {
   const response = await request<{
     data?: { url?: string; br?: number };

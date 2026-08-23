@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
-import { usePlayerStore } from "../store/playerStore";
+import {
+  PLAYBACK_QUALITY_LABELS,
+  usePlayerStore,
+} from "../store/playerStore";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
@@ -21,6 +24,7 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
+  AudioLines,
 } from "lucide-react";
 
 const MODE_LABEL: Record<PlayMode, string> = {
@@ -35,11 +39,24 @@ function ModeIcon({ mode }: { mode: PlayMode }) {
   return <ListMusic size={18} />;
 }
 
+function qualityShortLabel(quality: keyof typeof PLAYBACK_QUALITY_LABELS) {
+  return {
+    standard: "128k",
+    higher: "192k",
+    exhigh: "320k",
+    lossless: "无损",
+    hires: "Hi-Res",
+    jyeffect: "环绕",
+    jymaster: "母带",
+  }[quality];
+}
+
 export default function PlayerBar() {
   const [failedCover, setFailedCover] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
+  const [qualityOpen, setQualityOpen] = useState(false);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const playing = usePlayerStore((s) => s.playing);
   const loadingUrl = usePlayerStore((s) => s.loadingUrl);
@@ -52,6 +69,7 @@ export default function PlayerBar() {
   const queueSource = usePlayerStore((s) => s.queueSource);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
+  const playbackQuality = usePlayerStore((s) => s.playbackQuality);
 
   const togglePlay = usePlayerStore((s) => s.togglePlay);
   const next = usePlayerStore((s) => s.next);
@@ -66,6 +84,7 @@ export default function PlayerBar() {
   const setShowPlayerComments = usePlayerStore((s) => s.setShowPlayerComments);
   const toast = usePlayerStore((s) => s.toast);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
+  const setPlaybackQuality = usePlayerStore((s) => s.setPlaybackQuality);
 
   useEffect(() => {
     let alive = true;
@@ -183,6 +202,43 @@ export default function PlayerBar() {
           >
             <Radio size={17} />
           </button>
+          <div className="pb-quality-wrap">
+            <button
+              className={`pb-quality-btn ${qualityOpen ? "active" : ""}`}
+              onClick={() => setQualityOpen((open) => !open)}
+              title="官方音质"
+              aria-haspopup="menu"
+              aria-expanded={qualityOpen}
+            >
+              <AudioLines size={16} />
+              <span>{qualityShortLabel(playbackQuality)}</span>
+            </button>
+            {qualityOpen && (
+              <div className="pb-quality-menu" role="menu">
+                {(
+                  Object.keys(PLAYBACK_QUALITY_LABELS) as Array<
+                    keyof typeof PLAYBACK_QUALITY_LABELS
+                  >
+                ).map((quality) => (
+                  <button
+                    key={quality}
+                    className={quality === playbackQuality ? "active" : ""}
+                    role="menuitemradio"
+                    aria-checked={quality === playbackQuality}
+                    onClick={() => {
+                      setQualityOpen(false);
+                      void setPlaybackQuality(quality);
+                    }}
+                  >
+                    <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
+                    {quality === playbackQuality && (
+                      <span aria-hidden="true">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             className={`icon-btn ${showPlayerComments ? "active" : ""}`}
             onPointerEnter={() => void import("./PlayerCommentsDrawer")}

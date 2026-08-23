@@ -22,6 +22,7 @@ import {
 } from "../api/client";
 import type {
   LyricLine,
+  PlaybackQuality,
   PlaylistInfo,
   PlayMode,
   Song,
@@ -60,6 +61,26 @@ export type ThemePreference = "system" | "light" | "dark";
 
 /** Where the current queue came from; "fm" keeps roaming auto-advancing. */
 export type QueueSource = "list" | "fm";
+
+export const PLAYBACK_QUALITY_LABELS: Record<PlaybackQuality, string> = {
+  standard: "标准 128k",
+  higher: "较高 192k",
+  exhigh: "极高 320k",
+  lossless: "无损 FLAC",
+  hires: "Hi-Res 无损",
+  jyeffect: "沉浸环绕声",
+  jymaster: "超清母带",
+};
+
+const PLAYBACK_QUALITY_LEVELS: PlaybackQuality[] = [
+  "standard",
+  "higher",
+  "exhigh",
+  "lossless",
+  "hires",
+  "jyeffect",
+  "jymaster",
+];
 
 const COVER_QUALITY_KEY = "reverie_cover_quality";
 const COVER_BENCH_KEY = "reverie_cover_benchmarked";
@@ -198,6 +219,13 @@ function readPlayMode(): PlayMode {
   const v = readStr("reverie_playmode", "sequence");
   // "loop" existed in older builds but was never reachable from the UI.
   return v === "one" || v === "shuffle" ? v : "sequence";
+}
+
+function readPlaybackQuality(): PlaybackQuality {
+  const value = readStr("reverie_playback_quality", "exhigh");
+  return PLAYBACK_QUALITY_LEVELS.includes(value as PlaybackQuality)
+    ? (value as PlaybackQuality)
+    : "exhigh";
 }
 
 const LIKED_AT_KEY = "reverie_liked_at";
@@ -390,14 +418,19 @@ interface PlayerState {
 
   // --- audio ---
   audioEl: HTMLAudioElement | null;
+  activeAudio: 0 | 1;
   currentSong: Song | null;
   currentUrl: string | null;
+  preloadedSongId: number | null;
+  preloadedUrl: string | null;
+  pendingSeek: number | null;
   loadingUrl: boolean;
   playing: boolean;
   progress: number;
   duration: number;
   volume: number;
   muted: boolean;
+  playbackQuality: PlaybackQuality;
   playMode: PlayMode;
 
   // --- queue ---
@@ -477,6 +510,13 @@ interface PlayerState {
   setVolume: (v: number) => void;
   toggleMute: () => void;
   setPlayMode: (m: PlayMode) => void;
+  setPlaybackQuality: (quality: PlaybackQuality) => Promise<void>;
+  commitPreloaded: (
+    song: Song,
+    queue: Song[],
+    source: QueueSource,
+    url: string,
+  ) => void;
   cyclePlayMode: () => void;
   setShowTranslation: (v: boolean) => void;
   loadLyrics: (song: Song) => Promise<void>;
@@ -509,7 +549,16 @@ interface PlayerState {
   loadUserPlaylists: () => Promise<void>;
   openPlaylist: (id: number, name: string) => Promise<void>;
   closePlaylist: () => void;
-  playSong: (song: Song, queue?: Song[], source?: QueueSource) => Promise<void>;
+  playSong: (
+    song: Song,
+    queue?: Song[],
+    source?: QueueSource,
+    options?: {
+      quality?: PlaybackQuality;
+      startAt?: number;
+      autoplay?: boolean;
+    },
+  ) => Promise<void>;
   failCurrent: (message: string) => void;
   notePlaybackOk: () => void;
   playQueueAt: (i: number) => Promise<void>;
@@ -527,13 +576,22 @@ interface PlayerState {
   refreshLogin: () => Promise<void>;
 }
 
-async function resolveUrl(song: Song): Promise<string | null> {
+async function resolveUrl(
+  song: Song,
+  preferredQuality: PlaybackQuality,
+): Promise<string | null> {
   // VIP songs without login fail on every level; only try standard once to stay fast.
   const loggedIn = usePlayerStore.getState().loggedIn;
+  const requestedLevels: PlaybackQuality[] =
+    preferredQuality === "standard"
+      ? ["standard"]
+      : preferredQuality === "higher"
+        ? ["higher", "standard"]
+        : preferredQuality === "exhigh"
+          ? ["exhigh", "higher", "standard"]
+          : [preferredQuality, "lossless", "exhigh", "higher", "standard"];
   const levels =
-    song.fee === 1 && !loggedIn
-      ? (["standard"] as const)
-      : (["exhigh", "higher", "standard"] as const);
+    song.fee === 1 && !loggedIn ? (["standard"] as const) : requestedLevels;
   for (const level of levels) {
     try {
       const { url } = await getSongUrl(song.id, level);
@@ -567,12 +625,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   audioEl: null,
   currentSong: restoredSession.currentSong,
   currentUrl: null,
+  activeAudio: 0,
+  preloadedSongId: null,
+  preloadedUrl: null,
+  pendingSeek: null,
   loadingUrl: false,
   playing: false,
   progress: 0,
   duration: restoredSession.currentSong?.duration ?? 0,
   volume: readNum("reverie_volume", 0.9),
   muted: false,
+  playbackQuality: readPlaybackQuality(),
   playMode: readPlayMode(),
 
   // --- queue ---
@@ -656,7 +719,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     el.volume = muted ? 0 : volume;
     set({ audioEl: el });
   },
-
   // --- playback ---
   togglePlay: () => {
     const { playing, currentUrl, currentSong, queue, queueSource } = get();
@@ -722,6 +784,70 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setPlayMode: (m) => {
     set({ playMode: m });
     write("reverie_playmode", m);
+  },
+  setPlaybackQuality: async (quality) => {
+    if (get().playbackQuality === quality) return;
+    set({
+      playbackQuality: quality,
+      preloadedSongId: null,
+      preloadedUrl: null,
+    });
+    write("reverie_playback_quality", quality);
+    const { currentSong, queue, queueSource, playing, progress } = get();
+    if (currentSong)
+      await get().playSong(currentSong, queue, queueSource, {
+        autoplay: playing,
+        quality,
+        startAt: progress,
+      });
+  },
+  commitPreloaded: (song, queue, source, url) => {
+    const state = get();
+    const index = queue.findIndex((item) => item.id === song.id);
+    if (
+      index < 0 ||
+      state.preloadedSongId !== song.id ||
+      state.preloadedUrl !== url
+    )
+      return;
+    set({
+      queue,
+      index,
+      queueSource: source,
+      currentSong: song,
+      currentUrl: url,
+      preloadedSongId: null,
+      preloadedUrl: null,
+      loadingUrl: false,
+      playing: true,
+      progress: 0,
+      duration: song.duration || 0,
+      activeAudio: state.activeAudio === 0 ? 1 : 0,
+    });
+    writeSession({ queue, index, currentSong: song });
+    get().loadLyrics(song);
+    get().trackRecent(song);
+
+    let nextIndex = index + 1;
+    if (state.playMode === "shuffle" && queue.length > 1) {
+      nextIndex = Math.floor(Math.random() * queue.length);
+      if (nextIndex === index) nextIndex = (index + 1) % queue.length;
+    }
+    const nextSong = queue[nextIndex];
+    if (nextSong && nextSong.id !== song.id) {
+      void resolveUrl(nextSong, state.playbackQuality)
+        .then((nextUrl) => {
+          const latest = get();
+          if (
+            latest.currentSong?.id === song.id &&
+            latest.currentUrl === url &&
+            nextUrl
+          ) {
+            set({ preloadedSongId: nextSong.id, preloadedUrl: nextUrl });
+          }
+        })
+        .catch(() => {});
+    }
   },
   cyclePlayMode: () => {
     const order: PlayMode[] = ["sequence", "one", "shuffle"];
@@ -1222,8 +1348,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
 
   // --- core play ---
-  playSong: async (song, queue, source) => {
+  playSong: async (song, queue, source, options) => {
     const st = get();
+    const quality = options?.quality ?? st.playbackQuality;
+    const autoplay = options?.autoplay ?? true;
     const activeSource = source ?? (queue ? "list" : st.queueSource);
     let targetQueue = queue;
     let targetIndex = queue
@@ -1247,8 +1375,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       index: targetIndex,
       queueSource: source ?? (queue ? "list" : st.queueSource),
       currentSong: song,
+      currentUrl: null,
+      preloadedSongId: null,
+      preloadedUrl: null,
+      pendingSeek: options?.startAt ?? null,
       loadingUrl: true,
-      playing: false,
+      playing: autoplay,
       progress: 0,
       duration: song.duration || 0,
     });
@@ -1277,7 +1409,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     get().loadLyrics(song);
     get().trackRecent(song);
 
-    const url = await resolveUrl(song);
+    const url = await resolveUrl(song, quality);
     // A newer play request started while this url was resolving: drop this one
     // instead of playing a song the user already moved on from.
     if (token !== playToken) return;
@@ -1290,7 +1422,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       );
       return;
     }
-    set({ currentUrl: url, loadingUrl: false, playing: true });
+    set({ currentUrl: url, loadingUrl: false, playing: autoplay });
 
     // Prefetch the next track's URL while the current one plays; it lands in
     // the song-url cache and makes the next playSong near-instant.
@@ -1305,7 +1437,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
     const nextSong = nextIdx >= 0 ? state.queue[nextIdx] : null;
     if (nextSong && nextSong.id !== song.id) {
-      void resolveUrl(nextSong).catch(() => {});
+      void resolveUrl(nextSong, quality)
+        .then((nextUrl) => {
+          const latest = get();
+          if (
+            token === playToken &&
+            latest.currentSong?.id === song.id &&
+            nextUrl
+          ) {
+            set({ preloadedSongId: nextSong.id, preloadedUrl: nextUrl });
+          }
+        })
+        .catch(() => {});
     }
   },
   /**

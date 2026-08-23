@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, type SyntheticEvent } from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { ensureAnalyser, resumeAnalyser } from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
@@ -67,8 +67,13 @@ const UpdateModal = lazy(() => import("./components/UpdateModal"));
 
 export default function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const preloadAudioRef = useRef<HTMLAudioElement>(null);
 
   const currentUrl = usePlayerStore((s) => s.currentUrl);
+  const preloadedUrl = usePlayerStore((s) => s.preloadedUrl);
+  const preloadedSongId = usePlayerStore((s) => s.preloadedSongId);
+  const activeAudio = usePlayerStore((s) => s.activeAudio);
+  const pendingSeek = usePlayerStore((s) => s.pendingSeek);
   const playing = usePlayerStore((s) => s.playing);
   const theme = usePlayerStore((s) => s.theme);
   const setAudioEl = usePlayerStore((s) => s.setAudioEl);
@@ -106,8 +111,10 @@ export default function App() {
 
   // register audio element
   useEffect(() => {
-    if (audioRef.current) setAudioEl(audioRef.current);
-  }, [setAudioEl]);
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    if (active) setAudioEl(active);
+  }, [activeAudio, setAudioEl]);
 
   // 禁用播放器内的鼠标右键菜单
   useEffect(() => {
@@ -159,7 +166,7 @@ export default function App() {
   // when that effect is picked, and fall back if Web Audio is unavailable.
   useEffect(() => {
     if (particleEffect !== "audio") return;
-    const el = audioRef.current;
+    const el = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!el) return;
     const st = usePlayerStore.getState();
     if (ensureAnalyser(el)) {
@@ -168,7 +175,7 @@ export default function App() {
       st.toast("当前环境不支持音频分析，已切换为波动效果", "error");
       st.setParticleEffect("wave");
     }
-  }, [particleEffect]);
+  }, [activeAudio, particleEffect]);
 
   // Subscribe before starting the packaged-build update check so no event is lost.
   useEffect(() => {
@@ -280,38 +287,56 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // set src + play on url change
+  // Keep the active decoder attached to the current URL. When a preloaded
+  // decoder is promoted, its existing buffer is reused instead of reloading.
   useEffect(() => {
-    const a = audioRef.current;
+    const a = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!a) return;
-    // Explicitly detach the previous media resource before assigning a new
-    // URL. WebView2 can otherwise keep the old decoder/buffer alive while
-    // the next track is loading.
-    a.pause();
-    a.removeAttribute("src");
-    a.load();
-    if (currentUrl) {
+    if (!currentUrl) {
+      a.pause();
+      a.removeAttribute("src");
+      a.load();
+      a.currentTime = 0;
+    } else if (a.getAttribute("src") !== currentUrl) {
+      a.pause();
       a.src = currentUrl;
       a.load();
-      a.play().catch(() => {});
-    } else {
-      a.currentTime = 0;
     }
-  }, [currentUrl]);
+    if (currentUrl && playing) a.play().catch(() => {});
+  }, [activeAudio, currentUrl, playing]);
+
+  // Fill the inactive decoder while the current track plays. The URL comes
+  // directly from Netease's official song URL endpoint.
+  useEffect(() => {
+    const a = activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
+    if (!a) return;
+    if (!preloadedUrl) {
+      a.pause();
+      a.removeAttribute("src");
+      a.load();
+      return;
+    }
+    if (a.getAttribute("src") !== preloadedUrl) {
+      a.pause();
+      a.src = preloadedUrl;
+      a.load();
+    }
+  }, [activeAudio, preloadedUrl]);
 
   // react to play/pause toggle
   useEffect(() => {
-    const a = audioRef.current;
+    const a = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!a || !currentUrl) return;
     if (playing) a.play().catch(() => {});
     else a.pause();
-  }, [playing, currentUrl]);
+  }, [activeAudio, playing, currentUrl]);
 
   // `timeupdate` only fires a few times per second in WebView. Sample the
   // actual audio clock at 30 fps while playing so the progress bar and lyrics
   // move continuously without forcing the whole app to render at 60 fps.
   useEffect(() => {
-    const audio = audioRef.current;
+    const audio =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!audio || !playing || !currentUrl) return;
     let frame = 0;
     let lastPaint = 0;
@@ -334,7 +359,7 @@ export default function App() {
     };
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
-  }, [playing, currentUrl]);
+  }, [activeAudio, playing, currentUrl]);
 
   const handleEnded = () => {
     const st = usePlayerStore.getState();
@@ -354,14 +379,75 @@ export default function App() {
     }
     if (mode === "one") {
       st.seek(0);
-      audioRef.current?.play().catch(() => {});
+      const active =
+        activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+      active?.play().catch(() => {});
       return;
     }
     if (mode === "sequence" && index >= queue.length - 1) {
       usePlayerStore.setState({ playing: false });
       return;
     }
-    next();
+    let nextIndex = index + 1;
+    if (mode === "shuffle" && queue.length > 1) {
+      nextIndex = Math.floor(Math.random() * queue.length);
+      if (nextIndex === index) nextIndex = (index + 1) % queue.length;
+    }
+    const nextSong =
+      mode === "shuffle" && preloadedSongId
+        ? queue.find((song) => song.id === preloadedSongId)
+        : queue[nextIndex];
+    if (nextSong && preloadedSongId === nextSong.id && preloadedUrl) {
+      st.commitPreloaded(nextSong, queue, queueSource, preloadedUrl);
+    } else {
+      next();
+    }
+  };
+
+  const handleAudioTimeUpdate = (event: SyntheticEvent<HTMLAudioElement>) => {
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    if (event.currentTarget !== active) return;
+    const el = event.currentTarget;
+    usePlayerStore.setState({
+      progress: Math.floor(el.currentTime * 1000),
+      duration: Number.isFinite(el.duration)
+        ? Math.floor(el.duration * 1000)
+        : 0,
+    });
+  };
+
+  const handleAudioMetadata = (event: SyntheticEvent<HTMLAudioElement>) => {
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    if (event.currentTarget !== active) return;
+    const el = event.currentTarget;
+    if (pendingSeek !== null && Number.isFinite(el.duration)) {
+      el.currentTime = Math.min(el.duration, Math.max(0, pendingSeek / 1000));
+      usePlayerStore.setState({
+        pendingSeek: null,
+        progress: el.currentTime * 1000,
+      });
+    }
+    if (Number.isFinite(el.duration)) {
+      usePlayerStore.setState({ duration: Math.floor(el.duration * 1000) });
+    }
+  };
+
+  const handleAudioPlaying = (event: SyntheticEvent<HTMLAudioElement>) => {
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    if (event.currentTarget !== active) return;
+    usePlayerStore.getState().notePlaybackOk();
+    resumeAnalyser();
+  };
+
+  const handleAudioError = (event: SyntheticEvent<HTMLAudioElement>) => {
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    if (event.currentTarget !== active) return;
+    usePlayerStore.setState({ playing: false });
+    usePlayerStore.getState().failCurrent("音频加载失败");
   };
 
   const renderPage = () => {
@@ -489,35 +575,24 @@ export default function App() {
 
       <audio
         ref={audioRef}
-        // Required for the spectrum analyser: without it the Web Audio graph
-        // is fed a CORS-tainted source and is specified to emit silence.
+        preload="auto"
         crossOrigin="anonymous"
-        onTimeUpdate={(e) => {
-          const el = e.currentTarget;
-          usePlayerStore.setState({
-            progress: Math.floor(el.currentTime * 1000),
-            duration: Number.isFinite(el.duration)
-              ? Math.floor(el.duration * 1000)
-              : 0,
-          });
-        }}
-        onLoadedMetadata={(e) => {
-          const el = e.currentTarget;
-          if (Number.isFinite(el.duration)) {
-            usePlayerStore.setState({
-              duration: Math.floor(el.duration * 1000),
-            });
-          }
-        }}
+        onTimeUpdate={handleAudioTimeUpdate}
+        onLoadedMetadata={handleAudioMetadata}
         onEnded={handleEnded}
-        onPlaying={() => {
-          usePlayerStore.getState().notePlaybackOk();
-          resumeAnalyser();
-        }}
-        onError={() => {
-          usePlayerStore.setState({ playing: false });
-          usePlayerStore.getState().failCurrent("音频加载失败");
-        }}
+        onPlaying={handleAudioPlaying}
+        onError={handleAudioError}
+        style={{ display: "none" }}
+      />
+      <audio
+        ref={preloadAudioRef}
+        preload="auto"
+        crossOrigin="anonymous"
+        onTimeUpdate={handleAudioTimeUpdate}
+        onLoadedMetadata={handleAudioMetadata}
+        onEnded={handleEnded}
+        onPlaying={handleAudioPlaying}
+        onError={handleAudioError}
         style={{ display: "none" }}
       />
     </div>

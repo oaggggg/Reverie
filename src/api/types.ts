@@ -17,6 +17,16 @@ export interface Song {
   programId?: number;
 }
 
+/** Official Netease Cloud Music playback quality levels. */
+export type PlaybackQuality =
+  | "standard"
+  | "higher"
+  | "exhigh"
+  | "lossless"
+  | "hires"
+  | "jyeffect"
+  | "jymaster";
+
 export interface LyricLine {
   time: number;
   text: string;
