@@ -24,7 +24,6 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
-  AudioLines,
 } from "lucide-react";
 
 const MODE_LABEL: Record<PlayMode, string> = {
@@ -37,18 +36,6 @@ function ModeIcon({ mode }: { mode: PlayMode }) {
   if (mode === "shuffle") return <Shuffle size={18} />;
   if (mode === "one") return <Repeat1 size={18} />;
   return <ListMusic size={18} />;
-}
-
-function qualityShortLabel(quality: keyof typeof PLAYBACK_QUALITY_LABELS) {
-  return {
-    standard: "128k",
-    higher: "192k",
-    exhigh: "320k",
-    lossless: "无损",
-    hires: "Hi-Res",
-    jyeffect: "环绕",
-    jymaster: "母带",
-  }[quality];
 }
 
 export default function PlayerBar() {
@@ -70,6 +57,7 @@ export default function PlayerBar() {
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
   const playbackQuality = usePlayerStore((s) => s.playbackQuality);
+  const qualitySwitching = usePlayerStore((s) => s.qualitySwitching);
 
   const togglePlay = usePlayerStore((s) => s.togglePlay);
   const next = usePlayerStore((s) => s.next);
@@ -206,12 +194,12 @@ export default function PlayerBar() {
             <button
               className={`pb-quality-btn ${qualityOpen ? "active" : ""}`}
               onClick={() => setQualityOpen((open) => !open)}
-              title="官方音质"
+              title="音质"
               aria-haspopup="menu"
               aria-expanded={qualityOpen}
+              aria-busy={qualitySwitching}
             >
-              <AudioLines size={16} />
-              <span>{qualityShortLabel(playbackQuality)}</span>
+              <span>音质</span>
             </button>
             {qualityOpen && (
               <div className="pb-quality-menu" role="menu">

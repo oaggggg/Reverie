@@ -71,12 +71,16 @@ export default function App() {
 
   const currentUrl = usePlayerStore((s) => s.currentUrl);
   const preloadedUrl = usePlayerStore((s) => s.preloadedUrl);
+  const qualitySwitchUrl = usePlayerStore((s) => s.qualitySwitchUrl);
+  const qualitySwitchQuality = usePlayerStore((s) => s.qualitySwitchQuality);
   const preloadedSongId = usePlayerStore((s) => s.preloadedSongId);
   const activeAudio = usePlayerStore((s) => s.activeAudio);
   const pendingSeek = usePlayerStore((s) => s.pendingSeek);
   const playing = usePlayerStore((s) => s.playing);
   const theme = usePlayerStore((s) => s.theme);
   const setAudioEl = usePlayerStore((s) => s.setAudioEl);
+  const commitQualitySwitch = usePlayerStore((s) => s.commitQualitySwitch);
+  const cancelQualitySwitch = usePlayerStore((s) => s.cancelQualitySwitch);
 
   const activeView = usePlayerStore((s) => s.activeView);
   const currentPage = usePlayerStore((s) => s.currentPage);
@@ -310,18 +314,19 @@ export default function App() {
   useEffect(() => {
     const a = activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
     if (!a) return;
-    if (!preloadedUrl) {
+    const targetUrl = qualitySwitchUrl ?? preloadedUrl;
+    if (!targetUrl) {
       a.pause();
       a.removeAttribute("src");
       a.load();
       return;
     }
-    if (a.getAttribute("src") !== preloadedUrl) {
+    if (a.getAttribute("src") !== targetUrl) {
       a.pause();
-      a.src = preloadedUrl;
+      a.src = targetUrl;
       a.load();
     }
-  }, [activeAudio, preloadedUrl]);
+  }, [activeAudio, preloadedUrl, qualitySwitchUrl]);
 
   // react to play/pause toggle
   useEffect(() => {
@@ -442,9 +447,34 @@ export default function App() {
     resumeAnalyser();
   };
 
+  const handleAudioCanPlay = (event: SyntheticEvent<HTMLAudioElement>) => {
+    const inactive =
+      activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
+    if (
+      event.currentTarget !== inactive ||
+      !qualitySwitchUrl ||
+      !qualitySwitchQuality
+    )
+      return;
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    const position = active ? Math.max(0, active.currentTime * 1000) : 0;
+    inactive.currentTime = position / 1000;
+    active?.pause();
+    if (usePlayerStore.getState().playing) void inactive.play().catch(() => {});
+    commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
+  };
+
   const handleAudioError = (event: SyntheticEvent<HTMLAudioElement>) => {
     const active =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    const inactive =
+      activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
+    if (event.currentTarget === inactive && qualitySwitchUrl) {
+      cancelQualitySwitch();
+      usePlayerStore.getState().toast("该音质暂时不可用，已保留原音质", "info");
+      return;
+    }
     if (event.currentTarget !== active) return;
     usePlayerStore.setState({ playing: false });
     usePlayerStore.getState().failCurrent("音频加载失败");
@@ -579,6 +609,7 @@ export default function App() {
         crossOrigin="anonymous"
         onTimeUpdate={handleAudioTimeUpdate}
         onLoadedMetadata={handleAudioMetadata}
+        onCanPlay={handleAudioCanPlay}
         onEnded={handleEnded}
         onPlaying={handleAudioPlaying}
         onError={handleAudioError}
@@ -590,6 +621,7 @@ export default function App() {
         crossOrigin="anonymous"
         onTimeUpdate={handleAudioTimeUpdate}
         onLoadedMetadata={handleAudioMetadata}
+        onCanPlay={handleAudioCanPlay}
         onEnded={handleEnded}
         onPlaying={handleAudioPlaying}
         onError={handleAudioError}

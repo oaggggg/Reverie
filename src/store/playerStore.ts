@@ -63,12 +63,12 @@ export type ThemePreference = "system" | "light" | "dark";
 export type QueueSource = "list" | "fm";
 
 export const PLAYBACK_QUALITY_LABELS: Record<PlaybackQuality, string> = {
-  standard: "标准 128k",
-  higher: "较高 192k",
-  exhigh: "极高 320k",
-  lossless: "无损 FLAC",
-  hires: "Hi-Res 无损",
-  jyeffect: "沉浸环绕声",
+  standard: "标准音质",
+  higher: "较高音质",
+  exhigh: "极高音质",
+  lossless: "无损音质",
+  hires: "Hi-Res无损",
+  jyeffect: "高清环绕声",
   jymaster: "超清母带",
 };
 
@@ -423,6 +423,10 @@ interface PlayerState {
   currentUrl: string | null;
   preloadedSongId: number | null;
   preloadedUrl: string | null;
+  qualitySwitchUrl: string | null;
+  qualitySwitchQuality: PlaybackQuality | null;
+  qualitySwitchPrevious: PlaybackQuality | null;
+  qualitySwitching: boolean;
   pendingSeek: number | null;
   loadingUrl: boolean;
   playing: boolean;
@@ -511,6 +515,12 @@ interface PlayerState {
   toggleMute: () => void;
   setPlayMode: (m: PlayMode) => void;
   setPlaybackQuality: (quality: PlaybackQuality) => Promise<void>;
+  commitQualitySwitch: (
+    url: string,
+    quality: PlaybackQuality,
+    position: number,
+  ) => void;
+  cancelQualitySwitch: () => void;
   commitPreloaded: (
     song: Song,
     queue: Song[],
@@ -628,6 +638,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   activeAudio: 0,
   preloadedSongId: null,
   preloadedUrl: null,
+  qualitySwitchUrl: null,
+  qualitySwitchQuality: null,
+  qualitySwitchPrevious: null,
+  qualitySwitching: false,
   pendingSeek: null,
   loadingUrl: false,
   playing: false,
@@ -786,20 +800,79 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     write("reverie_playmode", m);
   },
   setPlaybackQuality: async (quality) => {
-    if (get().playbackQuality === quality) return;
+    const current = get();
+    if (current.playbackQuality === quality && !current.qualitySwitching)
+      return;
+    const previousQuality = current.playbackQuality;
     set({
       playbackQuality: quality,
       preloadedSongId: null,
       preloadedUrl: null,
+      qualitySwitchUrl: null,
+      qualitySwitchQuality: null,
+      qualitySwitchPrevious: current.playbackQuality,
+      qualitySwitching: Boolean(current.currentSong),
     });
     write("reverie_playback_quality", quality);
-    const { currentSong, queue, queueSource, playing, progress } = get();
-    if (currentSong)
-      await get().playSong(currentSong, queue, queueSource, {
-        autoplay: playing,
-        quality,
-        startAt: progress,
+    const { currentSong } = get();
+    if (!currentSong) return;
+    const url = await resolveUrl(currentSong, quality);
+    const latest = get();
+    if (
+      latest.currentSong?.id !== currentSong.id ||
+      latest.playbackQuality !== quality
+    )
+      return;
+    if (!url) {
+      set({
+        playbackQuality: previousQuality,
+        qualitySwitchUrl: null,
+        qualitySwitchQuality: null,
+        qualitySwitchPrevious: null,
+        qualitySwitching: false,
       });
+      write("reverie_playback_quality", previousQuality);
+      get().toast("该歌曲暂不支持此音质，已保留原音质", "info");
+      return;
+    }
+    set({
+      qualitySwitchUrl: url,
+      qualitySwitchQuality: quality,
+      qualitySwitching: true,
+    });
+  },
+  commitQualitySwitch: (url, quality, position) => {
+    const state = get();
+    if (
+      !state.currentSong ||
+      state.qualitySwitchUrl !== url ||
+      state.qualitySwitchQuality !== quality
+    )
+      return;
+    set({
+      currentUrl: url,
+      playbackQuality: quality,
+      qualitySwitchUrl: null,
+      qualitySwitchQuality: null,
+      qualitySwitchPrevious: null,
+      qualitySwitching: false,
+      pendingSeek: null,
+      progress: position,
+      activeAudio: state.activeAudio === 0 ? 1 : 0,
+    });
+    write("reverie_playback_quality", quality);
+  },
+  cancelQualitySwitch: () => {
+    const state = get();
+    const quality = state.qualitySwitchPrevious ?? state.playbackQuality;
+    set({
+      playbackQuality: quality,
+      qualitySwitchUrl: null,
+      qualitySwitchQuality: null,
+      qualitySwitchPrevious: null,
+      qualitySwitching: false,
+    });
+    write("reverie_playback_quality", quality);
   },
   commitPreloaded: (song, queue, source, url) => {
     const state = get();
@@ -1378,6 +1451,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       currentUrl: null,
       preloadedSongId: null,
       preloadedUrl: null,
+      qualitySwitchUrl: null,
+      qualitySwitchQuality: null,
+      qualitySwitchPrevious: null,
+      qualitySwitching: false,
       pendingSeek: options?.startAt ?? null,
       loadingUrl: true,
       playing: autoplay,
