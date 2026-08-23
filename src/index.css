@@ -2235,9 +2235,9 @@ textarea {
   min-height: var(--bar-h);
   max-height: var(--bar-h);
   border-radius: var(--radius-bar);
-  border: 1px solid var(--border);
-  background: var(--glass-player);
-  backdrop-filter: blur(32px) saturate(1.4);
+  border: 1px solid var(--glass-popup-border);
+  background: var(--glass-popup);
+  backdrop-filter: blur(26px) saturate(1.35);
   box-shadow: 0 18px 50px var(--shadow);
   display: flex;
   flex-direction: column;
@@ -2597,16 +2597,17 @@ textarea {
   gap: 6px;
   padding: 7px 13px;
   border-radius: 20px;
-  background: var(--glass);
-  border: 1px solid var(--border);
+  background: var(--glass-popup);
+  border: 1px solid var(--glass-popup-border);
   color: var(--text-dim);
   font-size: 12px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(26px) saturate(1.35);
   transition: all 0.15s ease;
 }
 .np-btn:hover {
   color: var(--text);
-  border-color: var(--text-faint);
+  border-color: var(--glass-popup-border);
+  background: var(--glass-popup-hover);
 }
 /* the album cover is the centered anchor; lyrics overlay on top of it */
 .np-stage {
@@ -3743,6 +3744,10 @@ textarea {
 
 /* ============================ 3D Particle Album Cover ============================ */
 .now-playing-3d {
+  --glass-popup: rgba(15, 15, 26, 0.68);
+  --glass-popup-border: rgba(255, 255, 255, 0.1);
+  --glass-popup-hover: rgba(255, 255, 255, 0.08);
+  --glass-popup-control: rgba(17, 17, 28, 0.58);
   background:
     radial-gradient(circle at 50% 42%, rgba(50, 54, 65, 0.72), transparent 54%),
     #08090c;
@@ -3754,6 +3759,14 @@ textarea {
   justify-content: center;
   padding: 56px 40px 130px;
   overflow: hidden;
+}
+
+.now-playing-3d .np-btn {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.now-playing-3d .np-btn:hover {
+  color: #fff;
 }
 
 .np-stage-3d {
@@ -4049,7 +4062,7 @@ textarea {
   border-radius: 22px;
   background: var(--glass-popup);
   box-shadow: 0 24px 70px var(--shadow);
-  backdrop-filter: blur(32px) saturate(1.35);
+  backdrop-filter: blur(26px) saturate(1.35);
   transform: translateX(-50%);
   transform-origin: bottom center;
   animation: comments-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
@@ -4099,7 +4112,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-3);
+  background: var(--glass-popup-control);
 }
 .player-comments-title > div {
   display: grid;
@@ -4844,12 +4857,12 @@ textarea {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 22px;
-  background: rgba(18, 20, 27, 0.82);
+  background: var(--glass-popup);
   color: #f7f7f8;
   box-shadow: 0 24px 68px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(30px) saturate(1.35);
+  backdrop-filter: blur(26px) saturate(1.35);
   transform-origin: top right;
   animation: visual-panel-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -4864,7 +4877,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px 8px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--glass-popup-border);
 }
 
 .np-visual-panel > header > div,
@@ -4881,7 +4894,7 @@ textarea {
 
 .np-visual-panel section + section {
   margin-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--glass-popup-border);
 }
 
 .np-visual-panel h3 {
@@ -4927,9 +4940,15 @@ textarea {
 .np-visual-panel .theme-swatch,
 .np-visual-panel .opt-btn,
 .np-visual-panel .btn {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--glass-popup-border);
   color: rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--glass-popup-hover);
+}
+
+.np-visual-panel .icon-btn:hover,
+.player-comments-drawer .icon-btn:hover,
+.share-dialog .icon-btn:hover {
+  background: var(--glass-popup-hover);
 }
 
 .np-visual-panel .theme-swatch.active,
@@ -5059,9 +5078,11 @@ textarea {
 /* 玻璃适配：导航栏与播放栏内的控件统一半透明，融入磨砂表面 */
 .topnav .topnav-item:hover,
 .topnav .topnav-icon-btn:hover,
-.topnav .search-close:hover,
-.player-bar .icon-btn:hover {
+.topnav .search-close:hover {
   background: color-mix(in srgb, var(--hover) 70%, transparent);
+}
+.player-bar .icon-btn:not(.primary):hover {
+  background: var(--glass-popup-hover);
 }
 .topnav .topnav-item.active {
   background: linear-gradient(
@@ -5071,10 +5092,12 @@ textarea {
   );
 }
 .topnav .search-capsule,
-.topnav .topnav-user,
-.player-bar .pb-cover-ph {
+.topnav .topnav-user {
   background: color-mix(in srgb, var(--bg-3) 45%, transparent);
   backdrop-filter: blur(10px);
+}
+.player-bar .pb-cover-ph {
+  background: var(--glass-popup-control);
 }
 .topnav .user-avatar-ph {
   background: color-mix(in srgb, var(--bg-2) 40%, transparent);
@@ -5393,6 +5416,27 @@ textarea {
 .player-comments-drawer .comment-list {
   min-height: 0;
   overflow-y: auto;
+}
+.player-comments-drawer .comment-toolbar,
+.player-comments-drawer .comment-item,
+.player-comments-drawer .comment-composer {
+  border-color: var(--glass-popup-border);
+}
+.player-comments-drawer .comment-toolbar .segmented button.active,
+.player-comments-drawer .comment-reply-target button,
+.player-comments-drawer .comment-avatar.placeholder {
+  background: var(--glass-popup-hover);
+}
+.player-comments-drawer .comment-item-body blockquote,
+.player-comments-drawer .comment-replies {
+  border-color: var(--glass-popup-border);
+}
+.player-comments-drawer .comment-composer {
+  background: var(--glass-popup-control);
+}
+.player-comments-drawer .comment-composer textarea {
+  border-color: var(--glass-popup-border);
+  background: var(--glass-popup-control);
 }
 .comment-toolbar {
   display: flex;
@@ -5722,7 +5766,7 @@ textarea {
 .pb-quality-wrap { position: relative; display: inline-flex; }
 .pb-quality-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 7px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
 .pb-quality-btn span { white-space: nowrap; }
-.pb-quality-btn:hover, .pb-quality-btn.active { border-color: var(--border); background: var(--bg-2); color: var(--text); }
+.pb-quality-btn:hover, .pb-quality-btn.active { border-color: var(--glass-popup-border); background: var(--glass-popup-hover); color: var(--text); }
 .pb-quality-menu { position: absolute; left: 50%; right: auto; bottom: 34px; z-index: 20; display: grid; width: max-content; min-width: calc(100% + 12px); max-width: 220px; transform: translateX(-50%); padding: 4px; border: 1px solid var(--glass-popup-border); border-radius: 8px; background: var(--glass-popup); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(26px) saturate(1.35); }
 .pb-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 11px; text-align: left; white-space: nowrap; cursor: pointer; }
 .pb-quality-menu button:hover, .pb-quality-menu button.active { background: var(--glass-popup-hover); color: var(--text); }
