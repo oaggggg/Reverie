@@ -17,6 +17,11 @@
   --glass-strong: rgba(15, 15, 26, 0.94);
   --glass-player: rgba(16, 16, 30, 0.55);
   --glass-nav: rgba(16, 16, 30, 0.32);
+  --glass-popup: rgba(15, 15, 26, 0.68);
+  --glass-popup-border: rgba(255, 255, 255, 0.1);
+  --glass-popup-hover: rgba(255, 255, 255, 0.08);
+  --glass-popup-scrim: rgba(5, 6, 10, 0.2);
+  --glass-popup-control: rgba(17, 17, 28, 0.58);
   --hover: #1e1e30;
   --scrollbar: #33334a;
   --scrollbar-hover: #45456a;
@@ -45,6 +50,11 @@
   --glass-strong: rgba(255, 255, 255, 0.94);
   --glass-player: rgba(255, 255, 255, 0.5);
   --glass-nav: rgba(255, 255, 255, 0.38);
+  --glass-popup: rgba(255, 255, 255, 0.68);
+  --glass-popup-border: rgba(23, 26, 38, 0.12);
+  --glass-popup-hover: rgba(23, 26, 38, 0.07);
+  --glass-popup-scrim: rgba(20, 24, 40, 0.1);
+  --glass-popup-control: rgba(255, 255, 255, 0.56);
   --hover: #eceef5;
   --scrollbar: #c9cede;
   --scrollbar-hover: #b3b9cd;
@@ -3974,9 +3984,9 @@ textarea {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 24px;
-  background: color-mix(in srgb, var(--glass-strong) 72%, transparent);
+  background: var(--glass-popup);
   box-shadow: 0 16px 36px var(--shadow);
   backdrop-filter: blur(26px) saturate(1.35);
   opacity: 0;
@@ -4022,8 +4032,8 @@ textarea {
   inset: 0;
   z-index: 54;
   cursor: default;
-  background: color-mix(in srgb, rgba(5, 6, 10, 0.28) 72%, transparent);
-  backdrop-filter: blur(12px) saturate(1.1);
+  background: var(--glass-popup-scrim);
+  backdrop-filter: blur(12px) saturate(1.15);
 }
 .player-comments-drawer {
   position: fixed;
@@ -4035,9 +4045,9 @@ textarea {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 22px;
-  background: color-mix(in srgb, var(--glass-strong) 74%, transparent);
+  background: var(--glass-popup);
   box-shadow: 0 24px 70px var(--shadow);
   backdrop-filter: blur(32px) saturate(1.35);
   transform: translateX(-50%);
@@ -4045,12 +4055,13 @@ textarea {
   animation: comments-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .share-dialog-backdrop {
-  background: color-mix(in srgb, rgba(0, 0, 0, 0.55) 72%, transparent);
-  backdrop-filter: blur(12px) saturate(1.1);
+  background: var(--glass-popup-scrim);
+  backdrop-filter: blur(12px) saturate(1.15);
 }
 .share-dialog-backdrop .share-dialog {
-  background: color-mix(in srgb, var(--glass-strong) 76%, transparent);
-  backdrop-filter: blur(26px) saturate(1.25);
+  border-color: var(--glass-popup-border);
+  background: var(--glass-popup);
+  backdrop-filter: blur(26px) saturate(1.35);
 }
 @keyframes comments-rise {
   from {
@@ -4068,7 +4079,7 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-popup-border);
 }
 .player-comments-title {
   display: flex;
@@ -4131,8 +4142,8 @@ textarea {
   align-items: end;
   gap: 10px;
   padding: 12px 18px;
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  border-top: 1px solid var(--glass-popup-border);
+  background: var(--glass-popup-control);
 }
 .player-comment-editor textarea {
   width: 100%;
@@ -4140,10 +4151,10 @@ textarea {
   max-height: 82px;
   resize: none;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 8px;
   outline: none;
-  background: var(--bg-3);
+  background: var(--glass-popup-control);
   color: var(--text);
 }
 .player-comment-editor textarea:focus {
@@ -4443,9 +4454,9 @@ textarea {
   min-height: 120px;
   resize: none;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 9px;
-  background: color-mix(in srgb, var(--bg-2) 64%, transparent);
+  background: var(--glass-popup-control);
   backdrop-filter: blur(14px);
   color: var(--text);
   font: inherit;
@@ -5712,9 +5723,9 @@ textarea {
 .pb-quality-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 7px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
 .pb-quality-btn span { white-space: nowrap; }
 .pb-quality-btn:hover, .pb-quality-btn.active { border-color: var(--border); background: var(--bg-2); color: var(--text); }
-.pb-quality-menu { position: absolute; left: 50%; right: auto; bottom: 34px; z-index: 20; display: grid; width: max-content; min-width: calc(100% + 12px); max-width: 220px; transform: translateX(-50%); padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: color-mix(in srgb, var(--glass-strong) 88%, transparent); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(18px) saturate(1.3); }
+.pb-quality-menu { position: absolute; left: 50%; right: auto; bottom: 34px; z-index: 20; display: grid; width: max-content; min-width: calc(100% + 12px); max-width: 220px; transform: translateX(-50%); padding: 4px; border: 1px solid var(--glass-popup-border); border-radius: 8px; background: var(--glass-popup); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(26px) saturate(1.35); }
 .pb-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 11px; text-align: left; white-space: nowrap; cursor: pointer; }
-.pb-quality-menu button:hover, .pb-quality-menu button.active { background: var(--hover); color: var(--text); }
+.pb-quality-menu button:hover, .pb-quality-menu button.active { background: var(--glass-popup-hover); color: var(--text); }
 .pb-quality-menu button.active { font-weight: 600; }
 
 /* Above sidebars (70), drawers/modals (100) and the search overlay (110),
@@ -5829,9 +5840,9 @@ textarea {
 .recent-card strong { font-size: 12px; }
 .recent-card span { color: var(--text-faint); font-size: 11px; }
 .recent-card button { cursor: pointer; }
-.song-card-context-menu { position: fixed; z-index: 210; min-width: 130px; padding: 4px; border: 1px solid color-mix(in srgb, var(--border) 72%, transparent); border-radius: 7px; background: color-mix(in srgb, var(--glass-strong) 72%, transparent); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(22px) saturate(1.35); }
+.song-card-context-menu { position: fixed; z-index: 210; min-width: 130px; padding: 4px; border: 1px solid var(--glass-popup-border); border-radius: 7px; background: var(--glass-popup); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(26px) saturate(1.35); }
 .song-card-context-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
-.song-card-context-menu button:hover, .song-card-context-menu button:focus-visible { background: var(--hover); outline: none; }
+.song-card-context-menu button:hover, .song-card-context-menu button:focus-visible { background: var(--glass-popup-hover); outline: none; }
 .discovery-media-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
 .home-entry-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .home-entry-grid .link-btn { min-height: 32px; padding: 6px 11px; border: 1px solid var(--border-light); border-radius: 7px; background: var(--bg-1); }
