@@ -13,6 +13,7 @@ import {
   type PlaylistImportInput,
 } from "../api/playlistImport.ts";
 import type { PlaylistImportTaskStatus } from "../api/types.ts";
+import { useOriginTransition } from "../utils/originTransition";
 
 type Mode = "text" | "links" | "local";
 
@@ -32,6 +33,7 @@ export default function PlaylistImportModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const timer = useRef<number | undefined>(undefined);
+  const transition = useOriginTransition<HTMLElement>(open, "playlist-import", 220);
 
   useEffect(
     () => () => {
@@ -52,7 +54,7 @@ export default function PlaylistImportModal({
       setLoading(false);
     }
   }, [open]);
-  if (!open) return null;
+  if (!transition.rendered) return null;
 
   const poll = (id: string) => {
     const check = async () => {
@@ -134,14 +136,15 @@ export default function PlaylistImportModal({
 
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${transition.backdropClassName}`}
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
-        className="playlist-import-modal"
+        ref={transition.surfaceRef}
+        className={`playlist-import-modal ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-label="导入歌单"

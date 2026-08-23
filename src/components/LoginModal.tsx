@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { qrCheck, qrCreate, qrKey } from "../api/client";
 import { usePlayerStore } from "../store/playerStore";
 import { RefreshCw } from "lucide-react";
+import { useOriginTransition } from "../utils/originTransition";
 
 type QrState =
   "loading" | "waiting" | "scanned" | "expired" | "success" | "error";
@@ -21,6 +22,7 @@ export default function LoginModal() {
   const aliveRef = useRef(true);
   const pollRef = useRef<() => void>(() => {});
   const startQrGenRef = useRef(0);
+  const transition = useOriginTransition<HTMLDivElement>(showLogin, "login", 220);
 
   const stopPolling = () => {
     if (timerRef.current) {
@@ -109,7 +111,7 @@ export default function LoginModal() {
     };
   }, [showLogin, startQr]);
 
-  if (!showLogin) return null;
+  if (!transition.rendered) return null;
 
   const statusText: Record<QrState, string> = {
     loading: "正在生成二维码…",
@@ -121,8 +123,8 @@ export default function LoginModal() {
   };
 
   return (
-    <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={() => setShowLogin(false)}>
+      <div ref={transition.surfaceRef} className={`modal ${transition.surfaceClassName}`} onClick={(e) => e.stopPropagation()}>
         <h2>扫码登录</h2>
         <p className="sub">
           使用「网易云音乐」手机 App

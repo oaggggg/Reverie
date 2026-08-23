@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Trash2, X } from "lucide-react";
+import { useOriginTransition } from "../utils/originTransition";
 
 interface Props {
   open: boolean;
@@ -20,6 +21,7 @@ export default function ConfirmModal({
 }: Props) {
   const [busy, setBusy] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const transition = useOriginTransition<HTMLDivElement>(open, "confirm", 220);
 
   useEffect(() => {
     if (!open) {
@@ -34,7 +36,7 @@ export default function ConfirmModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, busy, onClose]);
 
-  if (!open) return null;
+  if (!transition.rendered) return null;
 
   const confirm = async () => {
     if (busy) return;
@@ -49,13 +51,14 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="modal-backdrop confirm-backdrop"
+      className={`modal-backdrop confirm-backdrop ${transition.backdropClassName}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !busy) onClose();
       }}
     >
       <div
-        className="modal confirm-modal"
+        ref={transition.surfaceRef}
+        className={`modal confirm-modal ${transition.surfaceClassName}`}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"

@@ -7,6 +7,7 @@ import {
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
+import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
 import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
 import {
@@ -44,6 +45,7 @@ export default function PlayerBar() {
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
   const [qualityOpen, setQualityOpen] = useState(false);
+  const qualityTransition = useOriginTransition<HTMLDivElement>(qualityOpen, "player-quality", 160);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const playing = usePlayerStore((s) => s.playing);
   const loadingUrl = usePlayerStore((s) => s.loadingUrl);
@@ -199,7 +201,10 @@ export default function PlayerBar() {
           <div className="pb-quality-wrap">
             <button
               className={`pb-quality-btn ${qualityOpen ? "active" : ""}`}
-              onClick={() => setQualityOpen((open) => !open)}
+              onClick={(event) => {
+                captureInteractionOrigin("player-quality", event.currentTarget);
+                setQualityOpen((open) => !open);
+              }}
               title="音质"
               aria-haspopup="menu"
               aria-expanded={qualityOpen}
@@ -207,8 +212,8 @@ export default function PlayerBar() {
             >
               <span>{PLAYBACK_QUALITY_LABELS[playbackQuality]}</span>
             </button>
-            {qualityOpen && (
-              <div className="pb-quality-menu" role="menu">
+            {qualityTransition.rendered && (
+              <div ref={qualityTransition.surfaceRef} className={`pb-quality-menu ${qualityTransition.surfaceClassName}`} role="menu">
                 {availablePlaybackQualities.map((quality) => (
                   <button
                     key={quality}
@@ -232,11 +237,12 @@ export default function PlayerBar() {
           <button
             className={`icon-btn ${showPlayerComments ? "active" : ""}`}
             onPointerEnter={() => void import("./PlayerCommentsDrawer")}
-            onClick={() => {
+            onClick={(event) => {
               if (!currentSong) {
                 toast("请先播放一首歌曲", "info");
                 return;
               }
+              captureInteractionOrigin("player-comments", event.currentTarget);
               setShowPlayerComments(!showPlayerComments);
             }}
             title="歌曲评论"
@@ -245,8 +251,9 @@ export default function PlayerBar() {
           </button>
           <button
             className={`icon-btn ${shareOpen ? "active" : ""}`}
-            onClick={() => {
+            onClick={(event) => {
               if (!currentSong) { toast("请先播放一首歌曲", "info"); return; }
+              captureInteractionOrigin("player-share", event.currentTarget);
               setShareOpen(true);
             }}
             title="分享歌曲"

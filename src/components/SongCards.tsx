@@ -5,6 +5,7 @@ import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { Disc3, ThumbsDown } from "lucide-react";
 import { LoadingState } from "./Page";
+import { capturePointerOrigin, useOriginTransition } from "../utils/originTransition";
 
 interface SongContextMenu {
   song: Song;
@@ -24,6 +25,8 @@ export default function SongCards({
   const playSong = usePlayerStore((s) => s.playSong);
   const [dismissing, setDismissing] = useState<number[]>([]);
   const [contextMenu, setContextMenu] = useState<SongContextMenu | null>(null);
+  const [lastContextMenu, setLastContextMenu] = useState<SongContextMenu | null>(null);
+  const contextTransition = useOriginTransition<HTMLDivElement>(Boolean(contextMenu), "song-context-menu", 150);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -62,11 +65,14 @@ export default function SongCards({
               onContextMenu={(event) => {
                 if (!onDislike) return;
                 event.preventDefault();
-                setContextMenu({
+                const nextMenu = {
                   song,
                   x: Math.max(8, Math.min(event.clientX, window.innerWidth - 142)),
                   y: Math.max(8, Math.min(event.clientY, window.innerHeight - 48)),
-                });
+                };
+                capturePointerOrigin("song-context-menu", event.clientX, event.clientY);
+                setLastContextMenu(nextMenu);
+                setContextMenu(nextMenu);
               }}
             >
               <div className="card-cover">
@@ -89,15 +95,16 @@ export default function SongCards({
           );
         })}
       </div>
-      {contextMenu &&
+      {contextTransition.rendered && lastContextMenu &&
         createPortal(
           <div
-            className="song-card-context-menu"
+            ref={contextTransition.surfaceRef}
+            className={`song-card-context-menu ${contextTransition.surfaceClassName}`}
             role="menu"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            style={{ left: lastContextMenu.x, top: lastContextMenu.y }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <button role="menuitem" onClick={() => dismiss(contextMenu.song)}>
+            <button role="menuitem" onClick={() => dismiss(lastContextMenu.song)}>
               <ThumbsDown size={14} />
               <span>不感兴趣</span>
             </button>

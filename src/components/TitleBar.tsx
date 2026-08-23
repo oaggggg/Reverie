@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import { Copy, Minus, Settings, Square, X } from "lucide-react";
+import { captureInteractionOrigin } from "../utils/originTransition";
 
 /** macOS draws its own close/minimize/zoom buttons; only Windows needs ours. */
 const isMac =
@@ -28,7 +29,10 @@ export default function TitleBar() {
       <div className="titlebar-controls">
         <button
           className="tb-btn"
-          onClick={() => setShowSettings(true)}
+          onClick={(event) => {
+            captureInteractionOrigin("settings", event.currentTarget);
+            setShowSettings(true);
+          }}
           title="设置"
         >
           <Settings size={15} />

@@ -5,6 +5,7 @@ import {
   updatePlaylistCover,
 } from "../api/playlistMetadata.ts";
 import { usePlayerStore } from "../store/playerStore";
+import { useOriginTransition } from "../utils/originTransition";
 
 export default function PlaylistEditorModal({
   playlist,
@@ -23,6 +24,7 @@ export default function PlaylistEditorModal({
   const [tags, setTags] = useState("");
   const [cover, setCover] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const transition = useOriginTransition<HTMLDivElement>(open, "playlist-editor", 220);
 
   useEffect(() => {
     if (!open) return;
@@ -33,7 +35,7 @@ export default function PlaylistEditorModal({
     setCover(null);
   }, [open, playlist]);
 
-  if (!open) return null;
+  if (!transition.rendered) return null;
 
   const save = async () => {
     if (!name.trim() || saving) return;
@@ -61,8 +63,8 @@ export default function PlaylistEditorModal({
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal entity-editor" onClick={(e) => e.stopPropagation()}>
+    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
+      <div ref={transition.surfaceRef} className={`modal entity-editor ${transition.surfaceClassName}`} onClick={(e) => e.stopPropagation()}>
         <h2>{playlist ? "编辑歌单" : "创建歌单"}</h2>
         <label className="field-label">
           名称
