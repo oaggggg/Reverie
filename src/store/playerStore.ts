@@ -20,6 +20,7 @@ import {
   searchSongs,
   setCookie,
 } from "../api/client";
+import { getAlbumPrivileges } from "../api/library";
 import type {
   LyricLine,
   PlaybackQuality,
@@ -63,10 +64,10 @@ export type ThemePreference = "system" | "light" | "dark";
 export type QueueSource = "list" | "fm";
 
 export const PLAYBACK_QUALITY_LABELS: Record<PlaybackQuality, string> = {
-  standard: "标准音质",
-  higher: "较高音质",
-  exhigh: "极高音质",
-  lossless: "无损音质",
+  standard: "标准",
+  higher: "较高",
+  exhigh: "极高",
+  lossless: "无损",
   hires: "Hi-Res无损",
   jyeffect: "高清环绕声",
   jymaster: "超清母带",
@@ -81,6 +82,23 @@ const PLAYBACK_QUALITY_LEVELS: PlaybackQuality[] = [
   "jyeffect",
   "jymaster",
 ];
+
+function qualitiesFromPrivilege(privilege: {
+  maxBitrate: number;
+  standard: boolean;
+  lossless: boolean;
+  highRes: boolean;
+  spatialAudio: boolean;
+}): PlaybackQuality[] {
+  const qualities: PlaybackQuality[] = [];
+  if (privilege.standard || privilege.maxBitrate > 0) qualities.push("standard");
+  if (privilege.maxBitrate >= 192000) qualities.push("higher");
+  if (privilege.maxBitrate >= 320000) qualities.push("exhigh");
+  if (privilege.lossless) qualities.push("lossless");
+  if (privilege.highRes) qualities.push("hires");
+  if (privilege.spatialAudio) qualities.push("jyeffect");
+  return qualities.length ? qualities : ["standard"];
+}
 
 const COVER_QUALITY_KEY = "reverie_cover_quality";
 const COVER_BENCH_KEY = "reverie_cover_benchmarked";
@@ -435,6 +453,7 @@ interface PlayerState {
   volume: number;
   muted: boolean;
   playbackQuality: PlaybackQuality;
+  availablePlaybackQualities: PlaybackQuality[];
   playMode: PlayMode;
 
   // --- queue ---
@@ -515,6 +534,7 @@ interface PlayerState {
   toggleMute: () => void;
   setPlayMode: (m: PlayMode) => void;
   setPlaybackQuality: (quality: PlaybackQuality) => Promise<void>;
+  loadPlaybackQualities: (song: Song) => Promise<void>;
   commitQualitySwitch: (
     url: string,
     quality: PlaybackQuality,
@@ -650,6 +670,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   volume: readNum("reverie_volume", 0.9),
   muted: false,
   playbackQuality: readPlaybackQuality(),
+  availablePlaybackQualities: ["standard"],
   playMode: readPlayMode(),
 
   // --- queue ---
@@ -801,6 +822,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   setPlaybackQuality: async (quality) => {
     const current = get();
+    if (!current.availablePlaybackQualities.includes(quality)) return;
     if (current.playbackQuality === quality && !current.qualitySwitching)
       return;
     const previousQuality = current.playbackQuality;
@@ -840,6 +862,25 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       qualitySwitchQuality: quality,
       qualitySwitching: true,
     });
+  },
+  loadPlaybackQualities: async (song) => {
+    try {
+      const privileges = await getAlbumPrivileges(song.albumId);
+      const privilege = privileges.find((item) => item.songId === song.id);
+      const available: PlaybackQuality[] = privilege
+        ? qualitiesFromPrivilege(privilege)
+        : ["standard"];
+      if (get().currentSong?.id !== song.id) return;
+      const currentQuality = get().playbackQuality;
+      set({ availablePlaybackQualities: available });
+      if (!available.includes(currentQuality)) {
+        const fallback = [...available].reverse()[0] ?? "standard";
+        set({ playbackQuality: fallback });
+        write("reverie_playback_quality", fallback);
+      }
+    } catch {
+      if (get().currentSong?.id === song.id) set({ availablePlaybackQualities: ["standard"] });
+    }
   },
   commitQualitySwitch: (url, quality, position) => {
     const state = get();
@@ -898,6 +939,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       activeAudio: state.activeAudio === 0 ? 1 : 0,
     });
     writeSession({ queue, index, currentSong: song });
+    void get().loadPlaybackQualities(song);
     get().loadLyrics(song);
     get().trackRecent(song);
 
@@ -1460,7 +1502,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playing: autoplay,
       progress: 0,
       duration: song.duration || 0,
+      availablePlaybackQualities: ["standard"],
     });
+    void get().loadPlaybackQualities(song);
     if (
       activeSource === "fm" &&
       targetQueue &&
