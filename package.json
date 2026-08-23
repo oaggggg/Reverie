@@ -1,7 +1,7 @@
 {
   "name": "ncm-player",
   "productName": "Reverie",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Reverie — 一款音乐播放器",
   "type": "module",
   "author": {
