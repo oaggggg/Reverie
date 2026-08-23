@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import UserMenu from "./UserMenu";
 import { sizedImage } from "../utils/image";
+import { captureInteractionOrigin } from "../utils/originTransition";
 
 interface NavItem {
   view: View;
@@ -429,8 +430,9 @@ export default function TopNav() {
         <button
           className="topnav-icon-btn"
           onPointerEnter={() => void preloadView("notifications")}
-          onClick={() => {
+          onClick={(event) => {
             if (!loggedIn) {
+              captureInteractionOrigin("login", event.currentTarget);
               setShowLogin(true);
               return;
             }
@@ -447,7 +449,10 @@ export default function TopNav() {
           <button
             className="topnav-login"
             onPointerEnter={() => void import("./LoginModal")}
-            onClick={() => setShowLogin(true)}
+            onClick={(event) => {
+              captureInteractionOrigin("login", event.currentTarget);
+              setShowLogin(true);
+            }}
           >
             登录
           </button>

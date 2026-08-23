@@ -11,6 +11,7 @@ import type { ThemePreference } from "../store/playerStore";
 import { getAccountOverview } from "../api/account";
 import type { AccountOverview } from "../api/account";
 import { getNeteaseApiVersion, getNeteaseSettings } from "../api/appMeta";
+import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
 
 const APP_THEMES: Array<{ id: ThemePreference; name: string }> = [
   { id: "system", name: "跟随系统" },
@@ -81,6 +82,7 @@ export default function SettingsModal() {
   const [accountLoading, setAccountLoading] = useState(false);
   const [neteaseVersion, setNeteaseVersion] = useState("");
   const [neteaseSettings, setNeteaseSettings] = useState<Record<string, unknown> | null>(null);
+  const transition = useOriginTransition<HTMLDivElement>(showSettings, "settings", 240);
 
   useEffect(() => {
     if (!showSettings || category !== "account" || !loggedIn) return;
@@ -116,15 +118,16 @@ export default function SettingsModal() {
     };
   }, [category, showSettings]);
 
-  if (!showSettings) return null;
+  if (!transition.rendered) return null;
 
   const close = () => setShowSettings(false);
   const checking = updatePhase === "checking";
 
   return (
-    <div className="modal-backdrop settings-backdrop" onClick={close}>
+    <div className={`modal-backdrop settings-backdrop ${transition.backdropClassName}`} onClick={close}>
       <div
-        className="settings-modal"
+        ref={transition.surfaceRef}
+        className={`settings-modal ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-label="设置"
@@ -273,7 +276,10 @@ export default function SettingsModal() {
                 >
                   <button
                     className="btn"
-                    onClick={() => checkUpdate(true)}
+                    onClick={(event) => {
+                      captureInteractionOrigin("update", event.currentTarget);
+                      checkUpdate(true);
+                    }}
                     disabled={checking}
                   >
                     {checking ? "检查中…" : "检查更新"}

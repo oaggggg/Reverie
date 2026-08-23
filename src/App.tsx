@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, type SyntheticEvent } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type SyntheticEvent } from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { ensureAnalyser, resumeAnalyser } from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
@@ -83,10 +83,38 @@ export default function App() {
   const currentPage = usePlayerStore((s) => s.currentPage);
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
   const showLogin = usePlayerStore((s) => s.showLogin);
-  const showSettings = usePlayerStore((s) => s.showSettings);
   const showUpdate = usePlayerStore((s) => s.showUpdate);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const reportedSongRef = useRef<number | null>(null);
+  const scrollPositionsRef = useRef(new Map<string, number>());
+  const [mountedOverlays, setMountedOverlays] = useState({
+    comments: showPlayerComments,
+    login: showLogin,
+    update: showUpdate,
+  });
+
+  useEffect(() => {
+    if (!showPlayerComments && !showLogin && !showUpdate) return;
+    setMountedOverlays((current) => ({
+      comments: current.comments || showPlayerComments,
+      login: current.login || showLogin,
+      update: current.update || showUpdate,
+    }));
+  }, [showLogin, showPlayerComments, showUpdate]);
+
+  useLayoutEffect(() => {
+    if (currentPage !== "browse") return;
+    const key = activeView;
+    const frame = window.requestAnimationFrame(() => {
+      const scroller = document.querySelector<HTMLElement>(".page-scroll");
+      if (scroller) scroller.scrollTop = scrollPositionsRef.current.get(key) ?? 0;
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      const scroller = document.querySelector<HTMLElement>(".page-scroll");
+      if (scroller) scrollPositionsRef.current.set(key, scroller.scrollTop);
+    };
+  }, [activeView, currentPage]);
 
   useEffect(() => {
     if (
@@ -578,19 +606,19 @@ export default function App() {
           <NowPlayingView />
         </Suspense>
       )}
-      {showPlayerComments && (
+      {mountedOverlays.comments && (
         <Suspense fallback={null}>
           <PlayerCommentsDrawer />
         </Suspense>
       )}
       <PlayerBar />
-      {showLogin && (
+      {mountedOverlays.login && (
         <Suspense fallback={null}>
           <LoginModal />
         </Suspense>
       )}
-      {showSettings && <SettingsModal />}
-      {showUpdate && (
+      <SettingsModal />
+      {mountedOverlays.update && (
         <Suspense fallback={null}>
           <UpdateModal />
         </Suspense>
