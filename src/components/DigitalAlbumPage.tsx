@@ -9,6 +9,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { useDigitalAlbumStore } from "../store/digitalAlbumStore.ts";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import {
   getDigitalAlbumSalesBoard,
   getDigitalAlbumStyleLibrary,
@@ -39,6 +40,10 @@ export default function DigitalAlbumPage() {
   const [styleAlbums, setStyleAlbums] = useState<DigitalAlbum[]>([]);
   const [styleLoading, setStyleLoading] = useState(false);
   const [styleMore, setStyleMore] = useState(false);
+  const styleMoreRef = useInfiniteScroll(
+    () => void loadStyleLibrary(styleArea, styleAlbums.length),
+    styleLoading || !styleMore,
+  );
 
   const loadBoard = async (period = boardPeriod) => {
     setBoardLoading(true);
@@ -157,7 +162,7 @@ export default function DigitalAlbumPage() {
             ))}
           </div>
         ) : <div className="digital-album-empty">暂无该语种的数字专辑</div>}
-        {styleMore && <div className="digital-album-more"><button className="btn" onClick={() => void loadStyleLibrary(styleArea, styleAlbums.length)} disabled={styleLoading}>{styleLoading ? "加载中…" : "加载更多"}</button></div>}
+        {styleMore && <div ref={styleMoreRef} className="load-more-sentinel" />}
       </section>
       {detail && (
         <section className="digital-album-detail">

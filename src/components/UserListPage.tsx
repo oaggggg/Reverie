@@ -4,6 +4,7 @@ import type { PlaylistInfo } from "../api/types";
 import { useExploreStore } from "../store/exploreStore";
 import { usePlayerStore } from "../store/playerStore";
 import { usePlaylistDiscoveryStore } from "../store/playlistDiscoveryStore";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { Page, PageHeader } from "./Page";
 import PlaylistGrid from "./PlaylistGrid";
 import PlaylistEditorModal from "./PlaylistEditorModal";
@@ -29,6 +30,10 @@ export default function UserListPage() {
   const [accountPlaylists, setAccountPlaylists] = useState<PlaylistInfo[]>([]);
   const [accountLoading, setAccountLoading] = useState(false);
   const discovery = usePlaylistDiscoveryStore();
+  const discoveryMoreRef = useInfiniteScroll(
+    () => void discovery.loadMore(),
+    discovery.loadingMore || !discovery.more,
+  );
 
   useEffect(() => {
     if (mode === "discover" && !discovery.loaded && !discovery.loading) {
@@ -204,11 +209,7 @@ export default function UserListPage() {
             )}
           />
           {discovery.more && (
-            <div className="playlist-discovery-more">
-              <button className="btn" onClick={() => void discovery.loadMore()} disabled={discovery.loadingMore}>
-                {discovery.loadingMore ? "加载中…" : "加载更多精品歌单"}
-              </button>
-            </div>
+            <div ref={discoveryMoreRef} className="load-more-sentinel" />
           )}
         </>
       )}

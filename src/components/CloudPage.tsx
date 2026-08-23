@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useCloudStore } from "../store/cloudStore";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { usePlayerStore } from "../store/playerStore";
 import type { CloudSong } from "../api/types";
 import ConfirmModal from "./ConfirmModal";
@@ -297,6 +298,10 @@ export default function CloudPage() {
   const closeDetail = useCloudStore((state) => state.closeDetail);
   const resetUpload = useCloudStore((state) => state.resetUpload);
   const [importOpen, setImportOpen] = useState(false);
+  const loadMoreRef = useInfiniteScroll(
+    () => void loadMore(),
+    loadingMore || !hasMore,
+  );
 
   useEffect(() => {
     void load(true);
@@ -370,15 +375,7 @@ export default function CloudPage() {
               />
             ))}
           </div>
-          {hasMore && (
-            <button
-              className="btn cloud-load-more"
-              onClick={() => void loadMore()}
-              disabled={loadingMore}
-            >
-              {loadingMore ? "加载中…" : "加载更多"}
-            </button>
-          )}
+          {hasMore && <div ref={loadMoreRef} className="load-more-sentinel" />}
         </>
       )}
       <CloudImportDialog

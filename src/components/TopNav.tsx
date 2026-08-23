@@ -232,7 +232,10 @@ export default function TopNav() {
   };
 
   return (
-    <nav className={`topnav ${condensed ? "is-condensed" : ""}`} ref={navRef}>
+    <nav
+      className={`topnav ${condensed ? "is-condensed" : ""} ${searchOpen ? "search-open" : ""}`}
+      ref={navRef}
+    >
       <div className="topnav-items">
         {NAV.map((item) => (
           <button
