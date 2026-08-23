@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, normalizeSong, request } from "./client.ts";
 import type {
   ArtistInfo,
   PlaylistInfo,
@@ -83,9 +83,9 @@ function uniqueById<T extends { id: number | string }>(items: T[]): T[] {
 
 export async function getRelatedPlaylists(id: number): Promise<PlaylistInfo[]> {
   const [related, similar, detailRecommendations] = await Promise.all([
-    request<Obj>("/related/playlist", { id }, false).catch(() => ({}) as Obj),
-    request<Obj>("/simi/playlist", { id }, false).catch(() => ({}) as Obj),
-    request<Obj>("/playlist/detail/rcmd/get", { id }, false).catch(() => ({}) as Obj),
+    cachedRequest<Obj>("/related/playlist", { id }, 10 * 60 * 1000).catch(() => ({}) as Obj),
+    cachedRequest<Obj>("/simi/playlist", { id }, 10 * 60 * 1000).catch(() => ({}) as Obj),
+    cachedRequest<Obj>("/playlist/detail/rcmd/get", { id }, 10 * 60 * 1000).catch(() => ({}) as Obj),
   ]);
   return uniqueById(
     [...list(related, "playlists"), ...list(similar, "playlists"), ...list(detailRecommendations, "playlists", "list")]

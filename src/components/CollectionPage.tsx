@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import type { CollectionCategory, SearchMediaInfo } from "../api/types";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useCollectionStore } from "../store/collectionStore";
 import { sizedImage } from "../utils/image";
 import { useMediaStore } from "../store/mediaStore.ts";
@@ -103,6 +104,10 @@ export default function CollectionPage() {
   const mediaUrl = useCollectionStore((state) => state.mediaUrl);
   const mediaLoading = useCollectionStore((state) => state.mediaLoading);
   const closeMedia = useCollectionStore((state) => state.closeMedia);
+  const loadMoreRef = useInfiniteScroll(
+    () => void loadMore(),
+    loadingMore || !hasMore,
+  );
 
   const empty =
     !albums.length && !artists.length && !media.length && !radios.length;
@@ -221,15 +226,7 @@ export default function CollectionPage() {
               ))}
             </div>
           )}
-          {hasMore && (
-            <button
-              className="btn collection-load-more"
-              onClick={() => void loadMore()}
-              disabled={loadingMore}
-            >
-              {loadingMore ? "加载中…" : "加载更多"}
-            </button>
-          )}
+          {hasMore && <div ref={loadMoreRef} className="load-more-sentinel" />}
         </>
       )}
       {mediaItem && (

@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import type { SearchCategory } from "../api/types";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useExploreStore } from "../store/exploreStore";
 import { usePlayerStore } from "../store/playerStore";
 import { useSearchStore } from "../store/searchStore";
@@ -72,6 +73,10 @@ export default function SearchPage() {
   const openArtist = useExploreStore((state) => state.openArtist);
   const openRadio = useExploreStore((state) => state.openRadio);
   const [input, setInput] = useState(keyword);
+  const loadMoreRef = useInfiniteScroll(
+    () => void loadMore(),
+    loadingMore || !result.hasMore,
+  );
 
   useEffect(() => setInput(keyword), [keyword]);
 
@@ -304,13 +309,7 @@ export default function SearchPage() {
               )}
 
               {result.hasMore && (
-                <button
-                  className="btn search-load-more"
-                  onClick={() => void loadMore()}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? "加载中…" : "加载更多"}
-                </button>
+                <div ref={loadMoreRef} className="load-more-sentinel" />
               )}
             </section>
           )}

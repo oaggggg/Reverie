@@ -21,6 +21,7 @@ import type {
   PrivateAttachmentType,
 } from "../api/types";
 import { useNotificationStore } from "../store/notificationStore";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import BackButton from "./BackButton";
@@ -93,6 +94,14 @@ function PrivateMessages() {
     (state) => state.openConversation,
   );
   const loadMore = useNotificationStore((state) => state.loadMore);
+  const conversationMoreRef = useInfiniteScroll(
+    () => void loadMore(),
+    loadingMore || !conversationHasMore,
+  );
+  const historyMoreRef = useInfiniteScroll(
+    () => void loadEarlier(),
+    historyLoadingMore || !historyHasMore,
+  );
   const loadMoreHistory = useNotificationStore(
     (state) => state.loadMoreHistory,
   );
@@ -222,13 +231,10 @@ function PrivateMessages() {
             ))}
         </div>
         {conversationHasMore && (
-          <button
-            className="message-more"
-            onClick={() => void loadMore()}
-            disabled={loadingMore}
-          >
-            {loadingMore ? "加载中…" : "更多会话"}
-          </button>
+          <div
+            ref={conversationMoreRef}
+            className="load-more-sentinel"
+          />
         )}
       </aside>
 
@@ -244,13 +250,7 @@ function PrivateMessages() {
             </header>
             <div className="message-thread-list" ref={messageListRef}>
               {historyHasMore && (
-                <button
-                  className="message-more"
-                  onClick={() => void loadEarlier()}
-                  disabled={historyLoadingMore}
-                >
-                  {historyLoadingMore ? "加载中…" : "查看更早消息"}
-                </button>
+                <div ref={historyMoreRef} className="load-more-sentinel" />
               )}
               {historyLoading ? (
                 <LoadingState label="正在加载会话…" />
@@ -341,6 +341,10 @@ function NotificationFeed() {
   const loadingMore = useNotificationStore((state) => state.loadingMore);
   const hasMore = useNotificationStore((state) => state.hasMore);
   const loadMore = useNotificationStore((state) => state.loadMore);
+  const feedMoreRef = useInfiniteScroll(
+    () => void loadMore(),
+    loadingMore || !hasMore,
+  );
   if (!items.length) {
     return loading ? (
       <LoadingState label="正在加载通知…" />
@@ -373,15 +377,7 @@ function NotificationFeed() {
           </div>
         </article>
       ))}
-      {hasMore && (
-        <button
-          className="btn notification-load-more"
-          onClick={() => void loadMore()}
-          disabled={loadingMore}
-        >
-          {loadingMore ? "加载中…" : "加载更多"}
-        </button>
-      )}
+      {hasMore && <div ref={feedMoreRef} className="load-more-sentinel" />}
     </div>
   );
 }

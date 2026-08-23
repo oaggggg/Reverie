@@ -105,6 +105,13 @@ export default function App() {
     if (audioRef.current) setAudioEl(audioRef.current);
   }, [setAudioEl]);
 
+  // 禁用播放器内的鼠标右键菜单
+  useEffect(() => {
+    const block = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("contextmenu", block);
+    return () => document.removeEventListener("contextmenu", block);
+  }, []);
+
   // First launch only: size the particle cover to this machine's GPU.
   useEffect(() => {
     let idle: number | undefined;

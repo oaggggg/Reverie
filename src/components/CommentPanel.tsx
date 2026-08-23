@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { CommentInfo, CommentSort } from "../api/types";
 import { useCommentStore } from "../store/commentStore";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { hugComment } from "../api/comment";
@@ -22,6 +23,19 @@ const SORTS: Array<{ id: CommentSort; label: string }> = [
   { id: "hot", label: "热门" },
   { id: "new", label: "最新" },
 ];
+
+/* 展开的回复列表尾部的自动加载哨兵（renderComment 是普通函数，不能挂 Hook） */
+function RepliesMore({ comment }: { comment: CommentInfo }) {
+  const thread = useCommentStore((state) => state.replies[comment.id]);
+  const loadMoreReplies = useCommentStore((state) => state.loadMoreReplies);
+  const enabled = !!thread?.expanded && thread.hasMore && !thread.loading;
+  const sentinelRef = useInfiniteScroll(
+    () => void loadMoreReplies(comment),
+    !enabled,
+  );
+  if (!enabled) return null;
+  return <div ref={sentinelRef} className="load-more-sentinel" />;
+}
 
 function CommentAvatar({ comment }: { comment: CommentInfo }) {
   const [failed, setFailed] = useState(false);
@@ -70,10 +84,13 @@ export default function CommentPanel({
   const toggleLike = useCommentStore((state) => state.toggleLike);
   const remove = useCommentStore((state) => state.remove);
   const toggleReplies = useCommentStore((state) => state.toggleReplies);
-  const loadMoreReplies = useCommentStore((state) => state.loadMoreReplies);
   const uid = usePlayerStore((state) => state.profile?.userId ?? 0);
   const setShowLogin = usePlayerStore((state) => state.setShowLogin);
   const [draft, setDraft] = useState("");
+  const commentMoreRef = useInfiniteScroll(
+    () => void loadMore(),
+    loadingMore || !hasMore,
+  );
   const [replying, setReplying] = useState<{
     comment: CommentInfo;
     parentId?: number;
@@ -180,14 +197,7 @@ export default function CommentPanel({
                 renderComment(reply, comment.id, true),
               )}
               {thread.loading && <LoadingState label="正在加载回复…" />}
-              {thread.hasMore && !thread.loading && (
-                <button
-                  className="comment-replies-more"
-                  onClick={() => void loadMoreReplies(comment)}
-                >
-                  加载更多回复
-                </button>
-              )}
+              <RepliesMore comment={comment} />
             </div>
           )}
         </div>
@@ -222,15 +232,7 @@ export default function CommentPanel({
           ) : (
             <div className="empty">还没有评论</div>
           ))}
-        {hasMore && (
-          <button
-            className="btn comment-load-more"
-            disabled={loadingMore}
-            onClick={() => void loadMore()}
-          >
-            {loadingMore ? "加载中…" : "加载更多"}
-          </button>
-        )}
+        {hasMore && <div ref={commentMoreRef} className="load-more-sentinel" />}
       </div>
 
       <div className="comment-composer">

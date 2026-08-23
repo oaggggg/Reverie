@@ -68,7 +68,9 @@
   --layout-content-max: 940px; /* centered home hero column */
 
   /* top navigation */
+  --titlebar-h: 42px;
   --nav-h: 52px;
+  --nav-float: 12px; /* gap between title bar and nav */
   --nav-pad: 30px;
   --nav-gap: 12px;
 
@@ -76,7 +78,7 @@
   --bar-h: 84px;
   --bar-max: 980px;
   --bar-inset: 24px; /* per-side inset from the window edge */
-  --bar-float: 12px; /* lift above the bottom edge */
+  --bar-float: 20px; /* lift above the bottom edge */
   --radius-bar: 28px;
 
   /* radii ladder */
@@ -166,7 +168,7 @@ textarea {
 
 /* ============================ Title bar ============================ */
 .titlebar {
-  height: 42px;
+  height: var(--titlebar-h);
   flex: none;
   display: flex;
   align-items: stretch;
@@ -185,41 +187,56 @@ textarea {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: 17px;
+  font-size: 16.5px;
   font-weight: 800;
-  letter-spacing: 0.16em;
-  padding-inline: 0.16em;
+  letter-spacing: 0.2em;
+  padding-inline: 0.2em;
   color: transparent;
+  /* 静态基底：暖白—绯红—暖白的品牌化柔光，而非灰色 */
   background: linear-gradient(
     100deg,
-    var(--text-dim) 30%,
-    var(--text) 42%,
-    color-mix(in srgb, var(--text) 70%, white) 50%,
-    var(--accent-2) 56%,
-    color-mix(in srgb, var(--text) 80%, white) 62%,
-    var(--text) 72%,
-    var(--text-dim) 88%
+    color-mix(in srgb, var(--text-dim) 82%, var(--accent-2) 18%) 18%,
+    color-mix(in srgb, var(--text) 88%, var(--accent-2) 12%) 38%,
+    color-mix(in srgb, var(--text) 55%, white) 48%,
+    var(--accent-2) 52%,
+    color-mix(in srgb, var(--accent) 62%, white) 56%,
+    color-mix(in srgb, var(--text) 60%, white) 64%,
+    color-mix(in srgb, var(--text) 88%, var(--accent) 12%) 78%,
+    color-mix(in srgb, var(--text-dim) 82%, var(--accent) 18%) 94%
   );
-  background-size: 220% 100%;
-  background-position: 120% 50%;
+  background-size: 260% 100%;
+  background-position: 130% 50%;
   -webkit-background-clip: text;
   background-clip: text;
-  filter: drop-shadow(
-    0 0 6px color-mix(in srgb, var(--accent) 26%, transparent)
-  );
-  animation: reverie-sheen 6.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  animation:
+    reverie-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95) infinite alternate,
+    reverie-glow 5.6s ease-in-out infinite;
   pointer-events: none;
   line-height: 1;
+  /* 提升渐变文字的抗锯齿锐度 */
+  -webkit-font-smoothing: antialiased;
 }
 /* 一道高光斜带周期性扫过文字，其余时间保持静态渐变 */
 @keyframes reverie-sheen {
-  0%,
-  46% {
-    background-position: 120% 50%;
+  from {
+    background-position: 130% 50%;
   }
-  54%,
+  to {
+    background-position: -30% 50%;
+  }
+}
+/* 光晕随扫光呼吸同步脉动：暖绯色调，静息态也保留一抹微光 */
+@keyframes reverie-glow {
+  0%,
   100% {
-    background-position: -20% 50%;
+    filter: drop-shadow(
+      0 0 6px color-mix(in srgb, var(--accent-2) 22%, transparent)
+    );
+  }
+  50% {
+    filter: drop-shadow(
+      0 0 12px color-mix(in srgb, var(--accent-2) 38%, transparent)
+    );
   }
 }
 .titlebar-controls {
@@ -267,7 +284,7 @@ textarea {
 
 /* ============================ Top navigation ============================ */
 /* The bar itself is a transparent structural row; the visible surface is the
-   ::before pill below (full-bleed at rest, floating glass when condensed). */
+   ::before pill below (transparent at rest, floating glass when condensed). */
 .topnav {
   flex: none;
   position: relative;
@@ -276,8 +293,9 @@ textarea {
   gap: var(--nav-gap);
   width: 100%;
   height: var(--nav-h);
-  margin: 0 auto;
+  margin: var(--nav-float) auto 0;
   padding-inline: var(--nav-pad);
+  transition: padding-inline 0.46s cubic-bezier(0.16, 1, 0.3, 1);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -363,7 +381,8 @@ textarea {
   padding: 4px 18px 4px 4px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--bg-3);
+  background: color-mix(in srgb, var(--bg-3) 45%, transparent);
+  backdrop-filter: blur(10px);
   transition: background 0.15s ease;
 }
 .topnav-user:hover {
@@ -556,13 +575,15 @@ textarea {
 .user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
+  /* 与用户胶囊同宽：胶囊本身有固定最小宽度，保证内容显示完整 */
   left: 0;
-  right: auto;
-  width: 100%;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  right: 0;
+  width: auto;
+  background: color-mix(in srgb, var(--bg-2) 68%, transparent);
+  backdrop-filter: blur(24px) saturate(1.35);
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: 16px;
-  box-shadow: 0 20px 60px var(--shadow);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--shadow) 60%, transparent);
   padding: 8px;
   z-index: 70;
   animation: toast-in 0.16s ease;
@@ -582,17 +603,86 @@ textarea {
   object-fit: cover;
 }
 .uh-info .nm {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
-  white-space: nowrap;
+}
+/* 昵称省略，等级徽章永不截断 */
+.uh-nick {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.uh-level-chip {
+  flex: none;
+  margin-left: 6px;
+}
+.uh-info {
+  min-width: 0;
+  flex: 1;
+}
+.uh-level-chip {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2) 14%, transparent);
+  vertical-align: 1px;
+}
+/* 统计小标签行：关注/粉丝/加入/到期，放不下自动换行 */
+.uh-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.uh-stats span {
+  white-space: nowrap;
 }
 .user-dropdown-row {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 7px 10px;
+}
+/* 头部昵称下的一行式会员信息 */
+/* 功能区固定两列，保证下拉长度最短 */
+.user-dropdown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px 0;
+}
+.user-dropdown-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: var(--text);
+  transition: background 0.13s ease;
+}
+.user-dropdown-cell:hover {
+  background: color-mix(in srgb, var(--hover) 70%, transparent);
+}
+/* 底部账号操作：跟随面板宽度，窄时自动退为一列 */
+.user-dropdown-foot {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  padding-top: 8px;
+  margin-top: 2px;
 }
 .user-dropdown-row span:first-child {
   font-size: 10px;
@@ -617,7 +707,7 @@ textarea {
   transition: background 0.13s ease;
 }
 .user-dropdown-item:hover {
-  background: var(--hover);
+  background: color-mix(in srgb, var(--hover) 70%, transparent);
 }
 .user-dropdown-item.danger {
   color: #ff6b6b;
@@ -631,6 +721,8 @@ textarea {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* 滚动内容延伸到标题栏下缘（导航栏与间距区域悬浮于内容上），标题栏保持独立 */
+  margin-top: calc(-1 * (var(--nav-float) + var(--nav-h)));
 }
 .page {
   flex: 1;
@@ -641,7 +733,9 @@ textarea {
 .page-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: var(--layout-page-top) var(--layout-gutter) var(--layout-bottom-reserve);
+  padding: calc(
+      var(--layout-page-top) + var(--nav-float) + var(--nav-h)
+    ) var(--layout-gutter) var(--layout-bottom-reserve);
 }
 .page-header {
   display: flex;
@@ -2193,7 +2287,7 @@ textarea {
   position: relative;
   flex: none;
   line-height: 0;
-  border-radius: var(--radius-card);
+  border-radius: 50%;
   will-change: transform;
   transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -2205,16 +2299,15 @@ textarea {
 .pb-cover-ph {
   width: 48px;
   height: 48px;
+  border-radius: 50%;
 }
 .pb-cover img {
   display: block;
-  border-radius: var(--radius-card);
   object-fit: cover;
   box-shadow: 0 4px 14px var(--shadow);
 }
 .pb-cover-ph {
-  border-radius: var(--radius-card);
-  background: var(--bg-3);
+  background: color-mix(in srgb, var(--bg-3) 45%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2570,8 +2663,8 @@ textarea {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px);
+  /* 仅导航栏与播放栏保留磨砂玻璃效果，弹窗遮罩不使用 */
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4513,6 +4606,7 @@ textarea {
   width: 100%;
   min-width: 0;
   padding: 7px 12px;
+  border-radius: 10px;
   text-align: left;
   color: var(--text);
 }
@@ -4854,34 +4948,70 @@ textarea {
 
 /* ============================ Interaction polish ============================ */
 
-/* Condensing surface: full-bleed row at rest, floating glass pill on scroll. */
+/* 自动加载更多哨兵：不可见占位，进入视口即触发加载 */
+.load-more-sentinel {
+  height: 1px;
+  margin: 12px 0;
+}
+
+/* Condensing surface: fully transparent at rest, floating glass pill detached
+   from the top edge once the page scrolls. */
 .topnav::before {
   content: "";
   position: absolute;
-  z-index: -1;
+  /* 改用正向层级 + 内容组提升，避免负 z-index 磨砂把导航自身内容采样成重影 */
+  z-index: 0;
   inset: 0;
   border: 1px solid transparent;
-  border-bottom-color: var(--border);
   border-radius: 0;
-  /* 常驻轻磨砂：修复玻璃效果只在视频页/滚动后才可见的问题 */
-  background: var(--glass-nav);
+  background: transparent;
   box-shadow: none;
-  backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: none;
   transition:
-    inset 0.46s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.32s ease,
-    border-radius 0.46s cubic-bezier(0.16, 1, 0.3, 1),
-    background 0.36s ease,
-    box-shadow 0.4s ease,
-    backdrop-filter 0.4s ease;
+    inset 0.55s cubic-bezier(0.3, 1.18, 0.35, 1),
+    border-color 0.4s ease,
+    border-radius 0.55s cubic-bezier(0.3, 1.18, 0.35, 1),
+    background 0.45s ease,
+    box-shadow 0.5s ease,
+    backdrop-filter 0.5s ease;
+}
+.topnav-items,
+.topnav-actions {
+  position: relative;
+  z-index: 1;
+}
+
+/* 收缩态：导航栏整体水平收窄居中（类似 DeepSeek 官网），高度与内容尺寸不变 */
+.topnav {
+  max-width: 100%;
+}
+.topnav.is-condensed {
+  max-width: min(1100px, calc(100% - 120px));
+}
+
+/* 收缩仅动画 max-width 一项布局属性（单一元素，不会抖动） */
+.topnav {
+  transition:
+    max-width 0.55s cubic-bezier(0.3, 1.18, 0.35, 1),
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.topnav .topnav-item,
+.topnav .topnav-icon-btn {
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .topnav.is-condensed::before {
-  inset-inline: 18px;
+  inset: 0;
   border-color: color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--glass-player) 86%, transparent);
-  box-shadow: 0 12px 36px color-mix(in srgb, var(--shadow) 46%, transparent);
+  /* 向下压重心：30-18=12px 恰好不越过导航栏上方的空隙 */
+  box-shadow: 0 18px 30px color-mix(in srgb, var(--shadow) 46%, transparent);
   backdrop-filter: blur(30px) saturate(1.45);
 }
 
@@ -4889,6 +5019,34 @@ textarea {
   display: block;
   flex: none;
   transform: translateZ(0);
+}
+
+/* 玻璃适配：导航栏与播放栏内的控件统一半透明，融入磨砂表面 */
+.topnav .topnav-item:hover,
+.topnav .topnav-icon-btn:hover,
+.topnav .search-close:hover,
+.player-bar .icon-btn:hover {
+  background: color-mix(in srgb, var(--hover) 70%, transparent);
+}
+.topnav .topnav-item.active {
+  background: linear-gradient(
+    135deg,
+    rgba(236, 65, 65, 0.18),
+    rgba(255, 95, 109, 0.06)
+  );
+}
+.topnav .search-capsule,
+.topnav .topnav-user,
+.player-bar .pb-cover-ph {
+  background: color-mix(in srgb, var(--bg-3) 45%, transparent);
+  backdrop-filter: blur(10px);
+}
+.topnav .user-avatar-ph {
+  background: color-mix(in srgb, var(--bg-2) 40%, transparent);
+}
+.topnav .search-dropdown {
+  background: color-mix(in srgb, var(--bg-2) 68%, transparent);
+  backdrop-filter: blur(24px) saturate(1.35);
 }
 
 .song-cards {
@@ -5526,12 +5684,64 @@ textarea {
 .playlist-picker-meta strong { font-size: 12px; }
 .playlist-picker-meta small { color: var(--text-faint); font-size: 11px; }
 
-.media-detail-backdrop { z-index: 30; }
-.media-detail-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38); }
-.media-detail-video { display: grid; place-items: center; min-height: 280px; background: #08090f; }
+/* Above sidebars (70), drawers/modals (100) and the search overlay (110),
+   but below toasts (200). The base .modal-backdrop rule is z-index:100;
+   without this override the popup sat at 30 and was covered by the player
+   bar and drawers. */
+.media-detail-backdrop { z-index: 120; }
+.media-detail-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38); }
+.media-detail-video { position: relative; display: grid; place-items: center; min-height: 280px; background: #08090f; }
 .media-detail-video video { display: block; width: 100%; max-height: min(60vh, 560px); background: #08090f; }
+/* Both videos occupy the same grid cell: the preloading one is fully painted
+   UNDER the active one, so promoting it (and unmounting the old) causes no
+   black frame and no layout shift of the controls. */
+.media-video-stage { display: grid; }
+.media-video-stage video { grid-area: 1 / 1; z-index: 1; }
+.media-video-stage video.media-video-preload { z-index: 0; }
+/* Quality-switch hint, floats just above the play/pause button. */
+.media-video-switch-hint { position: absolute; left: 14px; bottom: 66px; z-index: 3; padding: 6px 12px; border-radius: 999px; background: rgba(12, 14, 22, 0.9); color: #fff; font-size: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); pointer-events: none; }
+.media-video-stage { position: relative; width: 100%; }
+.media-video-stage video { cursor: pointer; }
+/* The center pause/play overlay stays visible even when the bar hides
+   (mainstream players keep it as the pause indicator). */
+.media-video-stage.controls-hidden { cursor: none; }
+.media-video-stage.controls-hidden .media-video-controls { opacity: 0; pointer-events: none; }
+.media-video-controls { transition: opacity 0.22s ease; }
+.media-video-center-play { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer; transition: opacity 0.22s ease; }
+.media-video-center-play:hover { background: rgba(0, 0, 0, 0.75); }
+.media-video-controls { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px 12px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); color: #fff; }
+.media-video-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.media-video-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.media-video-time { flex: none; color: rgba(255, 255, 255, 0.85); font-size: 12px; font-variant-numeric: tabular-nums; }
+.media-video-seek { flex: 1; min-width: 40px; height: 5px; accent-color: #fff; cursor: pointer; }
+.media-video-volume { position: relative; display: inline-flex; }
+/* Flush against the button (bottom: 28px = button height) with extra bottom
+   padding so there is no hover gap between the icon and the vertical bar. */
+.media-video-volume-pop { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 12px 10px 20px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+/* Custom-drawn vertical volume slider (div-based, player style). */
+.media-video-volume-track { position: relative; width: 5px; height: 100px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); cursor: pointer; touch-action: none; }
+.media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
+.media-video-volume-thumb { position: absolute; left: 50%; width: 10px; height: 10px; transform: translate(-50%, 50%); border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+.media-video-volume-num { color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; }
+.media-video-rate { position: relative; display: inline-flex; }
+.media-video-rate-btn { width: auto; min-width: 44px; padding: 0 8px; font-size: 12px; }
+.media-video-rate-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 66px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.media-video-rate-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 11px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 12px; cursor: pointer; }
+.media-video-rate-menu button:hover { background: rgba(255, 255, 255, 0.12); }
+.media-video-rate-menu button.active { color: #fff; font-weight: 600; }
+.media-video-quality { position: relative; display: inline-flex; }
+.media-video-quality-btn { width: auto; min-width: 46px; padding: 0 8px; font-size: 12px; }
+.media-video-quality-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 76px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.media-video-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 11px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 12px; cursor: pointer; }
+.media-video-quality-menu button:hover { background: rgba(255, 255, 255, 0.12); }
+.media-video-quality-menu button.active { color: #fff; font-weight: 600; }
+/* Window-fullscreen: a fixed overlay filling the app window (not the monitor).
+   Avoids the Fullscreen API, which makes WebView2/Tauri go borderless on the
+   whole screen and shakes the layout on enter/exit. */
+.media-video-stage.window-fullscreen { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #000; }
+.media-video-stage.window-fullscreen video { max-height: 100vh; }
 .media-detail-video-empty { display: grid; justify-items: center; gap: 8px; color: var(--text-faint); }
-.media-detail-body { padding: 16px 18px 20px; }
+.media-detail-body { padding: 16px 18px 20px; overflow-y: auto; }
 .media-detail-head { display: flex; align-items: center; gap: 12px; }
 .media-detail-head > img, .media-detail-cover-placeholder { width: 64px; height: 64px; flex: none; border-radius: 7px; object-fit: cover; }
 .media-detail-cover-placeholder { display: grid; place-items: center; background: var(--bg-3); color: var(--text-faint); }
@@ -5543,22 +5753,11 @@ textarea {
 .segmented-control { display: inline-flex; padding: 2px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-2); }
 .segmented-control button { padding: 5px 9px; border: 0; border-radius: 5px; background: transparent; color: var(--text-faint); font: inherit; font-size: 11px; cursor: pointer; }
 .segmented-control button.active { background: var(--accent); color: #fff; }
-.media-detail-description { margin: 0; color: var(--text-2); font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+.media-detail-description { margin: 0; color: var(--text); font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
 .media-detail-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .media-detail-tags span { padding: 3px 7px; border-radius: 4px; background: var(--bg-3); color: var(--text-faint); font-size: 10px; }
-.media-detail-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; color: var(--text-dim); font-size: 11px; }
-.media-related { margin-top: 18px; }
-.media-related h3 { margin: 0 0 9px; color: var(--text-2); font-size: 13px; }
-.media-related-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.media-related-grid > button { display: grid; gap: 4px; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
-.media-related-cover { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; background: var(--bg-3); color: var(--text-faint); }
-.media-related-cover img { width: 100%; height: 100%; object-fit: cover; }
-.media-related-cover > svg:last-child { position: absolute; right: 7px; bottom: 6px; color: #fff; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .5)); }
-.media-related-grid strong, .media-related-grid small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.media-related-grid strong { font-size: 11px; }
-.media-related-grid small { color: var(--text-faint); font-size: 10px; }
+.media-detail-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; color: var(--text-2); font-size: 11px; }
 @media (max-width: 700px) {
-  .media-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .media-detail-dialog { width: calc(100vw - 16px); max-height: calc(100vh - 16px); }
 }
 
@@ -5740,7 +5939,9 @@ textarea {
 .voice-empty-panel { display: grid; place-items: center; gap: 8px; min-height: 260px; color: var(--text-faint); font-size: 12px; }
 .voice-empty-panel strong { color: var(--text-dim); }
 .voice-error { margin-top: 12px; padding: 9px 11px; border: 1px solid color-mix(in srgb, #ff6b6b 35%, transparent); border-radius: 6px; color: #ff8585; font-size: 11px; }
-.voice-detail-backdrop { z-index: 35; }
+/* Same layering contract as .media-detail-backdrop: above overlays up to
+   110, below toasts (200). */
+.voice-detail-backdrop { z-index: 120; }
 .voice-detail-dialog { width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, .38); }
 .voice-detail-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border-light); }
 .voice-detail-head > img, .voice-detail-head > span { width: 58px; height: 58px; flex: none; border-radius: 7px; object-fit: cover; }
@@ -5906,7 +6107,7 @@ textarea {
 .broadcast-card-open strong { font-size: 12px; }
 .broadcast-card-open small { color: var(--text-dim); font-size: 10px; }
 .broadcast-card > .icon-button { position: absolute; top: 10px; right: 10px; background: color-mix(in srgb, var(--bg-2) 80%, transparent); }
-.broadcast-detail-backdrop { z-index: 35; }
+.broadcast-detail-backdrop { z-index: 120; }
 .broadcast-detail-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, .38); }
 .broadcast-detail-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border-light); }
 .broadcast-detail-head > img, .broadcast-detail-head > span { width: 58px; height: 58px; flex: none; border-radius: 7px; object-fit: cover; }
@@ -6021,7 +6222,7 @@ textarea {
 @media (max-width: 760px) { .calendar-query { align-items: stretch; flex-wrap: wrap; } .calendar-query label { min-width: 0; flex: 1 1 140px; } .calendar-query-separator { display: none; } .calendar-query .primary-button { flex-basis: 100%; } .calendar-event { padding: 10px; } .calendar-event > img, .calendar-event-cover { width: 52px; height: 52px; flex-basis: 52px; } }
 
 /* Podcast program detail */
-.podcast-program-backdrop { z-index: 40; }
+.podcast-program-backdrop { z-index: 120; }
 .podcast-program-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-1); box-shadow: 0 24px 70px rgba(0, 0, 0, .38); }
 .podcast-program-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border-light); }
 .podcast-program-head h2 { margin: 6px 0 0; font-size: 18px; }

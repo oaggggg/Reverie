@@ -54,6 +54,64 @@ export interface RequestOptions {
   headers?: HeadersInit;
 }
 
+/* ------------------------------------------------------------------ */
+/*  In-memory GET cache with in-flight dedup                          */
+/* ------------------------------------------------------------------ */
+
+interface CacheEntry {
+  at: number;
+  data: unknown;
+}
+
+const responseCache = new Map<string, CacheEntry>();
+const inFlight = new Map<string, Promise<unknown>>();
+const MAX_CACHE_ENTRIES = 120;
+
+function cacheKey(path: string, params: Record<string, unknown>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+  }
+  return `${path}?${q.toString()}`;
+}
+
+/**
+ * GET wrapper with a per-call TTL and single-flight dedup: identical
+ * concurrent calls share one fetch, and fresh results are served from
+ * memory without touching the local API server again.
+ */
+export async function cachedRequest<T>(
+  path: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+  ttlMs: number,
+): Promise<T> {
+  const key = cacheKey(path, params);
+  const hit = responseCache.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.data as T;
+  const running = inFlight.get(key);
+  if (running) return running as Promise<T>;
+  const run = request<T>(path, params)
+    .then((data) => {
+      responseCache.set(key, { at: Date.now(), data });
+      while (responseCache.size > MAX_CACHE_ENTRIES) {
+        const oldest = responseCache.keys().next().value;
+        if (oldest === undefined) break;
+        responseCache.delete(oldest);
+      }
+      return data;
+    })
+    .finally(() => {
+      if (inFlight.get(key) === run) inFlight.delete(key);
+    });
+  inFlight.set(key, run);
+  return run;
+}
+
+/** Drop cached entries (e.g. after login state changes). */
+export function clearResponseCache(): void {
+  responseCache.clear();
+}
+
 export async function request<T = unknown>(
   path: string,
   params: Record<string, string | number | boolean | null | undefined> = {},
@@ -234,13 +292,34 @@ export async function searchSongs(
 /*  Playback                                                           */
 /* ------------------------------------------------------------------ */
 
+/** Song URLs stay valid for hours upstream; reuse them instead of re-asking. */
+const SONG_URL_CACHE_TTL = 30 * 60 * 1000;
+
 export async function getSongUrl(
   id: number,
   level: "standard" | "higher" | "exhigh" | "lossless" = "exhigh",
 ): Promise<{ url: string | null; br: number }> {
-  const res = await request<SongUrlResponse>("/song/url/v1", { id, level });
-  const d = res.data?.[0];
-  return { url: d?.url ?? null, br: d?.br ?? 0 };
+  const key = cacheKey("/song/url/v1", { id, level });
+  const hit = responseCache.get(key);
+  if (hit && Date.now() - hit.at < SONG_URL_CACHE_TTL) {
+    return hit.data as { url: string | null; br: number };
+  }
+  const running = inFlight.get(key);
+  if (running) return running as Promise<{ url: string | null; br: number }>;
+  const run = request<SongUrlResponse>("/song/url/v1", { id, level })
+    .then((res) => {
+      const d = res.data?.[0];
+      const out = { url: d?.url ?? null, br: d?.br ?? 0 };
+      // Only cache playable results; a null url may become available later
+      // (e.g. right after login).
+      if (out.url) responseCache.set(key, { at: Date.now(), data: out });
+      return out;
+    })
+    .finally(() => {
+      if (inFlight.get(key) === run) inFlight.delete(key);
+    });
+  inFlight.set(key, run);
+  return run;
 }
 
 export async function getSongDownloadUrl(
@@ -306,17 +385,21 @@ export async function getLyric(id: number): Promise<{
     nolyric: !!res.nolyric,
   });
   try {
-    const modern = await request<ModernLyricResponse>("/lyric/new", {
-      id,
-      cp: false,
-      tv: 0,
-      lv: 0,
-      rv: 0,
-      kv: 0,
-      yv: 0,
-      ytv: 0,
-      yrv: 0,
-    });
+    const modern = await cachedRequest<ModernLyricResponse>(
+      "/lyric/new",
+      {
+        id,
+        cp: false,
+        tv: 0,
+        lv: 0,
+        rv: 0,
+        kv: 0,
+        yv: 0,
+        ytv: 0,
+        yrv: 0,
+      },
+      12 * 60 * 60 * 1000,
+    );
     const normalized = read(modern);
     if (normalized.lrc || normalized.tlyric || normalized.nolyric) {
       return normalized;
@@ -324,7 +407,9 @@ export async function getLyric(id: number): Promise<{
   } catch {
     // Older sidecars may not expose /lyric/new; use the stable legacy route.
   }
-  return read(await request<LyricResponse>("/lyric", { id }));
+  return read(
+    await cachedRequest<LyricResponse>("/lyric", { id }, 12 * 60 * 60 * 1000),
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -332,9 +417,11 @@ export async function getLyric(id: number): Promise<{
 /* ------------------------------------------------------------------ */
 
 export async function getTopSongs(type = 0, limit = 100): Promise<Song[]> {
-  const res = await request<{ code?: number; data?: unknown[] }>("/top/song", {
-    type,
-  });
+  const res = await cachedRequest<{ code?: number; data?: unknown[] }>(
+    "/top/song",
+    { type },
+    10 * 60 * 1000,
+  );
   const raws = (res.data ?? []).slice(0, limit) as unknown[];
   return raws.map((r) => normalizeSong(r)).filter((s): s is Song => s !== null);
 }
@@ -349,10 +436,10 @@ export async function getPlaylistDetail(id: number): Promise<{
   subscribed: boolean;
   songs: Song[];
 }> {
-  const res = await request<{
+  const res = await cachedRequest<{
     code?: number;
     playlist?: Record<string, unknown>;
-  }>("/playlist/detail", { id });
+  }>("/playlist/detail", { id }, 5 * 60 * 1000);
   const pl = res.playlist ?? {};
   const creator = (pl.creator ?? {}) as Record<string, unknown>;
   const tracks = (pl.tracks ?? []) as unknown[];
@@ -374,9 +461,10 @@ export async function getHotPlaylists(
   limit = 30,
   offset = 0,
 ): Promise<PlaylistInfo[]> {
-  const res = await request<{ code?: number; playlists?: unknown[] }>(
+  const res = await cachedRequest<{ code?: number; playlists?: unknown[] }>(
     "/top/playlist",
     { limit, offset, order: "hot", cat: "全部" },
+    30 * 60 * 1000,
   );
   return (res.playlists ?? [])
     .map((p) => {
@@ -398,10 +486,10 @@ export async function getHotPlaylists(
 }
 
 export async function getRecommendSongs(): Promise<Song[]> {
-  const res = await request<{
+  const res = await cachedRequest<{
     code?: number;
     data?: { dailySongs?: unknown[] };
-  }>("/recommend/songs");
+  }>("/recommend/songs", {}, 10 * 60 * 1000);
   const raws = (res.data?.dailySongs ?? []) as unknown[];
   return raws.map((r) => normalizeSong(r)).filter((s): s is Song => s !== null);
 }
@@ -415,9 +503,10 @@ export async function fmTrash(id: number): Promise<void> {
 }
 
 export async function getUserPlaylists(uid: number): Promise<PlaylistInfo[]> {
-  const res = await request<{ code?: number; playlist?: unknown[] }>(
+  const res = await cachedRequest<{ code?: number; playlist?: unknown[] }>(
     "/user/playlist",
     { uid, limit: 50 },
+    2 * 60 * 1000,
   );
   return (res.playlist ?? [])
     .map((p) => {
@@ -639,9 +728,13 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
 
 export async function getSongsByIds(ids: number[]): Promise<Song[]> {
   if (!ids.length) return [];
-  const res = await request<SongDetailResponse>("/song/detail", {
-    ids: ids.join(","),
-  });
+  // Song metadata is stable; cache aggressively so re-entering a large liked
+  // list or re-opening a playlist does not refetch every chunk.
+  const res = await cachedRequest<SongDetailResponse>(
+    "/song/detail",
+    { ids: ids.join(",") },
+    30 * 60 * 1000,
+  );
   return (res.songs ?? [])
     .map((r) => normalizeSong(r))
     .filter((s): s is Song => s !== null);

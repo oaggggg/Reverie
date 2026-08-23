@@ -3,7 +3,6 @@ import {
   getMediaDetail,
   getMediaStats,
   getMediaUrl,
-  getRelatedMedia,
   setMediaLiked,
   setMediaSubscribed,
 } from "../api/media.ts";
@@ -14,7 +13,6 @@ interface MediaState {
   item: SearchMediaInfo | null;
   detail: MediaDetail | null;
   url: string;
-  related: SearchMediaInfo[];
   stats: MediaStats | null;
   loading: boolean;
   urlLoading: boolean;
@@ -34,7 +32,6 @@ export const useMediaStore = create<MediaState>()((set, get) => ({
   item: null,
   detail: null,
   url: "",
-  related: [],
   stats: null,
   loading: false,
   urlLoading: false,
@@ -48,31 +45,25 @@ export const useMediaStore = create<MediaState>()((set, get) => ({
       item,
       detail: null,
       url: "",
-      related: [],
       stats: null,
       actionLoading: "",
       loading: true,
       urlLoading: true,
       error: "",
     });
-    const [detailResult, urlResult, relatedResult, statsResult] =
-      await Promise.allSettled([
-        getMediaDetail(item),
-        getMediaUrl(item, get().resolution),
-        getRelatedMedia(item),
-        getMediaStats(item),
-      ]);
+    const [detailResult, urlResult, statsResult] = await Promise.allSettled([
+      getMediaDetail(item),
+      getMediaUrl(item, get().resolution),
+      getMediaStats(item),
+    ]);
     if (current !== token) return;
     const detail =
       detailResult.status === "fulfilled" ? detailResult.value : null;
     const url = urlResult.status === "fulfilled" ? urlResult.value : "";
-    const related =
-      relatedResult.status === "fulfilled" ? relatedResult.value : [];
     const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
     set({
       detail,
       url,
-      related,
       stats,
       loading: false,
       urlLoading: false,
@@ -159,7 +150,6 @@ export const useMediaStore = create<MediaState>()((set, get) => ({
       item: null,
       detail: null,
       url: "",
-      related: [],
       stats: null,
       loading: false,
       urlLoading: false,

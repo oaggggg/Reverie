@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   clearCookie,
+  clearResponseCache,
   fmTrash,
   getCookie,
   getLegacySongUrl,
@@ -1213,6 +1214,21 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return;
     }
     set({ currentUrl: url, loadingUrl: false, playing: true });
+
+    // Prefetch the next track's URL while the current one plays; it lands in
+    // the song-url cache and makes the next playSong near-instant.
+    const state = get();
+    let nextIdx = -1;
+    if (state.playMode === "shuffle" && state.queue.length > 1) {
+      nextIdx = Math.floor(Math.random() * state.queue.length);
+      if (nextIdx === state.index) nextIdx = (state.index + 1) % state.queue.length;
+    } else if (state.index + 1 < state.queue.length) {
+      nextIdx = state.index + 1;
+    }
+    const nextSong = nextIdx >= 0 ? state.queue[nextIdx] : null;
+    if (nextSong && nextSong.id !== song.id) {
+      void resolveUrl(nextSong).catch(() => {});
+    }
   },
   /**
    * The current track cannot be played. Move on to the next one, but stop once
@@ -1349,11 +1365,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
     set({ likedSongsLoading: true });
     try {
-      const songs: Song[] = [];
+      const chunks: number[][] = [];
       for (let i = 0; i < likedIds.length; i += 200) {
-        const chunk = await getSongsByIds(likedIds.slice(i, i + 200));
-        songs.push(...chunk);
+        chunks.push(likedIds.slice(i, i + 200));
       }
+      const songs: Song[] = (
+        await Promise.all(chunks.map((chunk) => getSongsByIds(chunk)))
+      ).flat();
       // most recently liked first (local timestamps when available)
       songs.sort(
         (a, b) => (likedAt[b.id] ?? -Infinity) - (likedAt[a.id] ?? -Infinity),
@@ -1447,6 +1465,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   applyLogin: async (c) => {
     if (!c) return false;
     setCookie(c);
+    // Permissions (VIP levels, region blocks) change with the account.
+    clearResponseCache();
     set({ authReady: false });
     try {
       const profile = await loginStatusWithRetry();
@@ -1490,6 +1510,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   logout: () => {
     void logoutFromNetease().catch(() => undefined);
     clearCookie();
+    clearResponseCache();
     searchCache.clear();
     // stop playback and clear the current session
     const el = get().audioEl;

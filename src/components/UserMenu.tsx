@@ -1,29 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
-import { Album, CircleUserRound, Link2, Radio, Users } from "lucide-react";
+import { CircleUserRound } from "lucide-react";
+import { getProfileCenter } from "../api/profile";
 import { useProfileStore } from "../store/profileStore";
-import { useCollectionStore } from "../store/collectionStore";
-
-function vipLabel(vipType?: number): string {
-  if (!vipType || vipType === 0) return "普通用户";
-  if (vipType === 11) return "黑胶 SVIP";
-  if (vipType === 10) return "黑胶 VIP";
-  return "VIP 会员";
-}
-
-function formatExpire(expireTime?: number): string {
-  if (!expireTime || expireTime <= 0) return "—";
-  try {
-    return new Date(expireTime).toLocaleDateString("zh-CN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch {
-    return "—";
-  }
-}
 
 export default function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -34,7 +14,7 @@ export default function UserMenu() {
   const loadVipInfo = usePlayerStore((s) => s.loadVipInfo);
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const openProfile = useProfileStore((s) => s.openProfile);
-  const openCollections = useCollectionStore((s) => s.openCollections);
+  const profileDetail = useProfileStore((s) => s.detail);
   const openVip = () =>
     usePlayerStore.setState({ activeView: "vip", prevView: "home" });
   const ref = useRef<HTMLDivElement>(null);
@@ -42,6 +22,13 @@ export default function UserMenu() {
   useEffect(() => {
     if (!open) return;
     if (profile && !vipInfo) void loadVipInfo();
+    // 轻量加载个人资料（等级/关注/粉丝/简介/加入时间），不跳转页面
+    const uid = usePlayerStore.getState().profile?.userId;
+    if (profile && uid && !useProfileStore.getState().detail) {
+      void getProfileCenter(uid)
+        .then((data) => useProfileStore.setState({ detail: data.detail }))
+        .catch(() => {});
+    }
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node))
         setOpen(false);
@@ -104,111 +91,84 @@ export default function UserMenu() {
               </span>
             )}
             <div className="uh-info">
-              <div className="nm">{profile?.nickname}</div>
+              <div className="nm">
+                <span className="uh-nick">{profile?.nickname}</span>
+                {profileDetail && profileDetail.level > 0 && (
+                  <em className="uh-level-chip">Lv.{profileDetail.level}</em>
+                )}
+              </div>
+              <div className="uh-stats">
+                {profileDetail && <span>关注 {profileDetail.follows}</span>}
+                {profileDetail && <span>粉丝 {profileDetail.followeds}</span>}
+                {isVip && expireTime > 0 && (
+                  <span>
+                    {new Date(expireTime).getFullYear()}年
+                    {String(new Date(expireTime).getMonth() + 1).padStart(2, "0")}
+                    月
+                    {String(new Date(expireTime).getDate()).padStart(2, "0")}日
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="user-dropdown-row">
-            <span>会员类型</span>
-            <span>{vipLabel(vipType)}</span>
+          <div className="user-dropdown-grid">
+            <button
+              className="user-dropdown-cell"
+              onClick={() => {
+                setOpen(false);
+                void openProfile();
+              }}
+            >
+              个人中心
+            </button>
+            <button
+              className="user-dropdown-cell"
+              onClick={() => {
+                setOpen(false);
+                openVip();
+              }}
+            >
+              会员中心
+            </button>
+            <button
+              className="user-dropdown-cell"
+              onClick={() => {
+                setOpen(false);
+                usePlayerStore.setState({
+                  activeView: "downloadHistory",
+                  prevView: "home",
+                });
+              }}
+            >
+              下载与购买
+            </button>
+            <button
+              className="user-dropdown-cell"
+              onClick={() => {
+                setOpen(false);
+                usePlayerStore.setState({
+                  activeView: "listenTogether",
+                  prevView: "home",
+                });
+              }}
+            >
+              一起听
+            </button>
           </div>
-          <div className="user-dropdown-row">
-            <span>会员等级</span>
-            <span>{vipLevel > 0 ? `Lv.${vipLevel}` : "—"}</span>
+          <div className="user-dropdown-foot">
+            <button className="user-dropdown-item" onClick={switchAccount}>
+              切换账号
+            </button>
+            <button
+              className="user-dropdown-item danger"
+              onClick={() => {
+                logout();
+                setOpen(false);
+              }}
+            >
+              退出登录
+            </button>
           </div>
-          <div className="user-dropdown-row">
-            <span>会员到期</span>
-            <span>{isVip ? formatExpire(expireTime) : "—"}</span>
-          </div>
-          <button
-            className="user-dropdown-item"
-            onClick={() => {
-              setOpen(false);
-              void openProfile();
-            }}
-          >
-            个人中心
-          </button>
-          <button
-            className="user-dropdown-item"
-            onClick={() => {
-              setOpen(false);
-              void openCollections();
-            }}
-          >
-            收藏中心
-          </button>
-          <button
-            className="user-dropdown-item"
-            onClick={() => {
-              setOpen(false);
-              openVip();
-            }}
-          >
-            会员中心
-          </button>
-          <button
-            className="user-dropdown-item"
-            onClick={() => {
-              setOpen(false);
-              usePlayerStore.setState({
-                activeView: "downloadHistory",
-                prevView: "home",
-              });
-            }}
-          >
-            下载与购买
-          </button>
-          <button
-            className="user-dropdown-item"
-            onClick={() => {
-              setOpen(false);
-              usePlayerStore.setState({
-                activeView: "listenTogether",
-                prevView: "home",
-              });
-            }}
-          >
-            <Link2 size={15} />
-            一起听
-          </button>
-          <button
-            className="user-dropdown-item"
-            onClick={() => {
-              setOpen(false);
-              usePlayerStore.setState({
-                activeView: "digitalAlbum",
-                prevView: "home",
-              });
-            }}
-          >
-            <Album size={15} />
-            数字专辑
-          </button>
-          <button
-            className="user-dropdown-item"
-            onClick={() => {
-              setOpen(false);
-              usePlayerStore.setState({ activeView: "broadcast", prevView: "home" });
-            }}
-          >
-            <Radio size={15} />
-            广播电台
-          </button>
-          <button className="user-dropdown-item" onClick={() => { setOpen(false); usePlayerStore.setState({ activeView: "fans", prevView: "home" }); }}>
-            <Users size={15} />粉丝中心
-          </button>
-          <button className="user-dropdown-item" onClick={switchAccount}>
-            切换账号
-          </button>
-          <button
-            className="user-dropdown-item danger"
-            onClick={() => {
-              logout();
-              setOpen(false);
-            }}
-          >
-            退出登录
-          </button>
         </div>
       )}
     </div>
