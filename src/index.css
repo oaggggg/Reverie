@@ -4022,8 +4022,8 @@ textarea {
   inset: 0;
   z-index: 54;
   cursor: default;
-  background: rgba(5, 6, 10, 0.28);
-  backdrop-filter: blur(2px);
+  background: color-mix(in srgb, rgba(5, 6, 10, 0.28) 72%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
 }
 .player-comments-drawer {
   position: fixed;
@@ -4037,12 +4037,20 @@ textarea {
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 22px;
-  background: var(--glass-strong);
+  background: color-mix(in srgb, var(--glass-strong) 74%, transparent);
   box-shadow: 0 24px 70px var(--shadow);
   backdrop-filter: blur(32px) saturate(1.35);
   transform: translateX(-50%);
   transform-origin: bottom center;
   animation: comments-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.share-dialog-backdrop {
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.55) 72%, transparent);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+.share-dialog-backdrop .share-dialog {
+  background: color-mix(in srgb, var(--glass-strong) 76%, transparent);
+  backdrop-filter: blur(26px) saturate(1.25);
 }
 @keyframes comments-rise {
   from {
@@ -4437,7 +4445,8 @@ textarea {
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 9px;
-  background: var(--bg-2);
+  background: color-mix(in srgb, var(--bg-2) 64%, transparent);
+  backdrop-filter: blur(14px);
   color: var(--text);
   font: inherit;
   line-height: 1.6;
@@ -5042,20 +5051,6 @@ textarea {
 .topnav .search-close:hover,
 .player-bar .icon-btn:hover {
   background: color-mix(in srgb, var(--hover) 70%, transparent);
-}
-.player-bar .pb-right > .icon-btn,
-.player-bar .pb-quality-btn,
-.player-bar .vol-wrap > .icon-btn {
-  border: 1px solid color-mix(in srgb, var(--border) 48%, transparent);
-  background: color-mix(in srgb, var(--glass-player) 72%, transparent);
-  backdrop-filter: blur(12px) saturate(1.25);
-}
-.player-bar .pb-right > .icon-btn:hover,
-.player-bar .pb-quality-btn:hover,
-.player-bar .pb-quality-btn.active,
-.player-bar .vol-wrap:hover > .icon-btn {
-  border-color: color-mix(in srgb, var(--border) 82%, transparent);
-  background: color-mix(in srgb, var(--hover) 62%, transparent);
 }
 .topnav .topnav-item.active {
   background: linear-gradient(

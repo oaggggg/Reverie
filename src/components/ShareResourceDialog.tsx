@@ -24,7 +24,7 @@ export default function ShareResourceDialog({ song, open, onClose }: { song: Son
     }
   };
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop share-dialog-backdrop" onClick={onClose}>
       <section className="modal share-dialog" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
         <header className="modal-head"><div><h2>分享歌曲</h2><p>{song.name} · {song.artists}</p></div><button className="icon-btn" onClick={onClose} title="关闭"><X size={18} /></button></header>
         <textarea value={message} maxLength={140} placeholder="写点分享说明（可选）" onChange={(event) => setMessage(event.target.value)} />

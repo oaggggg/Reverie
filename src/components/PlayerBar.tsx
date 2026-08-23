@@ -199,7 +199,7 @@ export default function PlayerBar() {
               aria-expanded={qualityOpen}
               aria-busy={qualitySwitching}
             >
-              <span>音质</span>
+              <span>{PLAYBACK_QUALITY_LABELS[playbackQuality]}</span>
             </button>
             {qualityOpen && (
               <div className="pb-quality-menu" role="menu">
