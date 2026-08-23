@@ -46,6 +46,7 @@ export type UpdatePhase =
   | "available"
   | "downloading"
   | "downloaded"
+  | "installing"
   | "none"
   | "error";
 
@@ -418,6 +419,8 @@ interface PlayerState {
   updateTransferred: number;
   updateTotal: number;
   updateSpeed: number;
+  updateErrorStage: "check" | "download" | "install" | "";
+  updateError: string;
   showUpdate: boolean;
 
   // --- appearance ---
@@ -590,6 +593,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   updateTransferred: 0,
   updateTotal: 0,
   updateSpeed: 0,
+  updateErrorStage: "",
+  updateError: "",
   showUpdate: false,
 
   // --- appearance ---
@@ -763,35 +768,66 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return;
     }
     if (get().updatePhase === "checking") return;
-    set({ updatePhase: "checking" });
+    set({ updatePhase: "checking", updateErrorStage: "", updateError: "" });
     window.ncm
       .checkUpdate(manual)
       .then((r) => {
         if (r.ok) return;
-        set({ updatePhase: "idle" });
+        set({ updatePhase: "idle", updateErrorStage: "", updateError: "" });
         if (!manual) return;
         if (r.reason === "busy") get().toast("正在检查更新，请稍候", "info");
+        else if (r.reason === "downloaded")
+          get().toast("更新已下载，请重启安装", "info");
+        else if (r.reason === "throttled")
+          get().toast("刚刚检查过更新，请稍候再试", "info");
         else get().toast("当前环境不支持自动更新", "error");
       })
-      .catch(() => set({ updatePhase: "idle" }));
+      .catch(() =>
+        set({ updatePhase: "idle", updateErrorStage: "", updateError: "" }),
+      );
   },
   startUpdate: () => {
     if (!window.ncm?.downloadUpdate) return;
-    set({ updatePhase: "downloading", updateProgress: 0 });
+    set({
+      updatePhase: "downloading",
+      updateProgress: 0,
+      updateTransferred: 0,
+      updateTotal: 0,
+      updateSpeed: 0,
+      updateErrorStage: "",
+      updateError: "",
+      showUpdate: true,
+    });
     window.ncm
       .downloadUpdate()
       .then((r) => {
         if (!r.ok) {
-          set({ updatePhase: "error" });
+          set({ updatePhase: "error", showUpdate: true });
           get().toast("下载更新失败，请稍后重试", "error");
         }
       })
       .catch(() => {
-        set({ updatePhase: "error" });
+        set({ updatePhase: "error", showUpdate: true });
         get().toast("下载更新失败，请稍后重试", "error");
       });
   },
-  installUpdate: () => window.ncm?.installUpdate(),
+  installUpdate: () => {
+    if (
+      !window.ncm?.installUpdate ||
+      (get().updatePhase !== "downloaded" &&
+        !(
+          get().updatePhase === "error" && get().updateErrorStage === "install"
+        ))
+    )
+      return;
+    set({
+      updatePhase: "installing",
+      updateErrorStage: "",
+      updateError: "",
+      showUpdate: true,
+    });
+    void window.ncm.installUpdate();
+  },
   dismissUpdate: () => {
     // Remember the dismissal per version: next launch shows only a hint.
     if (get().updatePhase === "available" && get().updateVersion) {
@@ -801,12 +837,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         /* ignore */
       }
     }
+    if (get().updatePhase === "installing") return;
     set({ showUpdate: false });
   },
   applyUpdateEvent: (type, data) => {
     switch (type) {
       case "checking":
-        set({ updatePhase: "checking" });
+        set({ updatePhase: "checking", updateErrorStage: "", updateError: "" });
         break;
       case "available": {
         const d = (data ?? {}) as {
@@ -819,6 +856,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
           updateVersion: version,
           updateNotes: d.notes ?? "",
           updateProgress: 0,
+          updateErrorStage: "",
+          updateError: "",
         });
         if (d.manual) {
           set({ updatePhase: "available", showUpdate: true });
@@ -852,26 +891,64 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         };
         set({
           updatePhase: "downloading",
-          updateProgress: Number(d.percent ?? 0),
+          updateProgress: Math.max(0, Math.min(100, Number(d.percent ?? 0))),
           updateTransferred: Number(d.transferred ?? 0),
           updateTotal: Number(d.total ?? 0),
           updateSpeed: Number(d.speed ?? 0),
+          updateErrorStage: "",
+          updateError: "",
         });
         return;
       }
-      case "downloaded":
-        set({ updatePhase: "downloaded", showUpdate: true });
+      case "downloaded": {
+        const d = (data ?? {}) as { version?: string };
+        set({
+          updatePhase: "downloaded",
+          updateVersion: d.version ?? get().updateVersion,
+          updateProgress: 100,
+          updateErrorStage: "",
+          updateError: "",
+          showUpdate: true,
+        });
         return;
+      }
+      case "installing": {
+        const d = (data ?? {}) as { version?: string };
+        set({
+          updatePhase: "installing",
+          updateVersion: d.version ?? get().updateVersion,
+          updateErrorStage: "",
+          updateError: "",
+          showUpdate: true,
+        });
+        return;
+      }
       case "not-available": {
         const d = (data ?? {}) as { manual?: boolean };
-        set({ updatePhase: "none" });
+        set({ updatePhase: "none", updateErrorStage: "", updateError: "" });
         if (d.manual) get().toast("当前已是最新版本", "success");
         return;
       }
       case "error": {
-        const d = (data ?? {}) as { manual?: boolean };
-        set({ updatePhase: "error" });
-        if (d.manual) get().toast("检查更新失败，请稍后重试", "error");
+        const d = (data ?? {}) as {
+          manual?: boolean;
+          stage?: "check" | "download" | "install";
+          message?: string;
+          version?: string;
+        };
+        const message = d.message || "更新操作失败，请稍后重试";
+        set({
+          updatePhase: "error",
+          updateVersion: d.version ?? get().updateVersion,
+          updateErrorStage: d.stage ?? "check",
+          updateError: message,
+          showUpdate: d.stage !== "check",
+        });
+        if (d.manual || d.stage === "check")
+          get().toast("检查更新失败，请稍后重试", "error");
+        else if (d.stage === "install")
+          get().toast("安装更新失败，请重试", "error");
+        else get().toast("下载更新失败，请稍后重试", "error");
         return;
       }
       default:
@@ -1221,7 +1298,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     let nextIdx = -1;
     if (state.playMode === "shuffle" && state.queue.length > 1) {
       nextIdx = Math.floor(Math.random() * state.queue.length);
-      if (nextIdx === state.index) nextIdx = (state.index + 1) % state.queue.length;
+      if (nextIdx === state.index)
+        nextIdx = (state.index + 1) % state.queue.length;
     } else if (state.index + 1 < state.queue.length) {
       nextIdx = state.index + 1;
     }

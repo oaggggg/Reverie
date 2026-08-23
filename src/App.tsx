@@ -83,7 +83,11 @@ export default function App() {
   const reportedSongRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!playing || !currentSong || reportedSongRef.current === currentSong.id) {
+    if (
+      !playing ||
+      !currentSong ||
+      reportedSongRef.current === currentSong.id
+    ) {
       return;
     }
     reportedSongRef.current = currentSong.id;
@@ -174,16 +178,60 @@ export default function App() {
     });
     let idle: number | undefined;
     let fallback = 0;
+    let interval = 0;
+    const clearScheduled = () => {
+      if (fallback) {
+        window.clearTimeout(fallback);
+        fallback = 0;
+      }
+      if (idle !== undefined) {
+        window.cancelIdleCallback?.(idle);
+        idle = undefined;
+      }
+    };
+    const schedule = (delay: number) => {
+      if (!bridge || bridge.skipUpdate) return;
+      clearScheduled();
+      idle = window.requestIdleCallback?.(
+        () => {
+          idle = undefined;
+          void bridge.checkUpdate(false);
+        },
+        { timeout: delay },
+      );
+      if (idle === undefined) {
+        fallback = window.setTimeout(
+          () => {
+            fallback = 0;
+            void bridge.checkUpdate(false);
+          },
+          Math.min(delay, 2000),
+        );
+      }
+    };
     const timer = window.setTimeout(() => {
       if (!bridge || bridge.skipUpdate) return;
-      const run = () => void bridge.checkUpdate();
-      idle = window.requestIdleCallback?.(run, { timeout: 12000 });
-      if (idle === undefined) fallback = window.setTimeout(run, 1000);
+      schedule(12000);
+      // Keep long-running sessions current without polling aggressively.
+      interval = window.setInterval(
+        () => {
+          if (document.visibilityState === "visible") schedule(2000);
+        },
+        6 * 60 * 60 * 1000,
+      );
     }, 8000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") schedule(2500);
+    };
+    const onFocus = () => schedule(2500);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
     return () => {
       window.clearTimeout(timer);
-      if (fallback) window.clearTimeout(fallback);
-      if (idle !== undefined) window.cancelIdleCallback?.(idle);
+      clearScheduled();
+      if (interval) window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
       off?.();
     };
   }, []);

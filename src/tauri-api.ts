@@ -17,9 +17,24 @@ const updateListeners = new Set<(event: UpdateEvent) => void>();
 let pendingUpdate: Update | null = null;
 let checking = false;
 let downloading = false;
+let installing = false;
+let downloaded = false;
+let lastCheckAt = 0;
+let lastFailedCheckAt = 0;
+
+const CHECK_TIMEOUT_MS = 15_000;
+const DOWNLOAD_TIMEOUT_MS = 20 * 60_000;
+const AUTO_CHECK_COOLDOWN_MS = 30 * 60_000;
+const FAILED_CHECK_COOLDOWN_MS = 5 * 60_000;
 
 function emit(event: UpdateEvent) {
-  for (const listener of updateListeners) listener(event);
+  for (const listener of updateListeners) {
+    try {
+      listener(event);
+    } catch {
+      // A stale UI listener must never interrupt an updater operation.
+    }
+  }
 }
 
 function webviewVersion(): string {
@@ -65,13 +80,25 @@ export const ncm: NativeBridge = {
 
   checkUpdate: async (manual = false) => {
     if (import.meta.env.DEV) return { ok: false, reason: "development" };
-    if (checking || downloading) return { ok: false, reason: "busy" };
+    if (checking || downloading || installing)
+      return { ok: false, reason: "busy" };
+    if (downloaded) return { ok: false, reason: "downloaded" };
+
+    const now = Date.now();
+    if (!manual && now - lastCheckAt < AUTO_CHECK_COOLDOWN_MS) {
+      return { ok: false, reason: "throttled" };
+    }
+    if (!manual && now - lastFailedCheckAt < FAILED_CHECK_COOLDOWN_MS) {
+      return { ok: false, reason: "throttled" };
+    }
 
     checking = true;
+    lastCheckAt = now;
     emit({ type: "checking", data: { manual } });
     try {
       await pendingUpdate?.close();
-      pendingUpdate = await check({ timeout: 15000 });
+      pendingUpdate = null;
+      pendingUpdate = await check({ timeout: CHECK_TIMEOUT_MS });
       if (!pendingUpdate) {
         emit({ type: "not-available", data: { manual } });
         return { ok: true };
@@ -86,7 +113,11 @@ export const ncm: NativeBridge = {
       });
       return { ok: true };
     } catch (error) {
-      emit({ type: "error", data: { manual, message: String(error) } });
+      lastFailedCheckAt = Date.now();
+      emit({
+        type: "error",
+        data: { manual, stage: "check", message: String(error) },
+      });
       return { ok: false, reason: "check-failed" };
     } finally {
       checking = false;
@@ -95,7 +126,8 @@ export const ncm: NativeBridge = {
 
   downloadUpdate: async () => {
     if (!pendingUpdate) return { ok: false, reason: "no-update" };
-    if (downloading) return { ok: false, reason: "busy" };
+    if (downloading || installing) return { ok: false, reason: "busy" };
+    if (downloaded) return { ok: false, reason: "downloaded" };
 
     downloading = true;
     let transferred = 0;
@@ -103,35 +135,62 @@ export const ncm: NativeBridge = {
     let lastBytes = 0;
     let lastTime = performance.now();
     try {
-      await pendingUpdate.download((event) => {
-        if (event.event === "Started") {
-          total = event.data.contentLength ?? 0;
-          return;
-        }
-        if (event.event !== "Progress") return;
+      await pendingUpdate.download(
+        (event) => {
+          if (event.event === "Started") {
+            total = event.data.contentLength ?? 0;
+            emit({
+              type: "progress",
+              data: { percent: 0, transferred: 0, total, speed: 0 },
+            });
+            return;
+          }
+          if (event.event === "Finished") {
+            emit({
+              type: "progress",
+              data: {
+                percent: 100,
+                transferred: total || transferred,
+                total,
+                speed: 0,
+              },
+            });
+            return;
+          }
+          if (event.event !== "Progress") return;
 
-        transferred += event.data.chunkLength;
-        const now = performance.now();
-        const elapsed = Math.max(1, now - lastTime);
-        const speed = ((transferred - lastBytes) * 1000) / elapsed;
-        lastBytes = transferred;
-        lastTime = now;
-        emit({
-          type: "progress",
-          data: {
-            percent: total
-              ? Math.min(100, Math.round((transferred / total) * 100))
-              : 0,
-            transferred,
-            total,
-            speed,
-          },
-        });
-      });
-      emit({ type: "downloaded" });
+          transferred += event.data.chunkLength;
+          const now = performance.now();
+          const elapsed = Math.max(1, now - lastTime);
+          const speed = ((transferred - lastBytes) * 1000) / elapsed;
+          lastBytes = transferred;
+          lastTime = now;
+          emit({
+            type: "progress",
+            data: {
+              percent: total
+                ? Math.min(100, Math.round((transferred / total) * 100))
+                : 0,
+              transferred,
+              total,
+              speed,
+            },
+          });
+        },
+        { timeout: DOWNLOAD_TIMEOUT_MS },
+      );
+      downloaded = true;
+      emit({ type: "downloaded", data: { version: pendingUpdate.version } });
       return { ok: true };
     } catch (error) {
-      emit({ type: "error", data: { message: String(error) } });
+      emit({
+        type: "error",
+        data: {
+          stage: "download",
+          version: pendingUpdate.version,
+          message: String(error),
+        },
+      });
       return { ok: false, reason: "download-failed" };
     } finally {
       downloading = false;
@@ -139,12 +198,27 @@ export const ncm: NativeBridge = {
   },
 
   installUpdate: async () => {
-    if (!pendingUpdate) return;
+    if (!pendingUpdate || !downloaded || installing) return;
+    installing = true;
+    emit({
+      type: "installing",
+      data: { version: pendingUpdate.version },
+    });
     try {
       await pendingUpdate.install();
-      await relaunch();
+      // On Windows the updater launches the installer and exits the app. A
+      // second relaunch races the installer and can reopen the old binary.
+      if (!navigator.platform.toLowerCase().includes("win")) await relaunch();
     } catch (error) {
-      emit({ type: "error", data: { message: String(error) } });
+      installing = false;
+      emit({
+        type: "error",
+        data: {
+          stage: "install",
+          version: pendingUpdate.version,
+          message: String(error),
+        },
+      });
     }
   },
   onUpdateEvent: (callback) => {

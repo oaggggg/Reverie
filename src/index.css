@@ -2873,6 +2873,21 @@ textarea {
   margin-top: 6px;
   flex-wrap: wrap;
 }
+.update-error {
+  margin: 8px 0 18px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #ef4444 35%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #ef4444 10%, var(--bg-3));
+  color: #fca5a5;
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+.update-installing-hint {
+  color: var(--text-dim);
+  font-size: 12px;
+}
 .update-notes {
   max-height: 200px;
   overflow-y: auto;

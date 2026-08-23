@@ -30,6 +30,7 @@ interface NcmBridge {
         | "not-available"
         | "progress"
         | "downloaded"
+        | "installing"
         | "error";
       data?: {
         version?: string;
@@ -39,6 +40,7 @@ interface NcmBridge {
         transferred?: number;
         total?: number;
         speed?: number;
+        stage?: "check" | "download" | "install";
         message?: string;
       };
     }) => void,
