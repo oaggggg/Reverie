@@ -255,7 +255,6 @@ export type View =
   | "social"
   | "cloud"
   | "yunbei"
-  | "recommendHistory"
   | "vip"
   | "commentHistory"
   | "downloadHistory"
