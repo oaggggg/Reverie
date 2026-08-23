@@ -1,5 +1,16 @@
 "use strict";
 
+const { existsSync, writeFileSync } = require("node:fs");
+const { tmpdir } = require("node:os");
+const { join } = require("node:path");
+
+// NeteaseCloudMusicApi reads this file while its request module is loading.
+// Create it before requiring the server so a fresh packaged sidecar can start.
+const anonymousTokenPath = join(tmpdir(), "anonymous_token");
+if (!existsSync(anonymousTokenPath)) {
+  writeFileSync(anonymousTokenPath, "", "utf8");
+}
+
 const { serveNcmApi } = require("NeteaseCloudMusicApi/server");
 
 const port = Number(process.env.PORT || 3939);

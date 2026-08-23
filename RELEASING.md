@@ -48,19 +48,20 @@ git tag v1.2.0
 git push origin master --follow-tags
 ```
 
-推送 `v*` 标签会触发 `.github/workflows/release.yml`。也可以在 GitHub Actions 中手动运行工作流，并填写要构建的标签名。
+推送符合 `vX.Y.Z`（可带预发布后缀）的标签会触发 `.github/workflows/release.yml`。也可以在 GitHub Actions 中手动运行工作流，并填写要构建的标签名；手动运行时可选择创建草稿 Release。
 
-### 4. 检查草稿 Release
+### 4. 检查 Release
 
 工作流会在 `windows-latest` 上执行以下步骤：
 
 1. 按标签检出代码。
 2. 安装 Node.js 22、Rust stable 和 npm 依赖。
-3. 执行 TypeScript 检查。
-4. 校验 updater 私钥 Secret 是否存在。
-5. 使用 `tauri-apps/tauri-action` 构建并上传安装包、updater 压缩包、签名和 `latest.json`。
+3. 校验标签与 `package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json` 的版本一致。
+4. 执行项目检查和测试。
+5. 校验 updater 私钥 Secret 是否存在。
+6. 使用 `tauri-apps/tauri-action` 构建并上传安装包、updater 压缩包、签名和 `latest.json`。
 
-工作流默认创建草稿 Release。发布前应检查：
+推送标签时默认直接发布 Release；手动运行时可以勾选 `release_draft` 先创建草稿。发布前应检查：
 
 - 安装包名称和版本号是否正确。
 - `latest.json` 中的平台、版本、下载地址和签名是否完整。

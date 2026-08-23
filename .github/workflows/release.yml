@@ -7,6 +7,11 @@ on:
         description: "Release tag to build, for example v1.1.0"
         required: true
         type: string
+      release_draft:
+        description: "Create a draft release instead of publishing immediately"
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - "v*"
@@ -20,12 +25,44 @@ concurrency:
 
 jobs:
   windows:
+    name: Build Windows release
     runs-on: windows-latest
     steps:
       - name: Checkout release source
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag_name || github.ref }}
+
+      - name: Resolve release tag
+        id: release
+        shell: pwsh
+        env:
+          INPUT_TAG: ${{ inputs.tag_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $tag = if ([string]::IsNullOrWhiteSpace($env:INPUT_TAG)) { $env:REF_NAME } else { $env:INPUT_TAG }
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "Release tag '$tag' is not a valid vX.Y.Z tag."
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Validate release version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $cargoMatch = Select-String -Path src-tauri/Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"'
+          if (-not $cargoMatch) { throw 'Could not read version from src-tauri/Cargo.toml.' }
+          $cargoVersion = $cargoMatch.Matches[0].Groups[1].Value
+          $expectedTag = "v$packageVersion"
+          if ($packageVersion -ne $tauriVersion -or $packageVersion -ne $cargoVersion) {
+            throw "Version mismatch: package.json=$packageVersion, tauri.conf.json=$tauriVersion, Cargo.toml=$cargoVersion."
+          }
+          if ($env:RELEASE_TAG -ne $expectedTag) {
+            throw "Release tag $env:RELEASE_TAG does not match project version $expectedTag."
+          }
 
       - uses: actions/setup-node@v4
         with:
@@ -41,8 +78,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Verify project
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
 
       - name: Verify updater signing key
         shell: pwsh
@@ -60,13 +100,13 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ inputs.tag_name || github.ref_name }}
+          tagName: ${{ steps.release.outputs.tag }}
           releaseName: "Reverie __VERSION__"
           releaseBody: |
             ## Reverie __VERSION__
 
             Windows installer and signed in-app updater artifacts are attached below.
-          releaseDraft: true
+          releaseDraft: ${{ inputs.release_draft || false }}
           prerelease: false
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
