@@ -108,11 +108,6 @@ export default function HomePage() {
       usePlayerStore.getState().toast("暂时无法调整推荐", "error"),
     );
   };
-  const openRecommendHistory = () =>
-    usePlayerStore.setState({
-      activeView: "recommendHistory",
-      prevView: "home",
-    });
   const recommendResources = useDiscoveryStore((s) => s.recommendResources);
   const starpickComments = useDiscoveryStore((s) => s.starpickComments);
   const loadDiscovery = useDiscoveryStore((s) => s.load);
@@ -254,9 +249,6 @@ export default function HomePage() {
       <section className="home-section">
         <div className="section-title">
           <h2>每日推荐</h2>
-          <button className="link-btn" onClick={openRecommendHistory}>
-            历史 →
-          </button>
         </div>
         <SongCards
           songs={recommendSongs.slice(0, 12)}

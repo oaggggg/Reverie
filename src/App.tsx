@@ -28,9 +28,6 @@ const RadioDetailPage = lazy(() => import("./components/RadioDetailPage"));
 const SocialPage = lazy(() => import("./components/SocialPage"));
 const CloudPage = lazy(() => import("./components/CloudPage"));
 const YunbeiPage = lazy(() => import("./components/YunbeiPage"));
-const RecommendHistoryPage = lazy(
-  () => import("./components/RecommendHistoryPage"),
-);
 const VipPage = lazy(() => import("./components/VipPage"));
 const CommentHistoryPage = lazy(
   () => import("./components/CommentHistoryPage"),
@@ -518,8 +515,6 @@ export default function App() {
         return <CloudPage />;
       case "yunbei":
         return <YunbeiPage />;
-      case "recommendHistory":
-        return <RecommendHistoryPage />;
       case "vip":
         return <VipPage />;
       case "commentHistory":

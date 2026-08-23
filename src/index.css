@@ -5829,14 +5829,9 @@ textarea {
 .recent-card strong { font-size: 12px; }
 .recent-card span { color: var(--text-faint); font-size: 11px; }
 .recent-card button { cursor: pointer; }
-.song-card-dislike { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: rgba(0,0,0,.52); color: #fff; opacity: 0; cursor: pointer; transition: opacity .15s ease; }
-.song-card:hover .song-card-dislike, .song-card-dislike:focus-visible { opacity: 1; }
-.recommend-history-days { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 3px; }
-.recommend-history-days button { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; min-width: 112px; padding: 9px 10px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); color: var(--text-2); text-align: left; cursor: pointer; }
-.recommend-history-days button.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-1)); color: var(--text); }
-.recommend-history-days button svg { grid-row: span 2; color: var(--accent); }
-.recommend-history-days span { font-size: 11px; white-space: nowrap; }
-.recommend-history-days small { color: var(--text-faint); font-size: 10px; }
+.song-card-context-menu { position: fixed; z-index: 210; min-width: 130px; padding: 4px; border: 1px solid var(--border); border-radius: 7px; background: color-mix(in srgb, var(--glass-strong) 94%, transparent); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(18px) saturate(1.25); }
+.song-card-context-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.song-card-context-menu button:hover, .song-card-context-menu button:focus-visible { background: var(--hover); outline: none; }
 .discovery-media-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
 .home-entry-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .home-entry-grid .link-btn { min-height: 32px; padding: 6px 11px; border: 1px solid var(--border-light); border-radius: 7px; background: var(--bg-1); }

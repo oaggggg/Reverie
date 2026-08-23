@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Song } from "../api/types";
 import { usePlayerStore } from "../store/playerStore";
-import { useMediaStore } from "../store/mediaStore";
 import { sizedImage } from "../utils/image";
-import { Clapperboard, Disc3, ThumbsDown } from "lucide-react";
+import { Disc3, ThumbsDown } from "lucide-react";
 import { LoadingState } from "./Page";
+
+interface SongContextMenu {
+  song: Song;
+  x: number;
+  y: number;
+}
 
 export default function SongCards({
   songs,
@@ -16,8 +21,30 @@ export default function SongCards({
   onDislike?: (song: Song) => void;
 }) {
   const playSong = usePlayerStore((s) => s.playSong);
-  const openMedia = useMediaStore((s) => s.open);
   const [dismissing, setDismissing] = useState<number[]>([]);
+  const [contextMenu, setContextMenu] = useState<SongContextMenu | null>(null);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [contextMenu]);
+
+  const dismiss = (song: Song) => {
+    setContextMenu(null);
+    setDismissing((current) => [...current, song.id]);
+    window.setTimeout(() => onDislike?.(song), 220);
+  };
 
   if (!songs.length && loading) return <LoadingState label="正在加载推荐…" />;
   if (!songs.length) return <div className="empty">暂无推荐</div>;
@@ -30,6 +57,15 @@ export default function SongCards({
             key={song.id}
             className={`song-card ${isDismissing ? "dismissing" : ""}`}
             onClick={() => playSong(song, songs)}
+            onContextMenu={(event) => {
+              if (!onDislike) return;
+              event.preventDefault();
+              setContextMenu({
+                song,
+                x: Math.max(8, Math.min(event.clientX, window.innerWidth - 142)),
+                y: Math.max(8, Math.min(event.clientY, window.innerHeight - 48)),
+              });
+            }}
           >
             <div className="card-cover">
               {song.picUrl ? (
@@ -44,50 +80,25 @@ export default function SongCards({
                   <Disc3 size={24} />
                 </span>
               )}
-              <div className="card-cover-actions">
-                {song.mvId ? (
-                  <button
-                    className="card-action-btn"
-                    title="观看 MV"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void openMedia({
-                        id: String(song.mvId),
-                        name: song.name,
-                        coverUrl: song.picUrl,
-                        creatorName: song.artists,
-                        duration: 0,
-                        playCount: 0,
-                        kind: "mv",
-                      });
-                    }}
-                  >
-                    <Clapperboard size={15} />
-                    <span>MV</span>
-                  </button>
-                ) : null}
-                {onDislike ? (
-                  <button
-                    className="card-action-btn dislike"
-                    title="不感兴趣"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      // 先播放淡出动画，再从推荐数据中移除
-                      setDismissing((current) => [...current, song.id]);
-                      setTimeout(() => onDislike(song), 220);
-                    }}
-                  >
-                    <ThumbsDown size={15} />
-                    <span>不感兴趣</span>
-                  </button>
-                ) : null}
-              </div>
             </div>
             <div className="n">{song.name}</div>
             <div className="a">{song.artists}</div>
           </article>
         );
       })}
+      {contextMenu && (
+        <div
+          className="song-card-context-menu"
+          role="menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <button role="menuitem" onClick={() => dismiss(contextMenu.song)}>
+            <ThumbsDown size={14} />
+            <span>不感兴趣</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
