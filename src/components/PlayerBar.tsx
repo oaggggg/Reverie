@@ -57,6 +57,7 @@ export default function PlayerBar() {
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
   const playbackQuality = usePlayerStore((s) => s.playbackQuality);
+  const availablePlaybackQualities = usePlayerStore((s) => s.availablePlaybackQualities);
   const qualitySwitching = usePlayerStore((s) => s.qualitySwitching);
 
   const togglePlay = usePlayerStore((s) => s.togglePlay);
@@ -73,6 +74,7 @@ export default function PlayerBar() {
   const toast = usePlayerStore((s) => s.toast);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const setPlaybackQuality = usePlayerStore((s) => s.setPlaybackQuality);
+  const loadPlaybackQualities = usePlayerStore((s) => s.loadPlaybackQualities);
 
   useEffect(() => {
     let alive = true;
@@ -89,6 +91,10 @@ export default function PlayerBar() {
     }
     return () => { alive = false; };
   }, [currentSong?.id, loggedIn]);
+
+  useEffect(() => {
+    if (currentSong) void loadPlaybackQualities(currentSong);
+  }, [currentSong, loadPlaybackQualities]);
 
 
 
@@ -203,11 +209,7 @@ export default function PlayerBar() {
             </button>
             {qualityOpen && (
               <div className="pb-quality-menu" role="menu">
-                {(
-                  Object.keys(PLAYBACK_QUALITY_LABELS) as Array<
-                    keyof typeof PLAYBACK_QUALITY_LABELS
-                  >
-                ).map((quality) => (
+                {availablePlaybackQualities.map((quality) => (
                   <button
                     key={quality}
                     className={quality === playbackQuality ? "active" : ""}
