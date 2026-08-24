@@ -124,6 +124,29 @@
   --gap-xl: 16px;
 }
 
+/* Appearance settings override the shared glass tokens in one place so every
+   transparent surface responds consistently. */
+:root[data-glass-opacity="subtle"] {
+  --glass-strong: color-mix(in srgb, var(--glass) 72%, transparent);
+  --glass-player: color-mix(in srgb, var(--glass) 28%, transparent);
+  --glass-nav: color-mix(in srgb, var(--glass) 16%, transparent);
+  --glass-surface: color-mix(in srgb, var(--glass) 56%, transparent);
+  --glass-surface-control: color-mix(in srgb, var(--bg-3) 44%, transparent);
+}
+:root[data-glass-opacity="solid"] {
+  --glass-strong: color-mix(in srgb, var(--glass) 96%, transparent);
+  --glass-player: color-mix(in srgb, var(--glass) 62%, transparent);
+  --glass-nav: color-mix(in srgb, var(--glass) 42%, transparent);
+  --glass-surface: color-mix(in srgb, var(--glass) 88%, transparent);
+  --glass-surface-control: color-mix(in srgb, var(--bg-3) 76%, transparent);
+}
+:root[data-glass-blur="none"] { --glass-surface-filter: blur(0) saturate(1); }
+:root[data-glass-blur="soft"] { --glass-surface-filter: blur(12px) saturate(1.2); }
+:root[data-glass-contrast="high"] {
+  --glass-readable-dim: color-mix(in srgb, var(--text) 98%, var(--bg));
+  --glass-readable-faint: color-mix(in srgb, var(--text) 90%, var(--bg));
+}
+
 /* ============================ Base ============================ */
 * {
   box-sizing: border-box;
@@ -6949,6 +6972,39 @@ textarea {
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* Keep legacy transparent controls on the same appearance controls as the
+   shared glass surfaces. */
+:root[data-glass-opacity="subtle"] .topnav .search-capsule,
+:root[data-glass-opacity="subtle"] .topnav .topnav-user,
+:root[data-glass-opacity="subtle"] .topnav .search-dropdown {
+  background: color-mix(in srgb, var(--bg-3) 32%, transparent) !important;
+}
+:root[data-glass-opacity="solid"] .topnav .search-capsule,
+:root[data-glass-opacity="solid"] .topnav .topnav-user,
+:root[data-glass-opacity="solid"] .topnav .search-dropdown {
+  background: color-mix(in srgb, var(--bg-3) 78%, transparent) !important;
+}
+:root[data-glass-blur="none"] .titlebar,
+:root[data-glass-blur="none"] .topnav.is-condensed::before,
+:root[data-glass-blur="none"] .topnav .search-capsule,
+:root[data-glass-blur="none"] .topnav .topnav-user,
+:root[data-glass-blur="none"] .topnav .search-dropdown,
+:root[data-glass-blur="none"] .player-bar,
+:root[data-glass-blur="none"] .np-btn {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+:root[data-glass-blur="soft"] .titlebar,
+:root[data-glass-blur="soft"] .topnav.is-condensed::before,
+:root[data-glass-blur="soft"] .topnav .search-capsule,
+:root[data-glass-blur="soft"] .topnav .topnav-user,
+:root[data-glass-blur="soft"] .topnav .search-dropdown,
+:root[data-glass-blur="soft"] .player-bar,
+:root[data-glass-blur="soft"] .np-btn {
+  -webkit-backdrop-filter: var(--glass-surface-filter) !important;
+  backdrop-filter: var(--glass-surface-filter) !important;
 }
 
 /* ConfirmModal still declares a legacy animation; keep it on the same

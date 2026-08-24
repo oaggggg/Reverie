@@ -60,6 +60,9 @@ export interface ToastMsg {
 }
 
 export type ThemePreference = "system" | "light" | "dark";
+export type GlassOpacity = "subtle" | "balanced" | "solid";
+export type GlassBlur = "none" | "soft" | "strong";
+export type GlassContrast = "standard" | "high";
 
 /** Where the current queue came from; "fm" keeps roaming auto-advancing. */
 export type QueueSource = "list" | "fm";
@@ -118,6 +121,22 @@ const HOME_QUOTE_CACHE_TTL = 12 * 60 * 60 * 1000;
 function readCoverQuality(): CoverQuality {
   const v = readStr(COVER_QUALITY_KEY, "");
   return v in QUALITY_GRID ? (v as CoverQuality) : "medium";
+}
+
+function readGlassOpacity(): GlassOpacity {
+  const value = readStr("reverie_glass_opacity", "balanced");
+  return value === "subtle" || value === "solid" ? value : "balanced";
+}
+
+function readGlassBlur(): GlassBlur {
+  const value = readStr("reverie_glass_blur", "strong");
+  return value === "none" || value === "soft" ? value : "strong";
+}
+
+function readGlassContrast(): GlassContrast {
+  return readStr("reverie_glass_contrast", "standard") === "high"
+    ? "high"
+    : "standard";
 }
 
 /** Motion applied to the 3D particle album cover on the now-playing page. */
@@ -483,6 +502,9 @@ interface PlayerState {
 
   // --- appearance ---
   theme: ThemePreference;
+  glassOpacity: GlassOpacity;
+  glassBlur: GlassBlur;
+  glassContrast: GlassContrast;
   reducedMotion: boolean;
   lyricTheme: string;
   lyricFontSize: number;
@@ -560,6 +582,9 @@ interface PlayerState {
   dismissUpdate: () => void;
   applyUpdateEvent: (type: string, data?: unknown) => void;
   setTheme: (t: ThemePreference) => void;
+  setGlassOpacity: (v: GlassOpacity) => void;
+  setGlassBlur: (v: GlassBlur) => void;
+  setGlassContrast: (v: GlassContrast) => void;
   setReducedMotion: (v: boolean) => void;
   setLyricTheme: (t: string) => void;
   setLyricFontSize: (s: number) => void;
@@ -702,6 +727,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   // --- appearance ---
   theme: readThemePref(),
+  glassOpacity: readGlassOpacity(),
+  glassBlur: readGlassBlur(),
+  glassContrast: readGlassContrast(),
   reducedMotion: readBool("reverie_reduced_motion", false),
   lyricTheme: readStr("reverie_lyrictheme", "neon"),
   lyricFontSize: readNum("reverie_lyricfont", 22),
@@ -1220,6 +1248,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setTheme: (t) => {
     set({ theme: t });
     write("reverie_theme", t);
+  },
+  setGlassOpacity: (v) => {
+    set({ glassOpacity: v });
+    write("reverie_glass_opacity", v);
+  },
+  setGlassBlur: (v) => {
+    set({ glassBlur: v });
+    write("reverie_glass_blur", v);
+  },
+  setGlassContrast: (v) => {
+    set({ glassContrast: v });
+    write("reverie_glass_contrast", v);
   },
   setReducedMotion: (v) => {
     set({ reducedMotion: v });
