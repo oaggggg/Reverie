@@ -86,6 +86,9 @@ export default function App() {
   const pendingSeek = usePlayerStore((s) => s.pendingSeek);
   const playing = usePlayerStore((s) => s.playing);
   const theme = usePlayerStore((s) => s.theme);
+  const glassOpacity = usePlayerStore((s) => s.glassOpacity);
+  const glassBlur = usePlayerStore((s) => s.glassBlur);
+  const glassContrast = usePlayerStore((s) => s.glassContrast);
   const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setAudioEl = usePlayerStore((s) => s.setAudioEl);
   const commitQualitySwitch = usePlayerStore((s) => s.commitQualitySwitch);
@@ -335,6 +338,13 @@ export default function App() {
       reducedMotion ? "true" : "false",
     );
   }, [reducedMotion]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("data-glass-opacity", glassOpacity);
+    root.setAttribute("data-glass-blur", glassBlur);
+    root.setAttribute("data-glass-contrast", glassContrast);
+  }, [glassBlur, glassContrast, glassOpacity]);
 
   // keyboard shortcuts
   useEffect(() => {

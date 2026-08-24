@@ -3,11 +3,17 @@ import {
   CircleUserRound,
   Info,
   MonitorCog,
+  Palette,
   ShieldCheck,
   X,
 } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
-import type { ThemePreference } from "../store/playerStore";
+import type {
+  GlassBlur,
+  GlassContrast,
+  GlassOpacity,
+  ThemePreference,
+} from "../store/playerStore";
 import { getAccountOverview } from "../api/account";
 import type { AccountOverview } from "../api/account";
 import { getNeteaseApiVersion, getNeteaseSettings } from "../api/appMeta";
@@ -29,7 +35,7 @@ const DISCLAIMER_TEXT = `· Reverie 是开源音乐播放器，仅供个人学�
 · 本应用与网易云音乐及其关联公司无隶属或合作关系。
 · 若涉及合法权益问题，请联系移除相关内容。`;
 
-type Category = "general" | "account" | "about";
+type Category = "general" | "appearance" | "account" | "about";
 type Panel = "privacy" | "disclaimer" | null;
 
 const CATEGORIES: Array<{
@@ -38,6 +44,7 @@ const CATEGORIES: Array<{
   icon: ReactNode;
 }> = [
   { id: "general", label: "常规", icon: <MonitorCog size={17} /> },
+  { id: "appearance", label: "外观", icon: <Palette size={17} /> },
   { id: "account", label: "账号", icon: <CircleUserRound size={17} /> },
   { id: "about", label: "关于", icon: <Info size={17} /> },
 ];
@@ -70,6 +77,12 @@ export default function SettingsModal() {
   const setShowSettings = usePlayerStore((s) => s.setShowSettings);
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
+  const glassOpacity = usePlayerStore((s) => s.glassOpacity);
+  const setGlassOpacity = usePlayerStore((s) => s.setGlassOpacity);
+  const glassBlur = usePlayerStore((s) => s.glassBlur);
+  const setGlassBlur = usePlayerStore((s) => s.setGlassBlur);
+  const glassContrast = usePlayerStore((s) => s.glassContrast);
+  const setGlassContrast = usePlayerStore((s) => s.setGlassContrast);
   const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setReducedMotion = usePlayerStore((s) => s.setReducedMotion);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
@@ -172,6 +185,89 @@ export default function SettingsModal() {
           </header>
 
           <div className="settings-scroll">
+            {category === "appearance" && (
+              <>
+                <div className="settings-section">
+                  <h3>透明效果</h3>
+                  <SettingRow
+                    title="透明程度"
+                    hint="控制导航栏、播放栏、弹窗和上下拉列表的底色强度"
+                  >
+                    <div className="opt-group">
+                      {(
+                        [
+                          ["subtle", "轻盈"],
+                          ["balanced", "平衡"],
+                          ["solid", "稳固"],
+                        ] as Array<[GlassOpacity, string]>
+                      ).map(([id, name]) => (
+                        <button
+                          key={id}
+                          className={`opt-btn ${glassOpacity === id ? "active" : ""}`}
+                          onClick={() => setGlassOpacity(id)}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </SettingRow>
+                  <SettingRow title="背景模糊" hint="调整透明表面对背后内容的柔化程度">
+                    <div className="opt-group">
+                      {(
+                        [
+                          ["none", "关闭"],
+                          ["soft", "柔和"],
+                          ["strong", "强"],
+                        ] as Array<[GlassBlur, string]>
+                      ).map(([id, name]) => (
+                        <button
+                          key={id}
+                          className={`opt-btn ${glassBlur === id ? "active" : ""}`}
+                          onClick={() => setGlassBlur(id)}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </SettingRow>
+                  <SettingRow title="文字对比度" hint="增强透明背景上的文字可读性">
+                    <div className="opt-group">
+                      {(
+                        [
+                          ["standard", "标准"],
+                          ["high", "增强"],
+                        ] as Array<[GlassContrast, string]>
+                      ).map(([id, name]) => (
+                        <button
+                          key={id}
+                          className={`opt-btn ${glassContrast === id ? "active" : ""}`}
+                          onClick={() => setGlassContrast(id)}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </SettingRow>
+                </div>
+                <div className="settings-section">
+                  <h3>界面</h3>
+                  <SettingRow title="界面主题" hint="切换应用的整体明暗外观">
+                    <div className="opt-group">
+                      {APP_THEMES.map((item) => (
+                        <button
+                          key={item.id}
+                          className={`opt-btn ${theme === item.id ? "active" : ""}`}
+                          onClick={() => setTheme(item.id)}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </SettingRow>
+                </div>
+              </>
+            )}
+
             {category === "general" && (
               <>
                 <div className="settings-section">
