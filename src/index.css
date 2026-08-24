@@ -5946,41 +5946,6 @@ textarea {
 .discovery-media-grid strong { font-size: 12px; }
 .discovery-media-grid small { color: var(--text-faint); font-size: 10px; }
 @media (max-width: 700px) { .discovery-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.vip-overview { display: flex; align-items: center; gap: 16px; padding: 18px; border: 1px solid var(--border-light); border-radius: 9px; background: var(--bg-1); }
-.vip-level-mark { display: grid; justify-items: center; gap: 4px; min-width: 70px; color: var(--accent); }
-.vip-level-mark span { color: var(--text); font-size: 16px; font-weight: 700; }
-.vip-growth-copy { display: grid; min-width: 0; flex: 1; gap: 5px; }
-.vip-growth-copy strong { color: var(--text); font-size: 16px; }
-.vip-growth-copy span { color: var(--text-faint); font-size: 11px; }
-.vip-progress { height: 7px; overflow: hidden; border-radius: 99px; background: var(--bg-3); }
-.vip-progress i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
-.vip-section { margin-top: 20px; }
-.vip-task-list, .vip-detail-list { display: grid; gap: 6px; }
-.vip-task { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); }
-.vip-task > div { display: grid; min-width: 0; gap: 3px; }
-.vip-task strong, .vip-task span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vip-task strong { color: var(--text); font-size: 12px; }
-.vip-task div span { color: var(--text-faint); font-size: 11px; }
-.vip-task b { color: var(--accent); font-size: 12px; }
-.vip-task-status { color: var(--text-faint); font-size: 11px; }
-.vip-task-status.done { color: var(--success, #36b37e); }
-.vip-detail-list > div { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 9px 11px; border-bottom: 1px solid var(--border-light); }
-.vip-detail-list span { color: var(--text-2); font-size: 12px; }
-.vip-detail-list time { color: var(--text-faint); font-size: 10px; }
-.vip-detail-list strong { color: var(--success, #36b37e); font-size: 12px; }
-.vip-time-machine { margin-bottom: 24px; padding: 14px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); }
-.vip-time-machine-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.vip-time-machine-head > div { display: flex; align-items: center; gap: 7px; color: var(--accent); }
-.vip-time-machine-head time { color: var(--text-faint); font-size: 10px; }
-.vip-time-machine-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 12px; }
-.vip-time-machine-card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px; border: 1px solid var(--border-light); border-radius: 7px; background: var(--bg-2); }
-.vip-time-machine-card > img, .vip-time-machine-icon { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 7px; }
-.vip-time-machine-card > img { object-fit: cover; }
-.vip-time-machine-icon { display: grid; place-items: center; background: var(--bg-3); color: var(--accent); }
-.vip-time-machine-card > div { display: grid; min-width: 0; gap: 4px; }
-.vip-time-machine-card strong { overflow: hidden; color: var(--text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.vip-time-machine-card p { display: -webkit-box; overflow: hidden; margin: 0; color: var(--text-dim); font-size: 11px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-@media (max-width: 700px) { .vip-task { grid-template-columns: 1fr auto; } .vip-task-status { grid-column: 2; } }
 .comment-history-list { display: grid; gap: 8px; }
 .comment-history-list article { display: flex; gap: 10px; padding: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); }
 .comment-history-icon { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 50%; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }

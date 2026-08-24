@@ -20,7 +20,6 @@ export * from "./yunbei";
 export * from "./recent";
 export * from "./recommendHistory";
 export * from "./discovery";
-export * from "./vip";
 export * from "./commentHistory";
 export * from "./playlistMetadata";
 export * from "./songMetadata";

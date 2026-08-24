@@ -7,16 +7,44 @@ const obj = (value: unknown): Obj =>
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 export function normalizeDigitalAlbum(raw: unknown): DigitalAlbum | null {
-  const value = obj(raw);
-  const id = Number(value.id ?? value.albumId ?? value.resourceId ?? 0);
+  const row = obj(raw);
+  const value = obj(row.album ?? row.product ?? row.albumProduct ?? raw);
+  const id = Number(
+    value.id ??
+      value.albumId ??
+      value.productId ??
+      value.resourceId ??
+      row.albumId ??
+      row.productId ??
+      0,
+  );
   if (!Number.isSafeInteger(id) || id <= 0) return null;
+  const artists = arr(value.artists ?? row.artists)
+    .map((artist) => String(obj(artist).name ?? ""))
+    .filter(Boolean);
+  const artistName = [
+    value.artistName,
+    typeof value.artist === "string" ? value.artist : obj(value.artist).name,
+    value.creatorName,
+    row.artistName,
+    artists.join(" / "),
+  ]
+    .map((item) => String(item ?? ""))
+    .find(Boolean) ?? "";
   return {
     id,
-    name: String(value.name ?? value.albumName ?? "数字专辑"),
-    artistName: String(
-      value.artistName ?? value.artist ?? value.creatorName ?? "",
+    name: String(
+      value.name ?? value.albumName ?? value.productName ?? row.albumName ?? "数字专辑",
     ),
-    coverUrl: String(value.picUrl ?? value.coverUrl ?? value.coverImgUrl ?? ""),
+    artistName,
+    coverUrl: String(
+      value.picUrl ??
+        value.coverUrl ??
+        value.coverImgUrl ??
+        value.cover ??
+        row.coverUrl ??
+        "",
+    ),
     description: String(value.description ?? value.desc ?? ""),
     price: Number(value.price ?? value.amount ?? value.originPrice ?? 0),
     sales: Number(value.sales ?? value.salesCount ?? value.saleCount ?? 0),
@@ -102,8 +130,12 @@ export async function getPurchasedDigitalAlbums(
     limit,
     offset,
   });
+  const value = obj(response.data ?? response.result ?? response);
   return arr(
-    obj(response.data ?? response.result ?? response).list ??
+    value.paidAlbums ??
+      value.albums ??
+      value.list ??
+      response.paidAlbums ??
       response.data ??
       response,
   )
