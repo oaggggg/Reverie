@@ -4827,6 +4827,29 @@ textarea {
   }
 }
 
+/* Toasts use a compact layered stack; the newest notification stays in front. */
+.toast-wrap {
+  gap: 0;
+  align-items: center;
+  pointer-events: none;
+}
+.toast-wrap .toast {
+  position: relative;
+  min-width: 220px;
+  justify-content: center;
+  margin-top: -12px;
+  transform-origin: top center;
+}
+.toast-wrap .toast:first-child {
+  margin-top: 0;
+  z-index: 5;
+}
+.toast-wrap .toast:nth-child(2) { z-index: 4; transform: scale(.98); opacity: .94; }
+.toast-wrap .toast:nth-child(3) { z-index: 3; transform: scale(.96); opacity: .88; }
+.toast-wrap .toast:nth-child(4) { z-index: 2; transform: scale(.94); opacity: .82; }
+.toast-wrap .toast:nth-child(5) { z-index: 1; transform: scale(.92); opacity: .76; }
+.toast-wrap .toast-close { display: none !important; }
+
 @media (max-width: 820px) {
   .home-hero {
     grid-template-columns: 1fr;
