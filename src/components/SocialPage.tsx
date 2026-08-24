@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Heart,
   MessageCircle,
@@ -8,10 +8,13 @@ import {
 import { useCommentStore } from "../store/commentStore";
 import { useExploreStore } from "../store/exploreStore";
 import { usePlayerStore } from "../store/playerStore";
+import type { SocialEvent } from "../api/types";
 import { sizedImage } from "../utils/image";
 import { LoadingState, Page, PageHeader } from "./Page";
+import ConfirmModal from "./ConfirmModal";
 
 export default function SocialPage() {
+  const [pendingDelete, setPendingDelete] = useState<SocialEvent | null>(null);
   const tab = useExploreStore((s) => s.socialTab);
   const events = useExploreStore((s) => s.events);
   const myEvents = useExploreStore((s) => s.myEvents);
@@ -115,7 +118,7 @@ export default function SocialPage() {
                       className="event-delete-button"
                       title="删除动态"
                       onClick={() => {
-                        if (window.confirm("确定删除这条动态吗？")) void deleteEvent(event);
+                        setPendingDelete(event);
                       }}
                     >
                       <Trash2 size={13} /> 删除
@@ -132,6 +135,13 @@ export default function SocialPage() {
               <div className="empty">暂无动态</div>
             ))}
       </div>
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title="删除动态"
+        message="确定删除这条动态吗？"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => (pendingDelete ? deleteEvent(pendingDelete) : false)}
+      />
     </Page>
   );
 }
