@@ -2304,6 +2304,12 @@ textarea {
   background: var(--bg-3);
   box-shadow: 0 6px 18px var(--shadow);
 }
+.home-section .song-cards > .song-card:first-child img,
+.home-section .song-cards > .song-card:last-child img,
+.home-section .playlist-grid > .playlist-card:first-child img,
+.home-section .playlist-grid > .playlist-card:last-child img {
+  box-shadow: none;
+}
 .song-card-ph {
   width: 100%;
   aspect-ratio: 1;
