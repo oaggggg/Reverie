@@ -58,6 +58,15 @@ fn is_maximized(window: Window) -> bool {
     window.is_maximized().unwrap_or(false)
 }
 
+#[tauri::command]
+fn save_download_file(path: String, data: Vec<u8>) -> Result<(), String> {
+    let target = std::path::PathBuf::from(path);
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("创建下载目录失败: {e}"))?;
+    }
+    std::fs::write(&target, data).map_err(|e| format!("写入歌曲文件失败: {e}"))
+}
+
 // 检查端口是否被占用
 fn is_port_available(port: u16) -> bool {
     !port_check::is_port_reachable(format!("127.0.0.1:{}", port))
@@ -168,7 +177,8 @@ pub fn run() {
             minimize_window,
             maximize_window,
             close_window,
-            is_maximized
+            is_maximized,
+            save_download_file
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
