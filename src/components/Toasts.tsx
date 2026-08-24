@@ -18,7 +18,7 @@ export default function Toasts() {
           key={t.id}
           className={`toast ${t.type}${t.exiting ? " is-exiting" : ""}`}
           data-stack-index={index}
-          style={{ top: `calc(-8px * ${visibleToasts.length - 1 - index})` }}
+          style={{ top: `calc(8px * ${index})` }}
           role="status"
         >
           <span className="toast-icon">{META[t.type]}</span>
