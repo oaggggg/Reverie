@@ -29,17 +29,20 @@ if (
       const target =
         event.target instanceof Element
           ? event.target.closest(
-              "button, a, [role='button'], [role='menuitem'], .song-card",
+              "[data-origin-key], button, a, [role='button'], [role='menuitem'], [role='tab'], .song-card",
             )
           : null;
       if (!target) return;
       const rect = target.getBoundingClientRect();
-      originGlobal.__reverieLastInteractionOrigin = {
+      const origin = {
         left: rect.left,
         top: rect.top,
         width: rect.width,
         height: rect.height,
       };
+      originGlobal.__reverieLastInteractionOrigin = origin;
+      const key = target.getAttribute("data-origin-key");
+      if (key) origins.set(key, origin);
     },
     true,
   );
@@ -61,6 +64,10 @@ export function capturePointerOrigin(key: string, x: number, y: number) {
   const origin = { left: x, top: y, width: 1, height: 1 };
   origins.set(key, origin);
   originGlobal.__reverieLastInteractionOrigin = origin;
+}
+
+export function getInteractionOrigin(key: string) {
+  return origins.get(key) ?? originGlobal.__reverieLastInteractionOrigin;
 }
 
 export function useOriginTransition<T extends HTMLElement = HTMLDivElement>(
@@ -85,13 +92,12 @@ export function useOriginTransition<T extends HTMLElement = HTMLDivElement>(
       timer = window.setTimeout(() => setRendered(false), duration);
     }
     return () => window.clearTimeout(timer);
-  }, [duration, open, rendered]);
+  }, [duration, key, open, rendered]);
 
   useLayoutEffect(() => {
     if (!rendered) return;
     const surface = surfaceRef.current;
-    const origin =
-      origins.get(key) ?? originGlobal.__reverieLastInteractionOrigin;
+    const origin = getInteractionOrigin(key);
     if (!surface || !origin) return;
     if (!origins.has(key)) origins.set(key, origin);
     const target = surface.getBoundingClientRect();
@@ -101,6 +107,9 @@ export function useOriginTransition<T extends HTMLElement = HTMLDivElement>(
     const targetY = target.top + target.height / 2;
     surface.style.setProperty("--origin-x", `${originX - targetX}px`);
     surface.style.setProperty("--origin-y", `${originY - targetY}px`);
+    surface.style.setProperty("--origin-left", `${originX}px`);
+    surface.style.setProperty("--origin-top", `${originY}px`);
+    surface.style.setProperty("--origin-duration", `${duration}ms`);
     surface.style.setProperty(
       "--origin-scale-x",
       String(Math.max(0.12, Math.min(0.82, origin.width / target.width))),
@@ -109,7 +118,7 @@ export function useOriginTransition<T extends HTMLElement = HTMLDivElement>(
       "--origin-scale-y",
       String(Math.max(0.12, Math.min(0.82, origin.height / target.height))),
     );
-  }, [key, phase, rendered]);
+  }, [duration, key, phase, rendered]);
 
   return {
     rendered,

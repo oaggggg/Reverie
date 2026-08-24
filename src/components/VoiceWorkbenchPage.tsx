@@ -205,14 +205,13 @@ export default function VoiceWorkbenchPage() {
           )}
         </section>
       </div>
-      {activeVoice && (
-        <VoiceDetailDialog
-          voice={activeVoice}
-          lyric={activeLyric}
-          loading={detailLoading}
-          onClose={closeDetail}
-        />
-      )}
+      <VoiceDetailDialog
+        open={Boolean(activeVoice)}
+        voice={activeVoice}
+        lyric={activeLyric}
+        loading={detailLoading}
+        onClose={closeDetail}
+      />
     </Page>
   );
 }

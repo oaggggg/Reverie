@@ -112,7 +112,7 @@ export default function LibraryPage() {
       <PageHeader
         title="音乐馆"
         subtitle="浏览新碟、热门专辑和歌手目录"
-        actions={<div className="page-action-row"><button className="btn" onClick={() => setAudioMatchOpen(true)}><Disc3 size={15} /> 音频识别</button><button className="btn" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading}><RefreshCw size={15} /> 刷新</button></div>}
+        actions={<div className="page-action-row"><button className="btn" data-origin-key="audio-match" onClick={() => setAudioMatchOpen(true)}><Disc3 size={15} /> 音频识别</button><button className="btn" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading}><RefreshCw size={15} /> 刷新</button></div>}
       />
       <div className="library-tabs" role="tablist">
         <button className={tab === "albums" ? "active" : ""} onClick={() => setTab("albums")}><Disc3 size={15} /> 专辑</button>
@@ -126,7 +126,7 @@ export default function LibraryPage() {
       </div>
       {loading && !(tab === "albums" ? albums.length : artists.length) ? <LoadingState label="正在加载音乐馆…" /> : tab === "albums" ? <div className="media-grid compact">{albums.map((album) => <button className="media-card" key={album.id} onClick={() => void openAlbum(album.id)}><div className="card-cover"><img src={sizedImage(album.picUrl, 320)} alt="" /></div><strong>{album.name}</strong><span>{album.artistNames || "专辑"}</span></button>)}{!albums.length && <div className="empty">暂无专辑</div>}</div> : <div className="search-person-grid">{artists.map((artist) => <button key={artist.id} onClick={() => void openArtist(artist.id)}>{artist.picUrl ? <img src={sizedImage(artist.picUrl, 240)} alt="" /> : <span className="avatar-placeholder"><UserRound size={24} /></span>}<strong>{artist.name}</strong><span>{artist.alias.join(" / ") || `${artist.musicSize} 首歌曲`}</span></button>)}{!artists.length && <div className="empty">暂无歌手</div>}</div>}
       {more && <div ref={loadMoreRef} className="load-more-sentinel" />}
-      {audioMatchOpen && <AudioMatchDialog onClose={() => setAudioMatchOpen(false)} />}
+      <AudioMatchDialog open={audioMatchOpen} onClose={() => setAudioMatchOpen(false)} />
     </Page>
   );
 }

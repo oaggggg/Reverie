@@ -10,6 +10,7 @@ import type { MediaDetail, MediaStats, SearchMediaInfo } from "../api/types.ts";
 import { usePlayerStore } from "./playerStore.ts";
 
 interface MediaState {
+  visible: boolean;
   item: SearchMediaInfo | null;
   detail: MediaDetail | null;
   url: string;
@@ -29,6 +30,7 @@ interface MediaState {
 let token = 0;
 
 export const useMediaStore = create<MediaState>()((set, get) => ({
+  visible: false,
   item: null,
   detail: null,
   url: "",
@@ -42,6 +44,7 @@ export const useMediaStore = create<MediaState>()((set, get) => ({
   open: async (item) => {
     const current = ++token;
     set({
+      visible: true,
       item,
       detail: null,
       url: "",
@@ -145,16 +148,20 @@ export const useMediaStore = create<MediaState>()((set, get) => ({
   },
 
   close: () => {
-    token++;
-    set({
-      item: null,
-      detail: null,
-      url: "",
-      stats: null,
-      loading: false,
-      urlLoading: false,
-      error: "",
-      actionLoading: "",
-    });
+    const current = ++token;
+    set({ visible: false });
+    window.setTimeout(() => {
+      if (token !== current || get().visible) return;
+      set({
+        item: null,
+        detail: null,
+        url: "",
+        stats: null,
+        loading: false,
+        urlLoading: false,
+        error: "",
+        actionLoading: "",
+      });
+    }, 240);
   },
 }));
