@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Song } from "../api/types";
 import { usePlayerStore } from "../store/playerStore";
@@ -27,6 +27,8 @@ export default function SongCards({
 }) {
   const playSong = usePlayerStore((s) => s.playSong);
   const [dismissing, setDismissing] = useState<number[]>([]);
+  const [entering, setEntering] = useState<number[]>([]);
+  const previousSongIds = useRef<Set<number> | null>(null);
   const [contextMenu, setContextMenu] = useState<SongContextMenu | null>(null);
   const [lastContextMenu, setLastContextMenu] =
     useState<SongContextMenu | null>(null);
@@ -36,6 +38,25 @@ export default function SongCards({
     "song-context-menu",
     150,
   );
+
+  useEffect(() => {
+    const currentIds = new Set(songs.map((song) => song.id));
+    const previousIds = previousSongIds.current;
+    previousSongIds.current = currentIds;
+
+    if (!previousIds) return;
+    const addedIds = songs
+      .map((song) => song.id)
+      .filter((id) => !previousIds.has(id));
+    if (!addedIds.length) return;
+
+    setEntering((current) => [...new Set([...current, ...addedIds])]);
+    window.setTimeout(() => {
+      setEntering((current) =>
+        current.filter((id) => !addedIds.includes(id)),
+      );
+    }, 320);
+  }, [songs]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -57,6 +78,7 @@ export default function SongCards({
   }, [contextMenu]);
 
   const dismiss = (song: Song) => {
+    if (dismissing.includes(song.id)) return;
     setContextMenu(null);
     setContextSongId(null);
     setDismissing((current) => [...current, song.id]);
@@ -70,10 +92,11 @@ export default function SongCards({
       <div className="song-cards">
         {songs.map((song) => {
           const isDismissing = dismissing.includes(song.id);
+          const isEntering = entering.includes(song.id);
           return (
             <article
               key={song.id}
-              className={`song-card ${isDismissing ? "dismissing" : ""} ${contextSongId === song.id ? "context-active" : ""}`}
+              className={`song-card ${isDismissing ? "dismissing" : ""} ${isEntering ? "entering" : ""} ${contextSongId === song.id ? "context-active" : ""}`}
               onClick={() => playSong(song, songs)}
               onPointerDown={(event) => {
                 if (event.button === 2 && onDislike) setContextSongId(song.id);
