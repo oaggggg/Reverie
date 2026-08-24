@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
-import { usePlayerStore } from "../store/playerStore";
+import {
+  PLAYBACK_QUALITY_LABELS,
+  usePlayerStore,
+} from "../store/playerStore";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
+import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
+import { preloadNowPlayingAssets } from "../utils/nowPlayingPreload";
 import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
 import {
@@ -40,6 +45,8 @@ export default function PlayerBar() {
   const [shareOpen, setShareOpen] = useState(false);
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
+  const [qualityOpen, setQualityOpen] = useState(false);
+  const qualityTransition = useOriginTransition<HTMLDivElement>(qualityOpen, "player-quality", 160);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const playing = usePlayerStore((s) => s.playing);
   const loadingUrl = usePlayerStore((s) => s.loadingUrl);
@@ -52,6 +59,9 @@ export default function PlayerBar() {
   const queueSource = usePlayerStore((s) => s.queueSource);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
+  const playbackQuality = usePlayerStore((s) => s.playbackQuality);
+  const availablePlaybackQualities = usePlayerStore((s) => s.availablePlaybackQualities);
+  const qualitySwitching = usePlayerStore((s) => s.qualitySwitching);
 
   const togglePlay = usePlayerStore((s) => s.togglePlay);
   const next = usePlayerStore((s) => s.next);
@@ -66,6 +76,8 @@ export default function PlayerBar() {
   const setShowPlayerComments = usePlayerStore((s) => s.setShowPlayerComments);
   const toast = usePlayerStore((s) => s.toast);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
+  const setPlaybackQuality = usePlayerStore((s) => s.setPlaybackQuality);
+  const loadPlaybackQualities = usePlayerStore((s) => s.loadPlaybackQualities);
 
   useEffect(() => {
     let alive = true;
@@ -82,6 +94,10 @@ export default function PlayerBar() {
     }
     return () => { alive = false; };
   }, [currentSong?.id, loggedIn]);
+
+  useEffect(() => {
+    if (currentSong) void loadPlaybackQualities(currentSong);
+  }, [currentSong, loadPlaybackQualities]);
 
 
 
@@ -115,8 +131,10 @@ export default function PlayerBar() {
           <div
             className={`pb-cover ${playing ? "spinning" : "paused"}`}
             onPointerEnter={() => {
-              void import("./NowPlayingView");
-              if (coverQuality !== "image") void import("./ParticleAlbumCover");
+              preloadNowPlayingAssets(
+                currentSong?.picUrl,
+                coverQuality !== "image",
+              );
             }}
             onClick={(event) => {
               captureCoverOrigin(event.currentTarget);
@@ -183,14 +201,51 @@ export default function PlayerBar() {
           >
             <Radio size={17} />
           </button>
+          <div className="pb-quality-wrap">
+            <button
+              className={`pb-quality-btn ${qualityOpen ? "active" : ""}`}
+              onClick={(event) => {
+                captureInteractionOrigin("player-quality", event.currentTarget);
+                setQualityOpen((open) => !open);
+              }}
+              title="音质"
+              aria-haspopup="menu"
+              aria-expanded={qualityOpen}
+              aria-busy={qualitySwitching}
+            >
+              <span>{PLAYBACK_QUALITY_LABELS[playbackQuality]}</span>
+            </button>
+            {qualityTransition.rendered && (
+              <div ref={qualityTransition.surfaceRef} className={`pb-quality-menu ${qualityTransition.surfaceClassName}`} role="menu">
+                {availablePlaybackQualities.map((quality) => (
+                  <button
+                    key={quality}
+                    className={quality === playbackQuality ? "active" : ""}
+                    role="menuitemradio"
+                    aria-checked={quality === playbackQuality}
+                    onClick={() => {
+                      setQualityOpen(false);
+                      void setPlaybackQuality(quality);
+                    }}
+                  >
+                    <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
+                    {quality === playbackQuality && (
+                      <span aria-hidden="true">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             className={`icon-btn ${showPlayerComments ? "active" : ""}`}
             onPointerEnter={() => void import("./PlayerCommentsDrawer")}
-            onClick={() => {
+            onClick={(event) => {
               if (!currentSong) {
                 toast("请先播放一首歌曲", "info");
                 return;
               }
+              captureInteractionOrigin("player-comments", event.currentTarget);
               setShowPlayerComments(!showPlayerComments);
             }}
             title="歌曲评论"
@@ -199,8 +254,9 @@ export default function PlayerBar() {
           </button>
           <button
             className={`icon-btn ${shareOpen ? "active" : ""}`}
-            onClick={() => {
+            onClick={(event) => {
               if (!currentSong) { toast("请先播放一首歌曲", "info"); return; }
+              captureInteractionOrigin("player-share", event.currentTarget);
               setShareOpen(true);
             }}
             title="分享歌曲"

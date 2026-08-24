@@ -13,6 +13,10 @@ import { useMediaStore } from "../store/mediaStore.ts";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { LoadingState } from "./Page";
+import {
+  captureInteractionOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const CONTROLS_HIDE_DELAY = 3000;
@@ -26,6 +30,7 @@ function fmt(seconds: number): string {
 }
 
 export default function MediaDetailDialog() {
+  const visible = useMediaStore((state) => state.visible);
   const item = useMediaStore((state) => state.item);
   const detail = useMediaStore((state) => state.detail);
   const url = useMediaStore((state) => state.url);
@@ -48,6 +53,26 @@ export default function MediaDetailDialog() {
   const [rateOpen, setRateOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const dialogTransition = useOriginTransition<HTMLDivElement>(
+    visible,
+    "media-detail",
+    240,
+  );
+  const volumeTransition = useOriginTransition<HTMLDivElement>(
+    showVolume,
+    "media-volume",
+    160,
+  );
+  const rateTransition = useOriginTransition<HTMLDivElement>(
+    rateOpen,
+    "media-rate",
+    180,
+  );
+  const qualityTransition = useOriginTransition<HTMLDivElement>(
+    qualityOpen,
+    "media-quality",
+    180,
+  );
   // Live flags for the hide timer; state values would be stale in the
   // window.setTimeout closure after rapid interactions.
   const playingRef = useRef(false);
@@ -156,7 +181,6 @@ export default function MediaDetailDialog() {
     if (el) el.playbackRate = rate;
   }, [activeUrl, rate]);
 
-  // ESC leaves window-fullscreen, like native players.
   useEffect(() => {
     if (!fullscreen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -219,7 +243,7 @@ export default function MediaDetailDialog() {
     setControlsVisible(true);
   }, [playing]);
 
-  if (!item) return null;
+  if (!item || !dialogTransition.rendered) return null;
   const current = detail ?? item;
 
   const togglePlay = () => {
@@ -254,23 +278,19 @@ export default function MediaDetailDialog() {
 
   const toggleMute = () => applyVolume(volume === 0 ? 1 : 0);
 
-  // Window-fullscreen (CSS overlay) instead of the Fullscreen API: the API
-  // makes WebView2/Tauri turn the window borderless-fullscreen on the whole
-  // monitor, resizing the viewport and shaking the layout. The overlay fills
-  // exactly the app window — which is what a non-maximized player should do —
-  // with zero viewport change and zero animation artifacts.
-  const toggleFullscreen = () => setFullscreen((f) => !f);
+  const toggleFullscreen = () => setFullscreen((value) => !value);
 
   const VolumeIcon =
     volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div
-      className="modal-backdrop media-detail-backdrop"
+      className={`modal-backdrop media-detail-backdrop ${dialogTransition.backdropClassName} ${fullscreen ? "media-window-fullscreen-active" : ""}`}
       onMouseDown={(event) => event.target === event.currentTarget && close()}
     >
       <div
-        className="media-detail-dialog"
+        ref={dialogTransition.surfaceRef}
+        className={`media-detail-dialog ${dialogTransition.surfaceClassName} ${fullscreen ? "media-window-fullscreen-host" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="media-detail-title"
@@ -403,7 +423,13 @@ export default function MediaDetailDialog() {
                 />
                 <div
                   className="media-video-volume"
-                  onMouseEnter={() => setShowVolume(true)}
+                  onMouseEnter={(event) => {
+                    captureInteractionOrigin(
+                      "media-volume",
+                      event.currentTarget,
+                    );
+                    setShowVolume(true);
+                  }}
                   onMouseLeave={() => {
                     // Keep the popup while dragging: pointer capture sends the
                     // events to the slider, but the pointer can leave the
@@ -411,8 +437,11 @@ export default function MediaDetailDialog() {
                     if (!volumeDraggingRef.current) setShowVolume(false);
                   }}
                 >
-                  {showVolume && (
-                    <div className="media-video-volume-pop">
+                  {volumeTransition.rendered && (
+                    <div
+                      ref={volumeTransition.surfaceRef}
+                      className={`media-video-volume-pop ${volumeTransition.surfaceClassName}`}
+                    >
                       <div
                         className="media-video-volume-track"
                         onPointerDown={(e) => {
@@ -455,15 +484,25 @@ export default function MediaDetailDialog() {
                   )}
                   <button
                     className="media-video-btn"
+                    data-origin-key="media-volume"
                     title={volume === 0 ? "取消静音" : "静音"}
+                    onPointerDown={(event) =>
+                      captureInteractionOrigin(
+                        "media-volume",
+                        event.currentTarget,
+                      )
+                    }
                     onClick={toggleMute}
                   >
                     <VolumeIcon size={16} />
                   </button>
                 </div>
                 <div className="media-video-rate">
-                  {rateOpen && (
-                    <div className="media-video-rate-menu">
+                  {rateTransition.rendered && (
+                    <div
+                      ref={rateTransition.surfaceRef}
+                      className={`media-video-rate-menu ${rateTransition.surfaceClassName}`}
+                    >
                       {PLAYBACK_RATES.slice()
                         .reverse()
                         .map((value) => (
@@ -482,15 +521,25 @@ export default function MediaDetailDialog() {
                   )}
                   <button
                     className="media-video-btn media-video-rate-btn"
+                    data-origin-key="media-rate"
                     title="播放速度"
-                    onClick={() => setRateOpen((open) => !open)}
+                    onClick={(event) => {
+                      captureInteractionOrigin(
+                        "media-rate",
+                        event.currentTarget,
+                      );
+                      setRateOpen((open) => !open);
+                    }}
                   >
                     {rate}×
                   </button>
                 </div>
                 <div className="media-video-quality">
-                  {qualityOpen && (
-                    <div className="media-video-quality-menu">
+                  {qualityTransition.rendered && (
+                    <div
+                      ref={qualityTransition.surfaceRef}
+                      className={`media-video-quality-menu ${qualityTransition.surfaceClassName}`}
+                    >
                       {[1080, 720].map((value) => (
                         <button
                           key={value}
@@ -508,8 +557,15 @@ export default function MediaDetailDialog() {
                   )}
                   <button
                     className="media-video-btn media-video-quality-btn"
+                    data-origin-key="media-quality"
                     title="画质"
-                    onClick={() => setQualityOpen((open) => !open)}
+                    onClick={(event) => {
+                      captureInteractionOrigin(
+                        "media-quality",
+                        event.currentTarget,
+                      );
+                      setQualityOpen((open) => !open);
+                    }}
                   >
                     {resolution}P
                   </button>

@@ -1,41 +1,50 @@
+import { useRef } from "react";
 import { FileText, Mic2, X } from "lucide-react";
 import type { VoiceItem } from "../api/types.ts";
 import { sizedImage } from "../utils/image";
 import { formatTime } from "../utils/lyrics";
 import { LoadingState } from "./Page";
+import { useOriginTransition } from "../utils/originTransition";
 
 interface Props {
-  voice: VoiceItem;
+  open: boolean;
+  voice: VoiceItem | null;
   lyric: string;
   loading: boolean;
   onClose: () => void;
 }
 
 export default function VoiceDetailDialog({
+  open,
   voice,
   lyric,
   loading,
   onClose,
 }: Props) {
+  const cachedVoice = useRef<VoiceItem | null>(voice);
+  if (voice) cachedVoice.current = voice;
+  const transition = useOriginTransition<HTMLElement>(open, "voice-detail", 220);
+  const currentVoice = cachedVoice.current;
+  if (!transition.rendered || !currentVoice) return null;
   return (
     <div
-      className="modal-backdrop voice-detail-backdrop"
+      className={`modal-backdrop voice-detail-backdrop ${transition.backdropClassName}`}
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
-      <section className="voice-detail-dialog" role="dialog" aria-modal="true">
+      <section ref={transition.surfaceRef} className={`voice-detail-dialog ${transition.surfaceClassName}`} role="dialog" aria-modal="true">
         <header className="voice-detail-head">
-          {voice.coverUrl ? (
-            <img src={sizedImage(voice.coverUrl, 120)} alt="" />
+          {currentVoice.coverUrl ? (
+            <img src={sizedImage(currentVoice.coverUrl, 120)} alt="" />
           ) : (
             <span>
               <Mic2 size={22} />
             </span>
           )}
           <div>
-            <h2>{voice.name}</h2>
+            <h2>{currentVoice.name}</h2>
             <small>
-              {voice.voiceListName || "声音"} · {formatTime(voice.duration)} ·{" "}
-              {voice.playCount.toLocaleString("zh-CN")} 次播放
+              {currentVoice.voiceListName || "声音"} · {formatTime(currentVoice.duration)} ·{" "}
+              {currentVoice.playCount.toLocaleString("zh-CN")} 次播放
             </small>
           </div>
           <button className="modal-close" title="关闭" onClick={onClose}>
@@ -45,7 +54,7 @@ export default function VoiceDetailDialog({
         <div className="voice-detail-content">
           <section>
             <h3>简介</h3>
-            <p>{voice.description || "暂无简介"}</p>
+            <p>{currentVoice.description || "暂无简介"}</p>
           </section>
           <section>
             <h3>

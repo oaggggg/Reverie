@@ -4,7 +4,7 @@
 
 Reverie 是一款音乐播放器，使用 Tauri 2、React、TypeScript 和 Rust 构建。应用通过随包分发的本地 API sidecar 访问音乐服务，播放器本身不依赖 Reverie 自建后端。
 
-> 当前 GitHub Release 主要提供 Windows 安装包和便携包。源码中的 sidecar 构建脚本同时保留了 Linux、macOS 和 Windows 的目标配置，但跨平台发布仍需补充对应的 CI 与平台验证。
+> Reverie 仅支持 Windows 与 macOS。GitHub Release 同时提供 Windows x64 安装包和兼容 Intel/Apple 芯片的 macOS Universal 安装包，不提供 Linux 版本。
 
 ## 目录
 
@@ -57,12 +57,14 @@ Reverie 是一款音乐播放器，使用 Tauri 2、React、TypeScript 和 Rust 
 
 前往 [GitHub Releases](https://github.com/oaggggg/Reverie/releases) 下载对应版本：
 
-| 文件                              | 适用场景                             |
-| --------------------------------- | ------------------------------------ |
-| `Reverie-Setup-<版本>-x64.exe`    | 推荐安装方式，支持开始菜单和卸载流程 |
-| `Reverie-Portable-<版本>-x64.exe` | 免安装运行，适合临时使用或便携环境   |
+| 文件                           | 适用场景                                      |
+| ------------------------------ | --------------------------------------------- |
+| `Reverie_<版本>_x64-setup.exe` | Windows x64，支持开始菜单和卸载流程           |
+| `Reverie_<版本>_universal.dmg` | macOS Universal，同时支持 Intel 与 Apple 芯片 |
 
 Windows 版本需要可用的 WebView2 运行时。安装包通常会由系统或安装器处理 WebView2；若启动失败，请先更新 Windows WebView2 Runtime。
+
+两个系统的安装包均未进行操作系统代码签名。首次运行时 Windows SmartScreen 或 macOS Gatekeeper 可能显示安全提示，请仅从本仓库的 GitHub Releases 下载安装。
 
 ## 从源码运行
 
@@ -70,8 +72,8 @@ Windows 版本需要可用的 WebView2 运行时。安装包通常会由系统�
 
 - Node.js 22 LTS 或更高版本，npm 10 或更高版本。
 - Rust stable，且版本不低于 `src-tauri/Cargo.toml` 中声明的 `rust-version`。
-- Windows 开发需要 WebView2；首次构建需要能够下载 npm、Cargo 和 sidecar 打包依赖。
-- 推荐使用 Windows 进行完整桌面验证；其他平台可尝试源码构建，但当前发布工作流只覆盖 Windows。
+- Windows 开发需要 WebView2，macOS 开发需要 Xcode Command Line Tools。
+- 首次构建需要能够下载 npm、Cargo 和 sidecar 打包依赖；Linux 不在支持范围内。
 
 ### 快速开始
 
@@ -97,7 +99,7 @@ npm run dev:web
 ```bash
 npm run check    # 生成 sidecar、TypeScript 检查、Vite 构建、cargo check
 npm test         # 单元测试 + sidecar 启动冒烟测试
-npm run build    # 生成 Tauri Windows 安装包与更新产物
+npm run build    # 生成当前系统的 Tauri 安装包与更新产物
 ```
 
 首次运行 `npm run check` 或 `npm run build` 时，`scripts/build-api-sidecar.mjs` 会使用 `pkg` 将 `sidecar/api-server.cjs` 和 `NeteaseCloudMusicApi` 打包到 `src-tauri/binaries/`。这些二进制文件是本地构建产物，已被 `.gitignore` 忽略，不应提交到仓库。
@@ -114,7 +116,7 @@ npm run build    # 生成 Tauri Windows 安装包与更新产物
 | `npm run check`             | 执行 sidecar、TypeScript、前端和 Rust 检查 |
 | `npm test`                  | 执行单元测试和 sidecar 冒烟测试            |
 | `npm run test:api`          | 启动临时 API 服务并检查常用接口            |
-| `npm run test:api-coverage` | 检查 357 条允许接口的路由可达性             |
+| `npm run test:api-coverage` | 检查 357 条允许接口的路由可达性            |
 | `npm run test:extended-api` | 执行扩展 API 冒烟测试                      |
 | `npm run format`            | 使用 Prettier 格式化源码和项目文档         |
 | `npm run build`             | 构建 Tauri 安装包和更新签名产物            |
@@ -130,7 +132,8 @@ src/                           React 页面、组件、状态和 API 客户端
 src/api/                       音乐接口类型、请求封装和扩展接口
 src/store/                     播放器与发现页的 Zustand 状态
 src-tauri/src/                 Tauri 生命周期、窗口控制和 sidecar 管理
-src-tauri/tauri.conf.json      前端、打包、更新和 Windows 安装器配置
+src-tauri/tauri.conf.json      前端、打包和更新的共享配置
+src-tauri/tauri.*.conf.json    Windows 与 macOS 平台窗口/安装器配置
 sidecar/api-server.cjs         本地 API 服务入口
 scripts/                       sidecar 构建、API 测试和冒烟测试脚本
 tests/                         Node 原生单元测试

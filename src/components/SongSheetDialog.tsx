@@ -4,6 +4,7 @@ import { getSongSheetPreview, getSongSheets } from "../api/sheet";
 import type { Song, SongSheet } from "../api/types";
 import { sizedImage } from "../utils/image";
 import { LoadingState } from "./Page";
+import { useOriginTransition } from "../utils/originTransition";
 
 export default function SongSheetDialog({
   song,
@@ -17,6 +18,7 @@ export default function SongSheetDialog({
   const [sheets, setSheets] = useState<SongSheet[]>([]);
   const [preview, setPreview] = useState<SongSheet | null>(null);
   const [loading, setLoading] = useState(false);
+  const transition = useOriginTransition<HTMLElement>(open, "song-sheet", 220);
 
   useEffect(() => {
     let alive = true;
@@ -44,12 +46,13 @@ export default function SongSheetDialog({
     };
   }, [open, song]);
 
-  if (!open || !song) return null;
+  if (!transition.rendered || !song) return null;
   const selected = preview ?? sheets[0];
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
       <section
-        className="modal song-sheet-dialog"
+        ref={transition.surfaceRef}
+        className={`modal song-sheet-dialog ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}

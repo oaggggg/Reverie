@@ -1,15 +1,15 @@
 # Reverie 发布流程
 
-Reverie 当前通过 GitHub Actions 构建 Windows 安装包，并把 Tauri updater 所需的签名产物发布到 GitHub Releases。应用运行时从 `src-tauri/tauri.conf.json` 配置的 `latest.json` 地址检查更新。
+Reverie 当前通过 GitHub Actions 构建 Windows x64 安装包和 macOS Universal 安装包，并把 Tauri updater 所需的完整性签名产物发布到 GitHub Releases。应用运行时从 `src-tauri/tauri.conf.json` 配置的 `latest.json` 地址检查更新。
 
 ## 发布前提
 
-- 已安装 Node.js 22、Rust stable 和 Windows 构建环境。
+- 本地验证需要 Node.js 22、Rust stable 和当前系统对应的桌面构建环境。
 - `TAURI_SIGNING_PRIVATE_KEY` 已配置为 GitHub Actions Secret。
 - 如果签名私钥设置了密码，同时配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。
 - 私钥只保存在密码管理器或 CI Secret 中，禁止写入仓库、构建日志和本地提交。
 
-Tauri updater 签名用于验证应用内更新包，和 Windows Authenticode 代码签名是两套独立机制。本项目当前不要求 Windows 代码签名证书。
+Tauri updater 签名只用于验证应用内更新包完整性。Windows Authenticode、Apple Developer ID 和 macOS 公证属于操作系统代码签名体系，本项目的 Windows 与 macOS 产物均不使用这些软件签名能力。
 
 ## 发布步骤
 
@@ -52,20 +52,21 @@ git push origin master --follow-tags
 
 ### 4. 检查 Release
 
-工作流会在 `windows-latest` 上执行以下步骤：
+工作流会分别在 `windows-latest` 和 `macos-latest` 上执行以下步骤：
 
 1. 按标签检出代码。
 2. 安装 Node.js 22、Rust stable 和 npm 依赖。
 3. 校验标签与 `package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json` 的版本一致。
 4. 执行项目检查和测试。
 5. 校验 updater 私钥 Secret 是否存在。
-6. 使用 `tauri-apps/tauri-action` 构建并上传安装包、updater 压缩包、签名和 `latest.json`。
+6. Windows 构建 NSIS 安装包，macOS 构建同时支持 Intel 与 Apple 芯片的 Universal App/DMG。
+7. 使用 `tauri-apps/tauri-action` 上传安装包、updater 压缩包、完整性签名和 `latest.json`。
 
 推送标签时默认直接发布 Release；手动运行时可以勾选 `release_draft` 先创建草稿。发布前应检查：
 
 - 安装包名称和版本号是否正确。
 - `latest.json` 中的平台、版本、下载地址和签名是否完整。
-- 安装包能否在干净的 Windows 环境中启动。
+- 安装包能否在干净的 Windows 与 macOS 环境中启动。
 - 已安装旧版本能否通过应用内更新完成下载、安装和重启。
 
 确认无误后再发布草稿 Release。不要在草稿阶段修改自动生成的签名文件内容。
@@ -81,7 +82,7 @@ git push origin master --follow-tags
 
 在 GitHub Release 发布后，至少完成一次：
 
-1. 下载并安装 `Reverie-Setup-<版本>-x64.exe`。
-2. 验证启动、扫码登录、搜索、播放和退出流程。
+1. 下载并安装 Windows NSIS 安装包与 macOS Universal DMG。
+2. 处理未签名应用的系统安全提示后，验证启动、扫码登录、搜索、播放和退出流程。
 3. 在旧版本中触发更新检查，确认下载进度、重启安装和版本展示正常。
-4. 检查 Release 页面中的安装包、updater 归档、签名文件和 `latest.json` 均可下载。
+4. 检查 Release 页面中的两个系统安装包、updater 归档、完整性签名文件和 `latest.json` 均可下载。

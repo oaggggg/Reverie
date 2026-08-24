@@ -17,6 +17,16 @@ export interface Song {
   programId?: number;
 }
 
+/** Official Netease Cloud Music playback quality levels. */
+export type PlaybackQuality =
+  | "standard"
+  | "higher"
+  | "exhigh"
+  | "lossless"
+  | "hires"
+  | "jyeffect"
+  | "jymaster";
+
 export interface LyricLine {
   time: number;
   text: string;
@@ -245,10 +255,7 @@ export type View =
   | "social"
   | "cloud"
   | "yunbei"
-  | "recommendHistory"
-  | "vip"
   | "commentHistory"
-  | "downloadHistory"
   | "listenTogether"
   | "voiceWorkbench"
   | "lyricsMark"
@@ -376,30 +383,6 @@ export interface RecommendHistoryDay {
   songCount: number;
 }
 
-export interface VipTask {
-  id: string;
-  name: string;
-  description: string;
-  reward: number;
-  completed: boolean;
-  claimed?: boolean;
-}
-
-export interface VipGrowthInfo {
-  level: number;
-  growth: number;
-  nextLevelGrowth: number;
-  progress: number;
-  expireTime: number;
-}
-
-export interface VipGrowthEntry {
-  id: string;
-  title: string;
-  amount: number;
-  time: number;
-}
-
 export interface UserCommentHistoryItem {
   id: number;
   content: string;
@@ -437,11 +420,6 @@ export interface SongMusicDetail {
   url?: string;
 }
 
-export type DownloadHistoryCategory =
-  | "all"
-  | "month"
-  | "purchased"
-  | "singlePurchased";
 
 export interface ListenTogetherRoom {
   roomId: string;

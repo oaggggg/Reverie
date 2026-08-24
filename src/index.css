@@ -17,6 +17,11 @@
   --glass-strong: rgba(15, 15, 26, 0.94);
   --glass-player: rgba(16, 16, 30, 0.55);
   --glass-nav: rgba(16, 16, 30, 0.32);
+  --glass-popup: rgba(15, 15, 26, 0.68);
+  --glass-popup-border: rgba(255, 255, 255, 0.1);
+  --glass-popup-hover: rgba(255, 255, 255, 0.08);
+  --glass-popup-scrim: rgba(5, 6, 10, 0.2);
+  --glass-popup-control: rgba(17, 17, 28, 0.58);
   --hover: #1e1e30;
   --scrollbar: #33334a;
   --scrollbar-hover: #45456a;
@@ -45,6 +50,11 @@
   --glass-strong: rgba(255, 255, 255, 0.94);
   --glass-player: rgba(255, 255, 255, 0.5);
   --glass-nav: rgba(255, 255, 255, 0.38);
+  --glass-popup: rgba(255, 255, 255, 0.68);
+  --glass-popup-border: rgba(23, 26, 38, 0.12);
+  --glass-popup-hover: rgba(23, 26, 38, 0.07);
+  --glass-popup-scrim: rgba(20, 24, 40, 0.1);
+  --glass-popup-control: rgba(255, 255, 255, 0.56);
   --hover: #eceef5;
   --scrollbar: #c9cede;
   --scrollbar-hover: #b3b9cd;
@@ -61,6 +71,26 @@
    type, glass) stays in the theme tokens above; everything below only
    describes where structural surfaces sit. */
 :root {
+  --motion-fast: 160ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+  --motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-exit: cubic-bezier(0.4, 0, 0.8, 0.2);
+  /* Single glass contract: every transient surface matches the condensed nav. */
+  --glass-surface: color-mix(in srgb, var(--glass) 86%, transparent);
+  --glass-surface-border: color-mix(in srgb, var(--border) 88%, transparent);
+  --glass-surface-hover: color-mix(in srgb, var(--hover) 78%, transparent);
+  --glass-surface-control: color-mix(in srgb, var(--bg-3) 72%, transparent);
+  --glass-readable-dim: color-mix(in srgb, var(--text) 78%, var(--bg));
+  --glass-readable-faint: color-mix(in srgb, var(--text) 62%, var(--bg));
+  --glass-surface-shadow: 0 18px 30px
+    color-mix(in srgb, var(--shadow) 46%, transparent);
+  --glass-surface-filter: blur(30px) saturate(1.45);
+  --glass-popup: var(--glass-surface);
+  --glass-popup-border: var(--glass-surface-border);
+  --glass-popup-hover: var(--glass-surface-hover);
+  --glass-popup-control: var(--glass-surface-control);
+
   /* page scaffolding */
   --layout-gutter: 32px; /* horizontal page gutter */
   --layout-page-top: 20px; /* first row of scrollable page content */
@@ -137,6 +167,12 @@ button {
   border: none;
   background: none;
   color: inherit;
+}
+
+:root[data-input-mode="keyboard"]
+  :is(button, a, input, textarea, select, [role="button"], [role="tab"]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, white);
+  outline-offset: 2px;
 }
 input {
   font-family: inherit;
@@ -276,10 +312,48 @@ textarea {
 /* macOS draws its traffic lights over the top-left corner of the web view, so
    keep the drag filler and the now-playing back button clear of them. */
 [data-platform="darwin"] .titlebar {
-  padding-left: 78px;
+  height: 48px;
+  padding-left: 84px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  backdrop-filter: blur(20px) saturate(1.25);
+}
+[data-platform="darwin"] {
+  --titlebar-h: 48px;
+}
+[data-platform="darwin"] .titlebar-name {
+  color: var(--text-dim);
+  background: none;
+  filter: none;
+  animation: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+[data-platform="darwin"] .titlebar-controls {
+  align-items: center;
+  padding-right: 6px;
+}
+[data-platform="darwin"] .tb-settings {
+  width: 36px;
+  height: 32px;
+  border-radius: 6px;
 }
 [data-platform="darwin"] .np-back {
   left: 96px;
+}
+
+:root[data-window-active="false"] .titlebar-name,
+:root[data-window-active="false"] .pb-cover-img,
+:root[data-window-active="false"] .loading-spinner,
+:root[data-window-active="false"] .session-loading-mark,
+:root[data-window-active="false"] .boot-shell-mark {
+  animation-play-state: paused !important;
+}
+
+:root[data-window-active="false"] .app {
+  --glass-surface-filter: blur(18px) saturate(1.12);
 }
 
 /* ============================ Top navigation ============================ */
@@ -2225,9 +2299,9 @@ textarea {
   min-height: var(--bar-h);
   max-height: var(--bar-h);
   border-radius: var(--radius-bar);
-  border: 1px solid var(--border);
-  background: var(--glass-player);
-  backdrop-filter: blur(32px) saturate(1.4);
+  border: 1px solid var(--glass-popup-border);
+  background: var(--glass-popup);
+  backdrop-filter: blur(26px) saturate(1.35);
   box-shadow: 0 18px 50px var(--shadow);
   display: flex;
   flex-direction: column;
@@ -2587,16 +2661,17 @@ textarea {
   gap: 6px;
   padding: 7px 13px;
   border-radius: 20px;
-  background: var(--glass);
-  border: 1px solid var(--border);
+  background: var(--glass-popup);
+  border: 1px solid var(--glass-popup-border);
   color: var(--text-dim);
   font-size: 12px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(26px) saturate(1.35);
   transition: all 0.15s ease;
 }
 .np-btn:hover {
   color: var(--text);
-  border-color: var(--text-faint);
+  border-color: var(--glass-popup-border);
+  background: var(--glass-popup-hover);
 }
 /* the album cover is the centered anchor; lyrics overlay on top of it */
 .np-stage {
@@ -2680,6 +2755,22 @@ textarea {
   max-height: 88vh;
   overflow-y: auto;
   box-shadow: 0 24px 80px var(--shadow);
+}
+.origin-backdrop.origin-opening { animation: origin-backdrop-in var(--origin-duration, var(--motion-normal)) ease both; }
+.origin-backdrop.origin-closing { animation: origin-backdrop-out var(--origin-duration, var(--motion-normal)) ease both; pointer-events: none; }
+.origin-surface { will-change: transform, opacity, filter; }
+.origin-surface.origin-opening { animation: origin-surface-in var(--origin-duration, var(--motion-normal)) var(--motion-enter) both; }
+.origin-surface.origin-closing { animation: origin-surface-out var(--origin-duration, var(--motion-normal)) var(--motion-exit) both; pointer-events: none; }
+.origin-surface.origin-open { animation: none; }
+@keyframes origin-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes origin-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes origin-surface-in {
+  from { opacity: 0; filter: blur(5px); transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
+  to { opacity: 1; filter: blur(0); transform: translate(0, 0) scale(1); }
+}
+@keyframes origin-surface-out {
+  from { opacity: 1; filter: blur(0); transform: translate(0, 0) scale(1); }
+  to { opacity: 0; filter: blur(5px); transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
 }
 .modal h2 {
   font-size: 18px;
@@ -3733,6 +3824,12 @@ textarea {
 
 /* ============================ 3D Particle Album Cover ============================ */
 .now-playing-3d {
+  --glass-popup: color-mix(in srgb, rgba(16, 16, 30, 0.55) 86%, transparent);
+  --glass-popup-border: color-mix(in srgb, #262638 72%, transparent);
+  --glass-popup-hover: color-mix(in srgb, #1e1e30 70%, transparent);
+  --glass-popup-control: color-mix(in srgb, #1a1a2a 45%, transparent);
+  --glass-readable-dim: rgba(255, 255, 255, 0.82);
+  --glass-readable-faint: rgba(255, 255, 255, 0.66);
   background:
     radial-gradient(circle at 50% 42%, rgba(50, 54, 65, 0.72), transparent 54%),
     #08090c;
@@ -3744,6 +3841,14 @@ textarea {
   justify-content: center;
   padding: 56px 40px 130px;
   overflow: hidden;
+}
+
+.now-playing-3d .np-btn {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.now-playing-3d .np-btn:hover {
+  color: #fff;
 }
 
 .np-stage-3d {
@@ -3974,9 +4079,9 @@ textarea {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 24px;
-  background: var(--glass-strong);
+  background: var(--glass-popup);
   box-shadow: 0 16px 36px var(--shadow);
   backdrop-filter: blur(26px) saturate(1.35);
   opacity: 0;
@@ -4022,8 +4127,8 @@ textarea {
   inset: 0;
   z-index: 54;
   cursor: default;
-  background: rgba(5, 6, 10, 0.28);
-  backdrop-filter: blur(2px);
+  background: var(--glass-popup-scrim);
+  backdrop-filter: blur(12px) saturate(1.15);
 }
 .player-comments-drawer {
   position: fixed;
@@ -4035,14 +4140,22 @@ textarea {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 22px;
-  background: var(--glass-strong);
+  background: var(--glass-popup);
   box-shadow: 0 24px 70px var(--shadow);
-  backdrop-filter: blur(32px) saturate(1.35);
+  backdrop-filter: blur(26px) saturate(1.35);
   transform: translateX(-50%);
   transform-origin: bottom center;
-  animation: comments-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.share-dialog-backdrop {
+  background: var(--glass-popup-scrim);
+  backdrop-filter: blur(12px) saturate(1.15);
+}
+.share-dialog-backdrop .share-dialog {
+  border-color: var(--glass-popup-border);
+  background: var(--glass-popup);
+  backdrop-filter: blur(26px) saturate(1.35);
 }
 @keyframes comments-rise {
   from {
@@ -4054,13 +4167,23 @@ textarea {
     transform: translate(-50%, 0) scaleY(1);
   }
 }
+.player-comments-drawer.origin-opening { animation: comments-origin-in .26s cubic-bezier(.22,1,.36,1) both; }
+.player-comments-drawer.origin-closing { animation: comments-origin-out .26s cubic-bezier(.4,0,.8,.2) both; }
+@keyframes comments-origin-in {
+  from { opacity: 0; transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 24px)) scale(var(--origin-scale-x, .2), var(--origin-scale-y, .2)); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes comments-origin-out {
+  from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  to { opacity: 0; transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 24px)) scale(var(--origin-scale-x, .2), var(--origin-scale-y, .2)); }
+}
 .player-comments-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-popup-border);
 }
 .player-comments-title {
   display: flex;
@@ -4080,7 +4203,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-3);
+  background: var(--glass-popup-control);
 }
 .player-comments-title > div {
   display: grid;
@@ -4123,8 +4246,8 @@ textarea {
   align-items: end;
   gap: 10px;
   padding: 12px 18px;
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  border-top: 1px solid var(--glass-popup-border);
+  background: var(--glass-popup-control);
 }
 .player-comment-editor textarea {
   width: 100%;
@@ -4132,10 +4255,10 @@ textarea {
   max-height: 82px;
   resize: none;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 8px;
   outline: none;
-  background: var(--bg-3);
+  background: var(--glass-popup-control);
   color: var(--text);
 }
 .player-comment-editor textarea:focus {
@@ -4435,9 +4558,10 @@ textarea {
   min-height: 120px;
   resize: none;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 9px;
-  background: var(--bg-2);
+  background: var(--glass-popup-control);
+  backdrop-filter: blur(14px);
   color: var(--text);
   font: inherit;
   line-height: 1.6;
@@ -4824,12 +4948,12 @@ textarea {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--glass-popup-border);
   border-radius: 22px;
-  background: rgba(18, 20, 27, 0.82);
+  background: var(--glass-popup);
   color: #f7f7f8;
   box-shadow: 0 24px 68px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(30px) saturate(1.35);
+  backdrop-filter: blur(26px) saturate(1.35);
   transform-origin: top right;
   animation: visual-panel-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -4844,7 +4968,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px 8px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--glass-popup-border);
 }
 
 .np-visual-panel > header > div,
@@ -4861,12 +4985,12 @@ textarea {
 
 .np-visual-panel section + section {
   margin-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--glass-popup-border);
 }
 
 .np-visual-panel h3 {
   margin: 16px 0 6px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--glass-readable-dim);
   font-size: 12px;
 }
 
@@ -4893,7 +5017,7 @@ textarea {
 }
 
 .np-visual-row small {
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--glass-readable-faint);
   font-size: 10px;
   font-weight: 400;
 }
@@ -4907,9 +5031,15 @@ textarea {
 .np-visual-panel .theme-swatch,
 .np-visual-panel .opt-btn,
 .np-visual-panel .btn {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--glass-popup-border);
   color: rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--glass-popup-hover);
+}
+
+.np-visual-panel .icon-btn:hover,
+.player-comments-drawer .icon-btn:hover,
+.share-dialog .icon-btn:hover {
+  background: var(--glass-popup-hover);
 }
 
 .np-visual-panel .theme-swatch.active,
@@ -4926,6 +5056,11 @@ textarea {
 
 .page-scroll {
   animation: page-content-arrive 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.user-dropdown.origin-surface,
+.search-wrap.origin-surface .search-capsule {
+  animation-name: none;
 }
 
 @keyframes page-content-arrive {
@@ -5022,12 +5157,12 @@ textarea {
 
 .topnav.is-condensed::before {
   inset: 0;
-  border-color: color-mix(in srgb, var(--border) 72%, transparent);
+  border-color: var(--glass-surface-border);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--glass-player) 86%, transparent);
+  background: var(--glass-surface);
   /* 向下压重心：30-18=12px 恰好不越过导航栏上方的空隙 */
-  box-shadow: 0 18px 30px color-mix(in srgb, var(--shadow) 46%, transparent);
-  backdrop-filter: blur(30px) saturate(1.45);
+  box-shadow: var(--glass-surface-shadow);
+  backdrop-filter: var(--glass-surface-filter);
 }
 
 .topnav svg {
@@ -5039,9 +5174,11 @@ textarea {
 /* 玻璃适配：导航栏与播放栏内的控件统一半透明，融入磨砂表面 */
 .topnav .topnav-item:hover,
 .topnav .topnav-icon-btn:hover,
-.topnav .search-close:hover,
-.player-bar .icon-btn:hover {
+.topnav .search-close:hover {
   background: color-mix(in srgb, var(--hover) 70%, transparent);
+}
+.player-bar .icon-btn:not(.primary):hover {
+  background: var(--glass-popup-hover);
 }
 .topnav .topnav-item.active {
   background: linear-gradient(
@@ -5051,10 +5188,12 @@ textarea {
   );
 }
 .topnav .search-capsule,
-.topnav .topnav-user,
-.player-bar .pb-cover-ph {
+.topnav .topnav-user {
   background: color-mix(in srgb, var(--bg-3) 45%, transparent);
   backdrop-filter: blur(10px);
+}
+.player-bar .pb-cover-ph {
+  background: var(--glass-popup-control);
 }
 .topnav .user-avatar-ph {
   background: color-mix(in srgb, var(--bg-2) 40%, transparent);
@@ -5315,7 +5454,11 @@ textarea {
   .titlebar-name,
   .toast,
   .np-visual-panel,
-  .card-cover {
+  .card-cover,
+  .origin-backdrop,
+  .origin-surface,
+  .player-comments-drawer,
+  .pb-quality-menu {
     animation-duration: 0.01ms;
     transition-duration: 0.01ms;
   }
@@ -5373,6 +5516,27 @@ textarea {
 .player-comments-drawer .comment-list {
   min-height: 0;
   overflow-y: auto;
+}
+.player-comments-drawer .comment-toolbar,
+.player-comments-drawer .comment-item,
+.player-comments-drawer .comment-composer {
+  border-color: var(--glass-popup-border);
+}
+.player-comments-drawer .comment-toolbar .segmented button.active,
+.player-comments-drawer .comment-reply-target button,
+.player-comments-drawer .comment-avatar.placeholder {
+  background: var(--glass-popup-hover);
+}
+.player-comments-drawer .comment-item-body blockquote,
+.player-comments-drawer .comment-replies {
+  border-color: var(--glass-popup-border);
+}
+.player-comments-drawer .comment-composer {
+  background: var(--glass-popup-control);
+}
+.player-comments-drawer .comment-composer textarea {
+  border-color: var(--glass-popup-border);
+  background: var(--glass-popup-control);
 }
 .comment-toolbar {
   display: flex;
@@ -5699,6 +5863,19 @@ textarea {
 .playlist-picker-meta strong { font-size: 12px; }
 .playlist-picker-meta small { color: var(--text-faint); font-size: 11px; }
 
+.pb-quality-wrap { position: relative; display: inline-flex; }
+.pb-quality-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 7px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.pb-quality-btn span { white-space: nowrap; }
+.pb-quality-btn:hover, .pb-quality-btn.active { border-color: var(--glass-popup-border); background: var(--glass-popup-hover); color: var(--text); }
+.pb-quality-menu { position: absolute; left: 50%; right: auto; bottom: 34px; z-index: 20; display: grid; width: max-content; min-width: calc(100% + 12px); max-width: 220px; transform: translateX(-50%); transform-origin: bottom center; padding: 4px; border: 1px solid var(--glass-popup-border); border-radius: 8px; background: var(--glass-popup); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(26px) saturate(1.35); }
+.pb-quality-menu.origin-opening { animation: quality-origin-in .16s cubic-bezier(.22,1,.36,1) both; }
+.pb-quality-menu.origin-closing { animation: quality-origin-out .16s ease both; }
+@keyframes quality-origin-in { from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.86); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+@keyframes quality-origin-out { from { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } to { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.86); } }
+.pb-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 11px; text-align: left; white-space: nowrap; cursor: pointer; }
+.pb-quality-menu button:hover, .pb-quality-menu button.active { background: var(--glass-popup-hover); color: var(--text); }
+.pb-quality-menu button.active { font-weight: 600; }
+
 /* Above sidebars (70), drawers/modals (100) and the search overlay (110),
    but below toasts (200). The base .modal-backdrop rule is z-index:100;
    without this override the popup sat at 30 and was covered by the player
@@ -5732,12 +5909,22 @@ textarea {
 .media-video-volume { position: relative; display: inline-flex; }
 /* Flush against the button (bottom: 28px = button height) with extra bottom
    padding so there is no hover gap between the icon and the vertical bar. */
-.media-video-volume-pop { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 12px 10px 20px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.media-video-volume-pop { position: absolute; bottom: 26px; left: 50%; width: 42px; box-sizing: border-box; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 12px 8px 20px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
 /* Custom-drawn vertical volume slider (div-based, player style). */
 .media-video-volume-track { position: relative; width: 5px; height: 100px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); cursor: pointer; touch-action: none; }
 .media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
 .media-video-volume-thumb { position: absolute; left: 50%; width: 10px; height: 10px; transform: translate(-50%, 50%); border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
-.media-video-volume-num { color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; }
+.media-video-volume-num { width: 3ch; color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
+.media-video-volume-pop.origin-opening { animation: media-volume-origin-in var(--origin-duration, 160ms) var(--motion-enter) both; }
+.media-video-volume-pop.origin-closing { animation: media-volume-origin-out var(--origin-duration, 160ms) var(--motion-exit) both; }
+@keyframes media-volume-origin-in {
+  from { opacity: 0; filter: blur(4px); transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 8px)) scale(var(--origin-scale-x, .7), var(--origin-scale-y, .7)); }
+  to { opacity: 1; filter: blur(0); transform: translate(-50%, 0) scale(1); }
+}
+@keyframes media-volume-origin-out {
+  from { opacity: 1; filter: blur(0); transform: translate(-50%, 0) scale(1); }
+  to { opacity: 0; filter: blur(4px); transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 8px)) scale(var(--origin-scale-x, .7), var(--origin-scale-y, .7)); }
+}
 .media-video-rate { position: relative; display: inline-flex; }
 .media-video-rate-btn { width: auto; min-width: 44px; padding: 0 8px; font-size: 12px; }
 .media-video-rate-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 66px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
@@ -5750,11 +5937,13 @@ textarea {
 .media-video-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 11px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 12px; cursor: pointer; }
 .media-video-quality-menu button:hover { background: rgba(255, 255, 255, 0.12); }
 .media-video-quality-menu button.active { color: #fff; font-weight: 600; }
-/* Window-fullscreen: a fixed overlay filling the app window (not the monitor).
-   Avoids the Fullscreen API, which makes WebView2/Tauri go borderless on the
-   whole screen and shakes the layout on enter/exit. */
-.media-video-stage.window-fullscreen { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #000; }
-.media-video-stage.window-fullscreen video { max-height: 100vh; }
+/* Window fullscreen fills the current player window. When the app itself is
+   maximized this naturally fills the display without invoking system fullscreen. */
+.media-video-stage.window-fullscreen { display: grid; place-items: center; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
+.media-video-stage.window-fullscreen { position: fixed; inset: 0; z-index: 9999; }
+.media-video-stage.window-fullscreen video { width: 100vw; height: 100vh; max-height: none; object-fit: contain; }
+.media-detail-backdrop.media-window-fullscreen-active, .media-detail-dialog.media-window-fullscreen-host { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.media-detail-dialog.media-window-fullscreen-host { overflow: visible; transform: none; }
 .media-detail-video-empty { display: grid; justify-items: center; gap: 8px; color: var(--text-faint); }
 .media-detail-body { padding: 16px 18px 20px; overflow-y: auto; }
 .media-detail-head { display: flex; align-items: center; gap: 12px; }
@@ -5811,14 +6000,9 @@ textarea {
 .recent-card strong { font-size: 12px; }
 .recent-card span { color: var(--text-faint); font-size: 11px; }
 .recent-card button { cursor: pointer; }
-.song-card-dislike { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: rgba(0,0,0,.52); color: #fff; opacity: 0; cursor: pointer; transition: opacity .15s ease; }
-.song-card:hover .song-card-dislike, .song-card-dislike:focus-visible { opacity: 1; }
-.recommend-history-days { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 3px; }
-.recommend-history-days button { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; min-width: 112px; padding: 9px 10px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); color: var(--text-2); text-align: left; cursor: pointer; }
-.recommend-history-days button.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-1)); color: var(--text); }
-.recommend-history-days button svg { grid-row: span 2; color: var(--accent); }
-.recommend-history-days span { font-size: 11px; white-space: nowrap; }
-.recommend-history-days small { color: var(--text-faint); font-size: 10px; }
+.song-card-context-menu { position: fixed; z-index: 210; min-width: 130px; padding: 4px; border: 1px solid var(--glass-popup-border); border-radius: 7px; background: var(--glass-popup); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(26px) saturate(1.35); }
+.song-card-context-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.song-card-context-menu button:hover, .song-card-context-menu button:focus-visible { background: var(--glass-popup-hover); outline: none; }
 .discovery-media-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
 .home-entry-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .home-entry-grid .link-btn { min-height: 32px; padding: 6px 11px; border: 1px solid var(--border-light); border-radius: 7px; background: var(--bg-1); }
@@ -5830,32 +6014,6 @@ textarea {
 .discovery-media-grid strong { font-size: 12px; }
 .discovery-media-grid small { color: var(--text-faint); font-size: 10px; }
 @media (max-width: 700px) { .discovery-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.vip-overview { display: flex; align-items: center; gap: 16px; padding: 18px; border: 1px solid var(--border-light); border-radius: 9px; background: var(--bg-1); }
-.vip-level-mark { display: grid; justify-items: center; gap: 4px; min-width: 70px; color: var(--accent); }
-.vip-level-mark span { color: var(--text); font-size: 16px; font-weight: 700; }
-.vip-growth-copy { display: grid; min-width: 0; flex: 1; gap: 5px; }
-.vip-growth-copy strong { color: var(--text); font-size: 16px; }
-.vip-growth-copy span { color: var(--text-faint); font-size: 11px; }
-.vip-progress { height: 7px; overflow: hidden; border-radius: 99px; background: var(--bg-3); }
-.vip-progress i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
-.vip-section { margin-top: 20px; }
-.vip-task-list, .vip-detail-list { display: grid; gap: 6px; }
-.vip-task { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); }
-.vip-task > div { display: grid; min-width: 0; gap: 3px; }
-.vip-task strong, .vip-task span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vip-task strong { color: var(--text); font-size: 12px; }
-.vip-task div span { color: var(--text-faint); font-size: 11px; }
-.vip-task b { color: var(--accent); font-size: 12px; }
-.vip-task-status { color: var(--text-faint); font-size: 11px; }
-.vip-task-status.done { color: var(--success, #36b37e); }
-.vip-detail-list > div { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 9px 11px; border-bottom: 1px solid var(--border-light); }
-.vip-detail-list span { color: var(--text-2); font-size: 12px; }
-.vip-detail-list time { color: var(--text-faint); font-size: 10px; }
-.vip-detail-list strong { color: var(--success, #36b37e); font-size: 12px; }
-.vip-time-machine { padding: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); }
-.vip-time-machine > div { display: flex; align-items: center; gap: 7px; color: var(--accent); }
-.vip-time-machine pre { max-height: 160px; margin: 10px 0 0; overflow: auto; color: var(--text-faint); font-size: 10px; white-space: pre-wrap; }
-@media (max-width: 700px) { .vip-task { grid-template-columns: 1fr auto; } .vip-task-status { grid-column: 2; } }
 .comment-history-list { display: grid; gap: 8px; }
 .comment-history-list article { display: flex; gap: 10px; padding: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-1); }
 .comment-history-icon { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 50%; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
@@ -6329,6 +6487,170 @@ textarea {
 .podcast-subscriber strong, .podcast-subscriber small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .podcast-subscriber strong { font-size: 12px; }
 .podcast-subscriber small { color: var(--text-dim); font-size: 10px; }
+
+/* Unified glass surfaces. Keep this after feature-specific declarations so
+   dialogs, popovers and drawers cannot drift away from the navigation glass. */
+.player-bar,
+.list-panel,
+.search-dropdown,
+.user-dropdown,
+.modal,
+.settings-modal,
+.volume-popover,
+.player-comments-drawer,
+.share-dialog-backdrop .share-dialog,
+.np-visual-panel,
+.np-btn,
+.pb-quality-menu,
+.song-card-context-menu,
+.media-detail-dialog,
+.media-video-volume-pop,
+.media-video-rate-menu,
+.media-video-quality-menu,
+.voice-detail-dialog,
+.playlist-import-modal,
+.broadcast-detail-dialog,
+.podcast-program-dialog,
+.toast {
+  --text-dim: var(--glass-readable-dim);
+  --text-faint: var(--glass-readable-faint);
+  border-color: var(--glass-surface-border);
+  background: var(--glass-surface);
+  box-shadow: var(--glass-surface-shadow);
+  -webkit-backdrop-filter: var(--glass-surface-filter);
+  backdrop-filter: var(--glass-surface-filter);
+}
+
+.modal-backdrop,
+.confirm-backdrop,
+.player-comments-scrim,
+.share-dialog-backdrop {
+  background: var(--glass-popup-scrim);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.15);
+}
+
+.settings-sidebar,
+.topnav .search-capsule,
+.topnav .topnav-user,
+.playlist-card-actions,
+.collection-remove,
+.media-favorite,
+.broadcast-card > .icon-button,
+.player-comment-editor,
+.player-comment-editor textarea,
+.comment-composer,
+.comment-composer textarea,
+.share-dialog textarea,
+.media-video-btn,
+.media-video-seek,
+.media-video-volume-track,
+.playlist-import-name,
+.playlist-import-modal textarea {
+  --text-dim: var(--glass-readable-dim);
+  --text-faint: var(--glass-readable-faint);
+  border-color: var(--glass-surface-border);
+  background: var(--glass-surface-control);
+  -webkit-backdrop-filter: var(--glass-surface-filter);
+  backdrop-filter: var(--glass-surface-filter);
+}
+
+.topnav.is-condensed {
+  --text-dim: var(--glass-readable-dim);
+  --text-faint: var(--glass-readable-faint);
+}
+
+.search-dropdown-item:hover,
+.topnav .topnav-user:hover,
+.topnav .search-close:hover,
+.user-dropdown-cell:hover,
+.user-dropdown-item:hover,
+.settings-sidebar nav button:hover,
+.player-bar .icon-btn:not(.primary):hover,
+.media-video-btn:hover,
+.pb-quality-btn:hover,
+.pb-quality-btn.active,
+.pb-quality-menu button:hover,
+.pb-quality-menu button.active,
+.song-card-context-menu button:hover,
+.song-card-context-menu button:focus-visible,
+.media-video-rate-menu button:hover,
+.media-video-quality-menu button:hover {
+  background: var(--glass-surface-hover);
+}
+
+/* Interaction feedback stays inside each control's footprint. Content cards
+   keep their labels stationary; only their dedicated cover layer may travel. */
+.icon-btn,
+.icon-button,
+.media-video-btn,
+.topnav-item,
+.btn,
+.primary-button,
+.segmented-control button,
+[role="tab"] {
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    opacity var(--motion-fast) ease,
+    transform var(--motion-fast) var(--motion-enter);
+}
+
+.icon-btn:active,
+.icon-button:active,
+.media-video-btn:active,
+.topnav-item:active,
+.btn:active,
+.primary-button:active,
+.segmented-control button:active,
+[role="tab"]:active {
+  transform: scale(0.94);
+  transition-timing-function: var(--motion-exit);
+}
+
+.card-cover,
+.media-card .card-cover,
+.playlist-card .card-cover,
+.song-card .card-cover {
+  transform-origin: center;
+  transition:
+    transform var(--motion-slow) var(--motion-enter),
+    box-shadow var(--motion-normal) ease,
+    filter var(--motion-normal) ease;
+}
+
+.media-card:hover .card-cover,
+.playlist-card:hover .card-cover,
+.song-card:hover .card-cover {
+  transform: translateY(-3px) scale(1.018);
+}
+
+.media-card:active .card-cover,
+.playlist-card:active .card-cover,
+.song-card:active .card-cover {
+  transform: translateY(0) scale(0.985);
+  transition-timing-function: var(--motion-exit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .origin-surface,
+  .page-scroll,
+  .card-cover {
+    filter: none !important;
+    transform: none !important;
+  }
+}
 
 /* Digital album sales board */
 .digital-album-board { max-width: 960px; margin: 0 auto 18px; padding: 14px 18px 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); }

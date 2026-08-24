@@ -7,8 +7,37 @@ import {
   getSigninProgress,
   getYunbeiLedger,
   getYunbeiOverview,
+  getYunbeiRecommendationHistory,
   getYunbeiTasks,
+  submitYunbeiRecommendation,
 } from "../src/api/yunbei.ts";
+
+test("yunbei recommendation actions forward expected params", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  globalThis.fetch = async (input) => {
+    calls.push(String(input));
+    return Response.json({ data: { list: [] } });
+  };
+  try {
+    await submitYunbeiRecommendation({
+      songId: 4,
+      reason: "推荐",
+      yunbeiNum: 12,
+    });
+    await getYunbeiRecommendationHistory(10, "cursor");
+    assert.match(
+      calls[0]!,
+      /yunbei\/rcmd\/song\?id=4&reason=%E6%8E%A8%E8%8D%90&yunbeiNum=12/,
+    );
+    assert.match(
+      calls[1]!,
+      /yunbei\/rcmd\/song\/history\?size=10&cursor=cursor/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("yunbei overview combines balance, daily points and sign state", async () => {
   const originalFetch = globalThis.fetch;

@@ -4,12 +4,16 @@ import { matchAudioFingerprint } from "../api/audioMatch.ts";
 import type { Song } from "../api/types.ts";
 import { usePlayerStore } from "../store/playerStore";
 import SongList from "./SongList";
+import { useOriginTransition } from "../utils/originTransition";
 
-export default function AudioMatchDialog({ onClose }: { onClose: () => void }) {
+export default function AudioMatchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [audioFP, setAudioFP] = useState("");
   const [duration, setDuration] = useState("180000");
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
+  const transition = useOriginTransition<HTMLDivElement>(open, "audio-match", 220);
+
+  if (!transition.rendered) return null;
 
   const submit = async () => {
     if (loading) return;
@@ -25,8 +29,8 @@ export default function AudioMatchDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal audio-match-dialog" role="dialog" aria-modal="true">
+    <div className={`modal-backdrop ${transition.backdropClassName}`} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div ref={transition.surfaceRef} className={`modal audio-match-dialog ${transition.surfaceClassName}`} role="dialog" aria-modal="true">
         <header className="modal-heading">
           <h2><Fingerprint size={18} /> 音频识别</h2>
           <button className="modal-close" title="关闭" onClick={onClose}><X size={18} /></button>

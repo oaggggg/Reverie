@@ -262,18 +262,23 @@ export default function ParticleAlbumCover({
     // The first gap after mounting, and after every visibility change, spans a
     // pause rather than a rendered frame.
     let watchdogSkipGap = true;
+    let frameId = 0;
+    let running = false;
+    const isBackgrounded = () => document.hidden || !document.hasFocus();
     const onVisibilityChange = () => {
       watchdogSkipGap = true;
-      // 后台时暂停渲染，节省内存和 CPU
-      if (document.hidden) {
+      if (isBackgrounded()) {
         cancelAnimationFrame(frameId);
-      } else {
+        frameId = 0;
+        running = false;
+      } else if (!running) {
         animate();
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onVisibilityChange);
+    window.addEventListener("blur", onVisibilityChange);
 
-    let frameId = 0;
     let spin = 0;
     let pulse = 0;
     let shimmer = 0;
@@ -281,7 +286,11 @@ export default function ParticleAlbumCover({
 
     const animate = () => {
       // 卸载后可能有已调度的帧或 visibilitychange 触发的补帧，此处硬停。
-      if (disposed) return;
+      if (disposed || isBackgrounded()) {
+        running = false;
+        return;
+      }
+      running = true;
       frameId = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
       const eff = effectRef.current;
@@ -330,6 +339,8 @@ export default function ParticleAlbumCover({
         else renderer.render(scene, camera);
       } catch {
         cancelAnimationFrame(frameId);
+        frameId = 0;
+        running = false;
         return;
       }
 
@@ -381,6 +392,8 @@ export default function ParticleAlbumCover({
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onVisibilityChange);
+      window.removeEventListener("blur", onVisibilityChange);
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerup", finishDrag);

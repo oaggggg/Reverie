@@ -18,8 +18,16 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify project
-    runs-on: windows-latest
+    name: Verify ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            platform: windows-latest
+          - name: macOS
+            platform: macos-latest
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout

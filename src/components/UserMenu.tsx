@@ -4,6 +4,10 @@ import { sizedImage } from "../utils/image";
 import { CircleUserRound } from "lucide-react";
 import { getProfileCenter } from "../api/profile";
 import { useProfileStore } from "../store/profileStore";
+import {
+  captureInteractionOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
 
 export default function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -15,9 +19,8 @@ export default function UserMenu() {
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const openProfile = useProfileStore((s) => s.openProfile);
   const profileDetail = useProfileStore((s) => s.detail);
-  const openVip = () =>
-    usePlayerStore.setState({ activeView: "vip", prevView: "home" });
   const ref = useRef<HTMLDivElement>(null);
+  const transition = useOriginTransition<HTMLDivElement>(open, "user-menu", 200);
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +55,11 @@ export default function UserMenu() {
     <div className="user-menu" ref={ref}>
       <button
         className="topnav-user"
-        onClick={() => setOpen(!open)}
+        data-origin-key="user-menu"
+        onClick={(event) => {
+          captureInteractionOrigin("user-menu", event.currentTarget);
+          setOpen(!open);
+        }}
         title={profile?.nickname}
       >
         {profile?.avatarUrl ? (
@@ -80,8 +87,11 @@ export default function UserMenu() {
           </span>
         ) : null}
       </button>
-      {open && (
-        <div className="user-dropdown">
+      {transition.rendered && (
+        <div
+          ref={transition.surfaceRef}
+          className={`user-dropdown ${transition.surfaceClassName}`}
+        >
           <div className="user-dropdown-head">
             {profile?.avatarUrl ? (
               <img src={sizedImage(profile.avatarUrl, 100)} alt="" />
@@ -120,27 +130,6 @@ export default function UserMenu() {
               }}
             >
               个人中心
-            </button>
-            <button
-              className="user-dropdown-cell"
-              onClick={() => {
-                setOpen(false);
-                openVip();
-              }}
-            >
-              会员中心
-            </button>
-            <button
-              className="user-dropdown-cell"
-              onClick={() => {
-                setOpen(false);
-                usePlayerStore.setState({
-                  activeView: "downloadHistory",
-                  prevView: "home",
-                });
-              }}
-            >
-              下载与购买
             </button>
             <button
               className="user-dropdown-cell"

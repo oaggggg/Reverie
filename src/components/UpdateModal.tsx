@@ -1,6 +1,7 @@
 import { usePlayerStore } from "../store/playerStore";
 import { renderReleaseNotes } from "../utils/notes";
 import { ArrowRight } from "lucide-react";
+import { useOriginTransition } from "../utils/originTransition";
 
 function formatSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
@@ -23,8 +24,9 @@ export default function UpdateModal() {
   const checkUpdate = usePlayerStore((s) => s.checkUpdate);
   const installUpdate = usePlayerStore((s) => s.installUpdate);
   const dismissUpdate = usePlayerStore((s) => s.dismissUpdate);
+  const transition = useOriginTransition<HTMLDivElement>(showUpdate, "update", 220);
 
-  if (!showUpdate) return null;
+  if (!transition.rendered) return null;
 
   const downloading = updatePhase === "downloading";
   const downloaded = updatePhase === "downloaded";
@@ -33,10 +35,10 @@ export default function UpdateModal() {
 
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${transition.backdropClassName}`}
       onClick={downloaded || installing ? undefined : dismissUpdate}
     >
-      <div className="modal update-modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={transition.surfaceRef} className={`modal update-modal ${transition.surfaceClassName}`} onClick={(e) => e.stopPropagation()}>
         <h2>
           {installing
             ? "正在安装更新"

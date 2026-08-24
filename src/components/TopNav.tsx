@@ -23,6 +23,10 @@ import {
 } from "lucide-react";
 import UserMenu from "./UserMenu";
 import { sizedImage } from "../utils/image";
+import {
+  captureInteractionOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
 
 interface NavItem {
   view: View;
@@ -71,14 +75,8 @@ const preloadView = (view: View) => {
       return import("./CloudPage");
     case "yunbei":
       return import("./YunbeiPage");
-    case "recommendHistory":
-      return import("./RecommendHistoryPage");
-    case "vip":
-      return import("./VipPage");
     case "commentHistory":
       return import("./CommentHistoryPage");
-    case "downloadHistory":
-      return import("./DownloadHistoryPage");
     case "listenTogether":
       return import("./ListenTogetherPage");
     case "voiceWorkbench":
@@ -151,6 +149,11 @@ export default function TopNav() {
   const navRef = useRef<HTMLElement>(null);
   const searchTimerRef = useRef(0);
   const [condensed, setCondensed] = useState(false);
+  const searchTransition = useOriginTransition<HTMLDivElement>(
+    searchOpen,
+    "topnav-search",
+    200,
+  );
 
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus();
@@ -185,7 +188,14 @@ export default function TopNav() {
       void loadSuggestions(keyword);
     }, 180);
     return () => window.clearTimeout(searchTimerRef.current);
-  }, [searchKeyword, searchOpen, doSearch, loadSuggestions, loadHotTerms, loggedIn]);
+  }, [
+    searchKeyword,
+    searchOpen,
+    doSearch,
+    loadSuggestions,
+    loadHotTerms,
+    loggedIn,
+  ]);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -233,7 +243,7 @@ export default function TopNav() {
 
   return (
     <nav
-      className={`topnav ${condensed ? "is-condensed" : ""} ${searchOpen ? "search-open" : ""}`}
+      className={`topnav ${condensed ? "is-condensed" : ""} ${searchTransition.rendered ? "search-open" : ""}`}
       ref={navRef}
     >
       <div className="topnav-items">
@@ -243,6 +253,8 @@ export default function TopNav() {
             className={`topnav-item ${activeView === item.view && !searchOpen ? "active" : ""}`}
             onPointerEnter={() => void preloadView(item.view)}
             onClick={() => handleNav(item.view, item.auth)}
+            title={item.label}
+            aria-label={item.label}
           >
             {item.icon}
             <span>{item.label}</span>
@@ -251,8 +263,11 @@ export default function TopNav() {
       </div>
 
       <div className="topnav-actions">
-        {searchOpen ? (
-          <div className="search-wrap">
+        {searchTransition.rendered ? (
+          <div
+            ref={searchTransition.surfaceRef}
+            className={`search-wrap ${searchTransition.surfaceClassName}`}
+          >
             <div className="search-capsule">
               <Search size={15} />
               <input
@@ -332,7 +347,9 @@ export default function TopNav() {
                               <strong>{suggestion.keyword}</strong>
                               <small>
                                 {suggestion.type}
-                                {suggestion.source ? ` · ${suggestion.source}` : ""}
+                                {suggestion.source
+                                  ? ` · ${suggestion.source}`
+                                  : ""}
                               </small>
                             </button>
                           ))
@@ -366,7 +383,9 @@ export default function TopNav() {
                         ))}
                         <button
                           className="search-view-all"
-                          onClick={() => void openSearch(searchKeyword, "songs")}
+                          onClick={() =>
+                            void openSearch(searchKeyword, "songs")
+                          }
                         >
                           查看全部搜索结果
                         </button>
@@ -380,7 +399,9 @@ export default function TopNav() {
         ) : (
           <button
             className="topnav-icon-btn"
-            onClick={() => {
+            data-origin-key="topnav-search"
+            onClick={(event) => {
+              captureInteractionOrigin("topnav-search", event.currentTarget);
               // reopen clean: don't keep the previous search content
               setSearchOpen(true);
               setPage("browse");
@@ -431,8 +452,10 @@ export default function TopNav() {
         <button
           className="topnav-icon-btn"
           onPointerEnter={() => void preloadView("notifications")}
-          onClick={() => {
+          data-origin-key={loggedIn ? undefined : "login"}
+          onClick={(event) => {
             if (!loggedIn) {
+              captureInteractionOrigin("login", event.currentTarget);
               setShowLogin(true);
               return;
             }
@@ -449,7 +472,10 @@ export default function TopNav() {
           <button
             className="topnav-login"
             onPointerEnter={() => void import("./LoginModal")}
-            onClick={() => setShowLogin(true)}
+            onClick={(event) => {
+              captureInteractionOrigin("login", event.currentTarget);
+              setShowLogin(true);
+            }}
           >
             登录
           </button>

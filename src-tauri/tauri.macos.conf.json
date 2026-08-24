@@ -1,0 +1,33 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "Reverie",
+        "width": 1380,
+        "height": 860,
+        "minWidth": 1080,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "visible": false,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 18
+        },
+        "acceptFirstMouse": true,
+        "transparent": false,
+        "backgroundColor": "#0a0a12",
+        "center": true
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["app", "dmg"],
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
+  }
+}
