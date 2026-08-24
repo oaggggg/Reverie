@@ -4906,7 +4906,7 @@ textarea {
 }
 @keyframes toast-slide-down {
   from { opacity: 1; translate: -50% 0; }
-  to { opacity: 0; translate: -50% 72px; }
+  to { opacity: 0; translate: -50% -72px; }
 }
 .toast-wrap .toast.is-exiting {
   animation: toast-slide-down 0.26s cubic-bezier(0.4, 0, 1, 1) both;
