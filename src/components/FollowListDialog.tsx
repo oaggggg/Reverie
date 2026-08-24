@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { UserMinus, UserPlus, Users, X } from "lucide-react";
 import { useExploreStore } from "../store/exploreStore";
 import { sizedImage } from "../utils/image";
@@ -23,7 +24,7 @@ export default function FollowListDialog({
     void loadSocial();
   }, [loadSocial]);
 
-  return (
+  return createPortal(
     <div className="modal-backdrop follow-list-backdrop" onMouseDown={onClose}>
       <section
         className="modal follow-list-modal"
@@ -34,10 +35,14 @@ export default function FollowListDialog({
       >
         <header className="modal-head">
           <div>
-            <h2><Users size={18} /> {type === "follows" ? "关注" : "粉丝"}</h2>
+            <h2>
+              <Users size={18} /> {type === "follows" ? "关注" : "粉丝"}
+            </h2>
             <p>{type === "follows" ? "你关注的用户" : "关注你的用户"}</p>
           </div>
-          <button className="modal-close" title="关闭" onClick={onClose}><X size={18} /></button>
+          <button className="modal-close" title="关闭" onClick={onClose}>
+            <X size={18} />
+          </button>
         </header>
         <div className="follow-list">
           {loading && !users.length ? (
@@ -46,16 +51,31 @@ export default function FollowListDialog({
             users.map((user) => (
               <article className="follow-list-row" key={user.userId}>
                 <img src={sizedImage(user.avatarUrl, 80)} alt="" />
-                <div><strong>{user.nickname}</strong><span>{user.signature || "这个人很安静，还没有留下简介"}</span></div>
-                <button className={`btn ${user.followed ? "" : "primary"}`} onClick={() => void toggleFollow(user)}>
-                  {user.followed ? <UserMinus size={14} /> : <UserPlus size={14} />}
+                <div>
+                  <strong>{user.nickname}</strong>
+                  <span>
+                    {user.signature || "这个人很安静，还没有留下简介"}
+                  </span>
+                </div>
+                <button
+                  className={`btn ${user.followed ? "" : "primary"}`}
+                  onClick={() => void toggleFollow(user)}
+                >
+                  {user.followed ? (
+                    <UserMinus size={14} />
+                  ) : (
+                    <UserPlus size={14} />
+                  )}
                   {user.followed ? "取消关注" : "关注"}
                 </button>
               </article>
             ))
-          ) : <div className="empty">暂无用户</div>}
+          ) : (
+            <div className="empty">暂无用户</div>
+          )}
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
