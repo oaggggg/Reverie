@@ -6984,3 +6984,43 @@ img[data-reverie-fallback="true"] {
   object-fit: cover;
   background: var(--bg-3);
 }
+
+.user-dropdown-stat {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.user-dropdown-stat:hover { color: var(--accent); }
+.follow-list-backdrop { z-index: 220; }
+.follow-list-modal {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 64px));
+  padding: 20px;
+}
+.follow-list-modal .modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.follow-list-modal .modal-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.follow-list-modal .modal-head p { margin: 4px 0 0; color: var(--text-dim); font-size: 12px; }
+.follow-list { display: grid; gap: 8px; max-height: 520px; overflow: auto; }
+.follow-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.follow-list-row > img { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%; object-fit: cover; }
+.follow-list-row > div { display: grid; min-width: 0; flex: 1; gap: 3px; }
+.follow-list-row strong, .follow-list-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.follow-list-row span { color: var(--text-dim); font-size: 12px; }

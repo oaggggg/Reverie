@@ -17,6 +17,7 @@ import { useCollectionStore } from "../store/collectionStore";
 import { sizedImage } from "../utils/image";
 import BackButton from "./BackButton";
 import SongList from "./SongList";
+import FollowListDialog from "./FollowListDialog";
 import { LoadingState, Page } from "./Page";
 
 function formatDate(timestamp: number) {
@@ -30,6 +31,7 @@ function formatDate(timestamp: number) {
 export default function ProfilePage() {
   const [brokenAvatar, setBrokenAvatar] = useState("");
   const [brokenBackground, setBrokenBackground] = useState("");
+  const [followDialog, setFollowDialog] = useState<"follows" | "followers" | null>(null);
   const detail = useProfileStore((state) => state.detail);
   const level = useProfileStore((state) => state.level);
   const subcount = useProfileStore((state) => state.subcount);
@@ -43,13 +45,10 @@ export default function ProfilePage() {
   const setPeriod = useProfileStore((state) => state.setPeriod);
   const openCollections = useCollectionStore((state) => state.openCollections);
   const playSong = usePlayerStore((state) => state.playSong);
-  const setSocialTab = useExploreStore((state) => state.setSocialTab);
-  const loadSocial = useExploreStore((state) => state.loadSocial);
   const openRadio = useExploreStore((state) => state.openRadio);
 
   const openSocial = (tab: "follows" | "followers") => {
-    setSocialTab(tab);
-    void loadSocial();
+    setFollowDialog(tab);
   };
 
   if (!detail) {
@@ -293,6 +292,9 @@ export default function ProfilePage() {
           <div className="empty">听歌排行未公开或暂无记录</div>
         )}
       </section>
+      {followDialog && (
+        <FollowListDialog type={followDialog} onClose={() => setFollowDialog(null)} />
+      )}
     </Page>
   );
 }
