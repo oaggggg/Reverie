@@ -57,6 +57,7 @@ const THEME_ICON = {
 };
 const THEME_LABEL = { system: "跟随系统", light: "浅色", dark: "深色" };
 const SEARCH_DROPDOWN_CLOSE_MS = 160;
+const SEARCH_DROPDOWN_CLOSE_FALLBACK_MS = SEARCH_DROPDOWN_CLOSE_MS + 120;
 
 const preloadView = (view: View) => {
   switch (view) {
@@ -147,6 +148,7 @@ export default function TopNav() {
   const navRef = useRef<HTMLElement>(null);
   const searchTimerRef = useRef(0);
   const searchCloseTimerRef = useRef(0);
+  const searchAfterCloseRef = useRef<(() => void) | undefined>(undefined);
   const [condensed, setCondensed] = useState(false);
   const [searchDropdownClosing, setSearchDropdownClosing] = useState(false);
   const searchTransition = useOriginTransition<HTMLDivElement>(
@@ -161,28 +163,47 @@ export default function TopNav() {
     (!searchKeyword.trim() && (hotTerms.length > 0 || loggedIn)) ||
     Boolean(searchKeyword && !loggedIn);
 
+  const finishSearchClose = useCallback(() => {
+    window.clearTimeout(searchCloseTimerRef.current);
+    searchCloseTimerRef.current = 0;
+    // Keep the completed closing state mounted while the search capsule starts
+    // its own exit animation; this prevents the dropdown from flashing back in.
+    setSearchDropdownClosing(true);
+    setSearchOpen(false);
+    const afterClose = searchAfterCloseRef.current;
+    searchAfterCloseRef.current = undefined;
+    afterClose?.();
+  }, [setSearchOpen]);
+
   const closeSearch = useCallback(
     (afterClose?: () => void) => {
       window.clearTimeout(searchCloseTimerRef.current);
       if (!searchOpen || !hasSearchDropdown) {
         setSearchDropdownClosing(false);
         setSearchOpen(false);
+        searchAfterCloseRef.current = undefined;
         afterClose?.();
         return;
       }
+      searchAfterCloseRef.current = afterClose;
       setSearchDropdownClosing(true);
       searchCloseTimerRef.current = window.setTimeout(() => {
-        setSearchDropdownClosing(false);
-        setSearchOpen(false);
-        afterClose?.();
-      }, SEARCH_DROPDOWN_CLOSE_MS);
+        finishSearchClose();
+      }, SEARCH_DROPDOWN_CLOSE_FALLBACK_MS);
     },
-    [SEARCH_DROPDOWN_CLOSE_MS, hasSearchDropdown, searchOpen, setSearchOpen],
+    [
+      SEARCH_DROPDOWN_CLOSE_FALLBACK_MS,
+      finishSearchClose,
+      hasSearchDropdown,
+      searchOpen,
+      setSearchOpen,
+    ],
   );
 
   useEffect(() => {
     if (!searchOpen) return;
     window.clearTimeout(searchCloseTimerRef.current);
+    searchAfterCloseRef.current = undefined;
     setSearchDropdownClosing(false);
   }, [searchOpen]);
 
@@ -329,6 +350,14 @@ export default function TopNav() {
             {hasSearchDropdown || searchDropdownClosing ? (
               <div
                 className={`search-dropdown ${searchDropdownClosing ? "search-dropdown-closing" : ""}`}
+                onAnimationEnd={(event) => {
+                  if (
+                    searchDropdownClosing &&
+                    event.animationName === "search-dropdown-out"
+                  ) {
+                    finishSearchClose();
+                  }
+                }}
               >
                 {searching ? (
                   <div className="loading-hint">搜索中…</div>
