@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import { useSearchStore } from "../store/searchStore";
 import { useNotificationStore } from "../store/notificationStore";
@@ -56,6 +56,7 @@ const THEME_ICON = {
   dark: <Moon size={17} />,
 };
 const THEME_LABEL = { system: "跟随系统", light: "浅色", dark: "深色" };
+const SEARCH_DROPDOWN_CLOSE_MS = 160;
 
 const preloadView = (view: View) => {
   switch (view) {
@@ -145,12 +146,45 @@ export default function TopNav() {
   const searchRef = useRef<HTMLInputElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const searchTimerRef = useRef(0);
+  const searchCloseTimerRef = useRef(0);
   const [condensed, setCondensed] = useState(false);
+  const [searchDropdownClosing, setSearchDropdownClosing] = useState(false);
   const searchTransition = useOriginTransition<HTMLDivElement>(
     searchOpen,
     "topnav-search",
     200,
   );
+
+  const hasSearchDropdown =
+    searching ||
+    searchResults.length > 0 ||
+    (!searchKeyword.trim() && (hotTerms.length > 0 || loggedIn)) ||
+    Boolean(searchKeyword && !loggedIn);
+
+  const closeSearch = useCallback(
+    (afterClose?: () => void) => {
+      window.clearTimeout(searchCloseTimerRef.current);
+      if (!searchOpen || !hasSearchDropdown) {
+        setSearchDropdownClosing(false);
+        setSearchOpen(false);
+        afterClose?.();
+        return;
+      }
+      setSearchDropdownClosing(true);
+      searchCloseTimerRef.current = window.setTimeout(() => {
+        setSearchDropdownClosing(false);
+        setSearchOpen(false);
+        afterClose?.();
+      }, SEARCH_DROPDOWN_CLOSE_MS);
+    },
+    [SEARCH_DROPDOWN_CLOSE_MS, hasSearchDropdown, searchOpen, setSearchOpen],
+  );
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    window.clearTimeout(searchCloseTimerRef.current);
+    setSearchDropdownClosing(false);
+  }, [searchOpen]);
 
   useEffect(() => {
     if (!searchTransition.rendered) return;
@@ -193,12 +227,12 @@ export default function TopNav() {
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
-        setSearchOpen(false);
+        closeSearch();
       }
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
-  }, [setSearchOpen]);
+  }, [closeSearch]);
 
   const handleNav = (view: View, auth?: boolean) => {
     if (auth && !loggedIn) {
@@ -206,7 +240,7 @@ export default function TopNav() {
       return;
     }
     setPage("browse");
-    setSearchOpen(false);
+    closeSearch();
     if (view === activeView) return;
     switch (view) {
       case "home":
@@ -237,8 +271,7 @@ export default function TopNav() {
   const openSearchPage = (value: string) => {
     const keyword = value.trim();
     if (!keyword) return;
-    setSearchOpen(false);
-    void openSearch(keyword, "songs");
+    closeSearch(() => void openSearch(keyword, "songs"));
   };
 
   return (
@@ -283,20 +316,20 @@ export default function TopNav() {
                     openSearchPage(e.currentTarget.value);
                   }
                   if (e.key === "Escape") {
-                    setSearchOpen(false);
-                    usePlayerStore.setState({
-                      searchKeyword: "",
-                      searchResults: [],
-                    });
+                    closeSearch(() =>
+                      usePlayerStore.setState({
+                        searchKeyword: "",
+                        searchResults: [],
+                      }),
+                    );
                   }
                 }}
               />
             </div>
-            {searching ||
-            searchResults.length > 0 ||
-            (!searchKeyword.trim() && (hotTerms.length > 0 || loggedIn)) ||
-            (searchKeyword && !loggedIn) ? (
-              <div className="search-dropdown">
+            {hasSearchDropdown || searchDropdownClosing ? (
+              <div
+                className={`search-dropdown ${searchDropdownClosing ? "search-dropdown-closing" : ""}`}
+              >
                 {searching ? (
                   <div className="loading-hint">搜索中…</div>
                 ) : !loggedIn ? (
@@ -337,7 +370,7 @@ export default function TopNav() {
                             className="search-dropdown-item"
                             onClick={() => {
                               playSong(song, searchResults);
-                              setSearchOpen(false);
+                              closeSearch();
                             }}
                           >
                             {song.picUrl ? (

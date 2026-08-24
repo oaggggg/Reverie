@@ -595,6 +595,20 @@ textarea {
   z-index: 70;
   animation: toast-in 0.18s ease;
 }
+.search-dropdown.search-dropdown-closing {
+  pointer-events: none;
+  animation: search-dropdown-out 0.16s cubic-bezier(0.4, 0, 0.8, 0.2) both;
+}
+@keyframes search-dropdown-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
 .search-dropdown-item {
   display: flex;
   align-items: center;
