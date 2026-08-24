@@ -71,6 +71,19 @@
    type, glass) stays in the theme tokens above; everything below only
    describes where structural surfaces sit. */
 :root {
+  /* Single glass contract: every transient surface matches the condensed nav. */
+  --glass-surface: color-mix(in srgb, var(--glass-player) 86%, transparent);
+  --glass-surface-border: color-mix(in srgb, var(--border) 72%, transparent);
+  --glass-surface-hover: color-mix(in srgb, var(--hover) 70%, transparent);
+  --glass-surface-control: color-mix(in srgb, var(--bg-3) 45%, transparent);
+  --glass-surface-shadow: 0 18px 30px
+    color-mix(in srgb, var(--shadow) 46%, transparent);
+  --glass-surface-filter: blur(30px) saturate(1.45);
+  --glass-popup: var(--glass-surface);
+  --glass-popup-border: var(--glass-surface-border);
+  --glass-popup-hover: var(--glass-surface-hover);
+  --glass-popup-control: var(--glass-surface-control);
+
   /* page scaffolding */
   --layout-gutter: 32px; /* horizontal page gutter */
   --layout-page-top: 20px; /* first row of scrollable page content */
@@ -3758,10 +3771,10 @@ textarea {
 
 /* ============================ 3D Particle Album Cover ============================ */
 .now-playing-3d {
-  --glass-popup: rgba(15, 15, 26, 0.68);
-  --glass-popup-border: rgba(255, 255, 255, 0.1);
-  --glass-popup-hover: rgba(255, 255, 255, 0.08);
-  --glass-popup-control: rgba(17, 17, 28, 0.58);
+  --glass-popup: color-mix(in srgb, rgba(16, 16, 30, 0.55) 86%, transparent);
+  --glass-popup-border: color-mix(in srgb, #262638 72%, transparent);
+  --glass-popup-hover: color-mix(in srgb, #1e1e30 70%, transparent);
+  --glass-popup-control: color-mix(in srgb, #1a1a2a 45%, transparent);
   background:
     radial-gradient(circle at 50% 42%, rgba(50, 54, 65, 0.72), transparent 54%),
     #08090c;
@@ -5084,12 +5097,12 @@ textarea {
 
 .topnav.is-condensed::before {
   inset: 0;
-  border-color: color-mix(in srgb, var(--border) 72%, transparent);
+  border-color: var(--glass-surface-border);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--glass-player) 86%, transparent);
+  background: var(--glass-surface);
   /* 向下压重心：30-18=12px 恰好不越过导航栏上方的空隙 */
-  box-shadow: 0 18px 30px color-mix(in srgb, var(--shadow) 46%, transparent);
-  backdrop-filter: blur(30px) saturate(1.45);
+  box-shadow: var(--glass-surface-shadow);
+  backdrop-filter: var(--glass-surface-filter);
 }
 
 .topnav svg {
@@ -6428,6 +6441,84 @@ textarea {
 .podcast-subscriber strong, .podcast-subscriber small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .podcast-subscriber strong { font-size: 12px; }
 .podcast-subscriber small { color: var(--text-dim); font-size: 10px; }
+
+/* Unified glass surfaces. Keep this after feature-specific declarations so
+   dialogs, popovers and drawers cannot drift away from the navigation glass. */
+.player-bar,
+.list-panel,
+.search-dropdown,
+.user-dropdown,
+.modal,
+.settings-modal,
+.volume-popover,
+.player-comments-drawer,
+.share-dialog-backdrop .share-dialog,
+.np-visual-panel,
+.np-btn,
+.pb-quality-menu,
+.song-card-context-menu,
+.media-detail-dialog,
+.media-video-volume-pop,
+.media-video-rate-menu,
+.media-video-quality-menu,
+.voice-detail-dialog,
+.playlist-import-modal,
+.broadcast-detail-dialog,
+.podcast-program-dialog,
+.toast {
+  border-color: var(--glass-surface-border);
+  background: var(--glass-surface);
+  box-shadow: var(--glass-surface-shadow);
+  -webkit-backdrop-filter: var(--glass-surface-filter);
+  backdrop-filter: var(--glass-surface-filter);
+}
+
+.modal-backdrop,
+.confirm-backdrop,
+.player-comments-scrim,
+.share-dialog-backdrop {
+  background: var(--glass-popup-scrim);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.15);
+}
+
+.settings-sidebar,
+.topnav .search-capsule,
+.topnav .topnav-user,
+.playlist-card-actions,
+.collection-remove,
+.media-favorite,
+.broadcast-card > .icon-button,
+.player-comment-editor,
+.player-comment-editor textarea,
+.comment-composer,
+.comment-composer textarea,
+.share-dialog textarea,
+.playlist-import-name,
+.playlist-import-modal textarea {
+  border-color: var(--glass-surface-border);
+  background: var(--glass-surface-control);
+  -webkit-backdrop-filter: var(--glass-surface-filter);
+  backdrop-filter: var(--glass-surface-filter);
+}
+
+.search-dropdown-item:hover,
+.topnav .topnav-user:hover,
+.topnav .search-close:hover,
+.user-dropdown-cell:hover,
+.user-dropdown-item:hover,
+.settings-sidebar nav button:hover,
+.player-bar .icon-btn:not(.primary):hover,
+.pb-quality-btn:hover,
+.pb-quality-btn.active,
+.pb-quality-menu button:hover,
+.pb-quality-menu button.active,
+.song-card-context-menu button:hover,
+.song-card-context-menu button:focus-visible,
+.media-video-rate-menu button:hover,
+.media-video-quality-menu button:hover {
+  background: var(--glass-surface-hover);
+}
 
 /* Digital album sales board */
 .digital-album-board { max-width: 960px; margin: 0 auto 18px; padding: 14px 18px 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); }
