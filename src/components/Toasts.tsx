@@ -16,7 +16,7 @@ export default function Toasts() {
       {visibleToasts.map((t, index) => (
         <div
           key={t.id}
-          className={`toast ${t.type}`}
+          className={`toast ${t.type}${t.exiting ? " is-exiting" : ""}`}
           data-stack-index={index}
           style={{ top: `calc(-8px * ${visibleToasts.length - 1 - index})` }}
           role="status"
