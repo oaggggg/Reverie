@@ -35,11 +35,13 @@ jobs:
             rust_targets: x86_64-pc-windows-msvc
             build_args: ""
             sidecar_target: win32-x64
+            asset_pattern: Reverie_[version]_Windows_[arch][_setup][ext]
           - name: macOS Universal
             platform: macos-latest
             rust_targets: x86_64-apple-darwin,aarch64-apple-darwin
             build_args: --target universal-apple-darwin
             sidecar_target: darwin-universal
+            asset_pattern: Reverie_[version]_macOS_[arch][ext]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -133,3 +135,4 @@ jobs:
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
           args: ${{ matrix.build_args }}
+          assetNamePattern: ${{ matrix.asset_pattern }}
