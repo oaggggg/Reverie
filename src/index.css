@@ -6624,6 +6624,34 @@ textarea {
   backdrop-filter: blur(12px) saturate(1.15);
 }
 
+/* 弹窗保留透明材质，但不对背后的页面内容做模糊处理。 */
+.search-dropdown,
+.user-dropdown,
+.modal,
+.settings-modal,
+.volume-popover,
+.player-comments-drawer,
+.share-dialog-backdrop .share-dialog,
+.np-visual-panel,
+.pb-quality-menu,
+.song-card-context-menu,
+.media-detail-dialog,
+.media-video-volume-pop,
+.media-video-rate-menu,
+.media-video-quality-menu,
+.voice-detail-dialog,
+.playlist-import-modal,
+.broadcast-detail-dialog,
+.podcast-program-dialog,
+.toast,
+.modal-backdrop,
+.confirm-backdrop,
+.player-comments-scrim,
+.share-dialog-backdrop {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 .settings-sidebar,
 .topnav .search-capsule,
 .topnav .topnav-user,
