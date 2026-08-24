@@ -9,7 +9,6 @@ import {
   getDifmChannels,
   getDifmSubscribedChannels,
   getDifmTracks,
-  getPodcastBanners,
   getPodcastCategories,
   getPodcastExcludeHotCategories,
   getPodcastHomeCategoryRecommendations,
@@ -93,7 +92,7 @@ const DIFM_SOURCES = [
   { id: 2, label: "爵士电台" },
 ];
 
-function DifmPanel() {
+export function DifmPanel() {
   const playSong = usePlayerStore((state) => state.playSong);
   const [source, setSource] = useState(0);
   const [channels, setChannels] = useState<DifmChannel[]>([]);
@@ -222,7 +221,6 @@ export default function RadioPage() {
   const [legacyHotRadios, setLegacyHotRadios] = useState<RadioInfo[]>([]);
   const [homeCategoryRadios, setHomeCategoryRadios] = useState<RadioInfo[]>([]);
   const [personalizedPrograms, setPersonalizedPrograms] = useState<PodcastProgramRank[]>([]);
-  const [banners, setBanners] = useState<Array<{ imageUrl: string; title: string; url: string }>>([]);
   const [discoveryLoading, setDiscoveryLoading] = useState(false);
   const [programRanking, setProgramRanking] = useState<"top" | "hours" | "today" | "">("");
   const [programRanks, setProgramRanks] = useState<PodcastProgramRank[]>([]);
@@ -243,18 +241,16 @@ export default function RadioPage() {
     void Promise.allSettled([
       getPodcastCategories(),
       getPodcastHotRadios(),
-      getPodcastBanners(),
       getPodcastExcludeHotCategories(),
       getPodcastHomeCategoryRecommendations(),
       getPodcastLegacyHotRadios(),
       getPersonalizedDjPrograms(),
       getProgramRecommendations(),
     ])
-      .then(([nextCategories, nextHot, nextBanners, nextExclude, nextHome, nextLegacyHot, nextPersonalized, nextRecommended]) => {
+      .then(([nextCategories, nextHot, nextExclude, nextHome, nextLegacyHot, nextPersonalized, nextRecommended]) => {
         if (!alive) return;
         setCategories(nextCategories.status === "fulfilled" ? nextCategories.value : []);
         setHotRadios(nextHot.status === "fulfilled" ? nextHot.value : []);
-        setBanners(nextBanners.status === "fulfilled" ? nextBanners.value : []);
         setExcludeHotCategories(nextExclude.status === "fulfilled" ? nextExclude.value : []);
         setHomeCategoryRadios(nextHome.status === "fulfilled" ? nextHome.value : []);
         setLegacyHotRadios(nextLegacyHot.status === "fulfilled" ? nextLegacyHot.value : []);
@@ -344,8 +340,6 @@ export default function RadioPage() {
         subtitle="精选节目、声音内容和已订阅电台"
         actions={<button className="btn" onClick={() => void loadCategory(categoryId)} disabled={discoveryLoading}><RefreshCw size={15} /> 刷新</button>}
       />
-      {banners.length > 0 && <div className="podcast-banner-strip">{banners.slice(0, 4).map((banner) => <button key={`${banner.imageUrl}-${banner.title}`} onClick={() => banner.url && window.open(banner.url, "_blank", "noopener,noreferrer")}><img src={sizedImage(banner.imageUrl, 720)} alt="" /><span>{banner.title}</span></button>)}</div>}
-      <DifmPanel />
       <div className="podcast-category-strip" role="tablist" aria-label="播客分类">
         <button className={!categoryId ? "active" : ""} onClick={() => void loadCategory(0)}>精选</button>
         {categories.map((category) => <button key={category.id} className={categoryId === category.id ? "active" : ""} onClick={() => void loadCategory(category.id)}>{category.name}</button>)}

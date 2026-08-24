@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import {
-  BadgeCheck,
   Heart,
   MessageCircle,
   Repeat2,
@@ -17,8 +16,6 @@ import { LoadingState, Page, PageHeader } from "./Page";
 
 function UserList({ users }: { users: SocialUser[] }) {
   const toggleFollow = useExploreStore((s) => s.toggleFollow);
-  const mutualFollow = useExploreStore((s) => s.mutualFollow);
-  const checkMutualFollow = useExploreStore((s) => s.checkMutualFollow);
   return (
     <div className="social-user-list">
       {users.map((user) => (
@@ -35,14 +32,6 @@ function UserList({ users }: { users: SocialUser[] }) {
             {user.followed ? <UserMinus size={14} /> : <UserPlus size={14} />}
             {user.followed ? "取消关注" : "关注"}
           </button>
-          <button
-            className={`icon-action ${mutualFollow[user.userId] ? "active" : ""}`}
-            title="查询是否互相关注"
-            onClick={() => void checkMutualFollow(user.userId)}
-          >
-            <BadgeCheck size={15} />
-          </button>
-          {mutualFollow[user.userId] && <small className="social-mutual-badge">互关</small>}
         </article>
       ))}
       {!users.length && <div className="empty">暂无用户</div>}
@@ -77,7 +66,7 @@ export default function SocialPage() {
     <Page>
       <PageHeader
         title="动态与关注"
-        subtitle="查看关注用户的动态、关注列表和粉丝"
+        subtitle="查看关注用户的动态"
       />
       <div className="segmented social-tabs">
         <button
@@ -91,18 +80,6 @@ export default function SocialPage() {
           onClick={() => setTab("myEvents")}
         >
           我的动态 {myEvents.length}
-        </button>
-        <button
-          className={tab === "follows" ? "active" : ""}
-          onClick={() => setTab("follows")}
-        >
-          关注 {follows.length}
-        </button>
-        <button
-          className={tab === "followers" ? "active" : ""}
-          onClick={() => setTab("followers")}
-        >
-          粉丝 {followers.length}
         </button>
       </div>
       {tab === "follows" ? (

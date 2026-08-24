@@ -65,6 +65,7 @@ function SettingRow({
 export default function SettingsModal() {
   const [category, setCategory] = useState<Category>("general");
   const [panel, setPanel] = useState<Panel>(null);
+  const [downloadPath, setDownloadPath] = useState(() => localStorage.getItem("reverie_download_path") || "D:\Reverie\Downloads");
   const showSettings = usePlayerStore((s) => s.showSettings);
   const setShowSettings = usePlayerStore((s) => s.setShowSettings);
   const theme = usePlayerStore((s) => s.theme);
@@ -189,6 +190,9 @@ export default function SettingsModal() {
                 </div>
                 <div className="settings-section">
                   <h3>播放</h3>
+                  <SettingRow title="歌曲下载路径" hint="浏览器环境无法直接选择系统目录，将使用该路径作为首选设置">
+                    <input className="settings-input" value={downloadPath} onChange={(event) => { setDownloadPath(event.target.value); localStorage.setItem("reverie_download_path", event.target.value); }} placeholder="例如 D:\Music\Downloads" />
+                  </SettingRow>
                   <SettingRow title="歌词翻译" hint="在歌词页同时显示译文">
                     <div className="opt-group">
                       <button

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, Play, RefreshCw } from "lucide-react";
 import { useChartStore } from "../store/chartStore";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
@@ -15,8 +15,12 @@ export default function ChartPage() {
   const loading = useChartStore((s) => s.loading);
   const cardSongs = useChartStore((s) => s.cardSongs);
   const cardLoading = useChartStore((s) => s.cardLoading);
+  const selectedId = useChartStore((s) => s.selectedId);
+  const detailSongs = useChartStore((s) => s.songs);
+  const songsLoading = useChartStore((s) => s.songsLoading);
   const load = useChartStore((s) => s.load);
   const loadCard = useChartStore((s) => s.loadCard);
+  const select = useChartStore((s) => s.select);
   const playSong = usePlayerStore((s) => s.playSong);
 
   useEffect(() => {
@@ -48,6 +52,7 @@ export default function ChartPage() {
     if (songs.length) playSong(songs[0]!, songs);
     else usePlayerStore.getState().toast("榜单暂无歌曲", "info");
   };
+  const selectedChart = charts.find((chart) => chart.id === selectedId);
 
   return (
     <Page>
@@ -65,7 +70,17 @@ export default function ChartPage() {
           </button>
         }
       />
-      {loading && !charts.length ? (
+      {selectedChart ? (
+        <section className="chart-detail">
+          <div className="chart-detail-head">
+            <button className="icon-button" title="返回榜单目录" onClick={() => void select(0)}><ArrowLeft size={17} /></button>
+            {selectedChart.coverUrl ? <img src={sizedImage(selectedChart.coverUrl, 180)} alt="" /> : null}
+            <div><h2>{selectedChart.name}</h2><p>{selectedChart.description || selectedChart.updateFrequency || "官方榜单"}</p></div>
+            <button className="btn primary" onClick={() => detailSongs.length && playSong(detailSongs[0]!, detailSongs)}><Play size={15} /> 播放全部</button>
+          </div>
+          {songsLoading ? <div className="loading-hint">正在加载榜单歌曲…</div> : detailSongs.length ? <ol className="chart-detail-list">{detailSongs.map((song, index) => <li key={song.id} onClick={() => playSong(song, detailSongs)}><b>{index + 1}</b><span>{song.name}</span><small>{song.artists}</small></li>)}</ol> : <div className="empty">暂无歌曲</div>}
+        </section>
+      ) : loading && !charts.length ? (
         <div className="loading-hint">正在加载榜单…</div>
       ) : charts.length ? (
         <div className="chart-card-grid">
@@ -76,7 +91,7 @@ export default function ChartPage() {
               <section className="chart-card" key={chart.id} title={chart.description || chart.name}>
                 <header className="chart-card-head">
                   {chart.coverUrl ? (
-                    <img src={sizedImage(chart.coverUrl, 160)} alt="" loading="lazy" />
+                    <button className="chart-cover-button" title="查看详细榜单" onClick={() => void select(chart.id)}><img src={sizedImage(chart.coverUrl, 160)} alt="" loading="lazy" /></button>
                   ) : null}
                   <div className="chart-card-title">
                     <h3>{chart.name}</h3>
