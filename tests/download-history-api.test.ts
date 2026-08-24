@@ -19,6 +19,8 @@ test("download history selects category-specific routes and normalizes songs", a
           },
         ],
       });
+    if (url.includes("song/purchased"))
+      return Response.json({ data: { list: [] } });
     return Response.json({
       data: {
         list: [
@@ -44,6 +46,7 @@ test("download history selects category-specific routes and normalizes songs", a
     assert.match(urls[0]!, /song\/downlist/);
     assert.match(urls[1]!, /song\/monthdownlist/);
     assert.match(urls[2]!, /song\/purchased/);
+    assert.match(urls[3]!, /song\/singledownlist/);
   } finally {
     globalThis.fetch = originalFetch;
   }
