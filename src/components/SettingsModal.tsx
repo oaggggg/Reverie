@@ -70,6 +70,8 @@ export default function SettingsModal() {
   const setShowSettings = usePlayerStore((s) => s.setShowSettings);
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
+  const reducedMotion = usePlayerStore((s) => s.reducedMotion);
+  const setReducedMotion = usePlayerStore((s) => s.setReducedMotion);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
   const showTranslation = usePlayerStore((s) => s.showTranslation);
@@ -186,6 +188,21 @@ export default function SettingsModal() {
                         </button>
                       ))}
                     </div>
+                  </SettingRow>
+                  <SettingRow
+                    title="减少动画效果"
+                    hint="关闭大多数过渡、浮动和入场动画"
+                  >
+                    <button
+                      type="button"
+                      className={`setting-switch ${reducedMotion ? "active" : ""}`}
+                      role="switch"
+                      aria-checked={reducedMotion}
+                      aria-label="减少动画效果"
+                      onClick={() => setReducedMotion(!reducedMotion)}
+                    >
+                      <span />
+                    </button>
                   </SettingRow>
                 </div>
                 <div className="settings-section">

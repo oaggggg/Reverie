@@ -86,6 +86,7 @@ export default function App() {
   const pendingSeek = usePlayerStore((s) => s.pendingSeek);
   const playing = usePlayerStore((s) => s.playing);
   const theme = usePlayerStore((s) => s.theme);
+  const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setAudioEl = usePlayerStore((s) => s.setAudioEl);
   const commitQualitySwitch = usePlayerStore((s) => s.commitQualitySwitch);
   const cancelQualitySwitch = usePlayerStore((s) => s.cancelQualitySwitch);
@@ -327,6 +328,13 @@ export default function App() {
       return () => mql.removeEventListener("change", apply);
     }
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      "data-reduced-motion",
+      reducedMotion ? "true" : "false",
+    );
+  }, [reducedMotion]);
 
   // keyboard shortcuts
   useEffect(() => {
