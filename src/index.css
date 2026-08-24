@@ -2435,6 +2435,15 @@ textarea {
   gap: var(--gap-xs);
   justify-self: end;
 }
+.pb-queue-wrap { position: relative; }
+.pb-queue-menu { position: absolute; right: 0; bottom: calc(100% + 12px); width: min(360px, 76vw); max-height: min(52vh, 440px); overflow: hidden; border: 1px solid var(--glass-popup-border); border-radius: 12px; background: var(--glass-popup); box-shadow: var(--glass-surface-shadow); z-index: 40; }
+.pb-queue-head { display: flex; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 12px; }
+.pb-queue-head span { color: var(--text-dim); }
+.pb-queue-list { max-height: 380px; overflow-y: auto; padding: 6px; }
+.pb-queue-list button { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 2px 8px; width: 100%; padding: 8px; border-radius: 8px; color: var(--text-dim); text-align: left; }
+.pb-queue-list button span:nth-child(2), .pb-queue-list button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-queue-list button small { grid-column: 2; color: var(--text-faint); font-size: 10px; }
+.pb-queue-list button:hover, .pb-queue-list button.active { background: var(--glass-surface-hover); color: var(--text); }
 .pb-cover {
   position: relative;
   flex: none;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
 import {
   PLAYBACK_QUALITY_LABELS,
@@ -46,6 +46,11 @@ export default function PlayerBar() {
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
   const [qualityOpen, setQualityOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const queue = usePlayerStore((s) => s.queue);
+  const queueIndex = usePlayerStore((s) => s.index);
+  const playQueueAt = usePlayerStore((s) => s.playQueueAt);
+  const menuRef = useRef<HTMLDivElement>(null);
   const qualityTransition = useOriginTransition<HTMLDivElement>(qualityOpen, "player-quality", 160);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const playing = usePlayerStore((s) => s.playing);
@@ -98,6 +103,18 @@ export default function PlayerBar() {
   useEffect(() => {
     if (currentSong) void loadPlaybackQualities(currentSong);
   }, [currentSong, loadPlaybackQualities]);
+
+  useEffect(() => {
+    if (!qualityOpen && !queueOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setQualityOpen(false);
+        setQueueOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [qualityOpen, queueOpen]);
 
 
 
@@ -193,7 +210,18 @@ export default function PlayerBar() {
           </button>
         </div>
 
-        <div className="pb-right">
+        <div className="pb-right" ref={menuRef}>
+          <div className="pb-queue-wrap">
+            <button className={`icon-btn ${queueOpen ? "active" : ""}`} title="播放列表" aria-expanded={queueOpen} onClick={() => { setQueueOpen((open) => !open); setQualityOpen(false); }}>
+              <ListMusic size={17} />
+            </button>
+            {queueOpen && <div className="pb-queue-menu" role="dialog" aria-label="播放列表">
+              <div className="pb-queue-head"><strong>播放列表</strong><span>{queue.length} 首</span></div>
+              <div className="pb-queue-list">
+                {queue.length ? queue.map((song, index) => <button key={`${song.id}-${index}`} className={index === queueIndex ? "active" : ""} onClick={() => { void playQueueAt(index); setQueueOpen(false); }}><span>{index + 1}</span><span>{song.name}</span><small>{song.artists}</small></button>) : <div className="empty">暂无播放歌曲</div>}
+              </div>
+            </div>}
+          </div>
           <button
             className={`icon-btn ${queueSource === "fm" ? "active" : ""}`}
             onClick={() => void loadPersonalFm()}
