@@ -6986,6 +6986,23 @@ textarea {
 :root[data-glass-opacity="solid"] .topnav .search-dropdown {
   background: color-mix(in srgb, var(--bg-3) 78%, transparent) !important;
 }
+:root[data-glass-opacity="balanced"] .topnav .search-dropdown {
+  background: color-mix(in srgb, var(--bg-2) 88%, transparent) !important;
+}
+:root[data-glass-opacity="subtle"] .topnav .search-dropdown {
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent) !important;
+}
+:root[data-glass-opacity="solid"] .topnav .search-dropdown {
+  background: color-mix(in srgb, var(--bg-2) 94%, transparent) !important;
+}
+:root .topnav {
+  z-index: 80;
+  isolation: isolate;
+}
+:root .topnav .search-dropdown {
+  z-index: 120;
+  border-color: color-mix(in srgb, var(--border) 88%, transparent) !important;
+}
 :root[data-glass-blur="none"] .titlebar,
 :root[data-glass-blur="none"] .topnav.is-condensed::before,
 :root[data-glass-blur="none"] .topnav .search-capsule,
