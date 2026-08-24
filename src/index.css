@@ -72,10 +72,12 @@
    describes where structural surfaces sit. */
 :root {
   /* Single glass contract: every transient surface matches the condensed nav. */
-  --glass-surface: color-mix(in srgb, var(--glass-player) 86%, transparent);
-  --glass-surface-border: color-mix(in srgb, var(--border) 72%, transparent);
-  --glass-surface-hover: color-mix(in srgb, var(--hover) 70%, transparent);
-  --glass-surface-control: color-mix(in srgb, var(--bg-3) 45%, transparent);
+  --glass-surface: color-mix(in srgb, var(--glass) 86%, transparent);
+  --glass-surface-border: color-mix(in srgb, var(--border) 88%, transparent);
+  --glass-surface-hover: color-mix(in srgb, var(--hover) 78%, transparent);
+  --glass-surface-control: color-mix(in srgb, var(--bg-3) 72%, transparent);
+  --glass-readable-dim: color-mix(in srgb, var(--text) 78%, var(--bg));
+  --glass-readable-faint: color-mix(in srgb, var(--text) 62%, var(--bg));
   --glass-surface-shadow: 0 18px 30px
     color-mix(in srgb, var(--shadow) 46%, transparent);
   --glass-surface-filter: blur(30px) saturate(1.45);
@@ -3775,6 +3777,8 @@ textarea {
   --glass-popup-border: color-mix(in srgb, #262638 72%, transparent);
   --glass-popup-hover: color-mix(in srgb, #1e1e30 70%, transparent);
   --glass-popup-control: color-mix(in srgb, #1a1a2a 45%, transparent);
+  --glass-readable-dim: rgba(255, 255, 255, 0.82);
+  --glass-readable-faint: rgba(255, 255, 255, 0.66);
   background:
     radial-gradient(circle at 50% 42%, rgba(50, 54, 65, 0.72), transparent 54%),
     #08090c;
@@ -4935,7 +4939,7 @@ textarea {
 
 .np-visual-panel h3 {
   margin: 16px 0 6px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--glass-readable-dim);
   font-size: 12px;
 }
 
@@ -4962,7 +4966,7 @@ textarea {
 }
 
 .np-visual-row small {
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--glass-readable-faint);
   font-size: 10px;
   font-weight: 400;
 }
@@ -6466,6 +6470,8 @@ textarea {
 .broadcast-detail-dialog,
 .podcast-program-dialog,
 .toast {
+  --text-dim: var(--glass-readable-dim);
+  --text-faint: var(--glass-readable-faint);
   border-color: var(--glass-surface-border);
   background: var(--glass-surface);
   box-shadow: var(--glass-surface-shadow);
@@ -6496,10 +6502,17 @@ textarea {
 .share-dialog textarea,
 .playlist-import-name,
 .playlist-import-modal textarea {
+  --text-dim: var(--glass-readable-dim);
+  --text-faint: var(--glass-readable-faint);
   border-color: var(--glass-surface-border);
   background: var(--glass-surface-control);
   -webkit-backdrop-filter: var(--glass-surface-filter);
   backdrop-filter: var(--glass-surface-filter);
+}
+
+.topnav.is-condensed {
+  --text-dim: var(--glass-readable-dim);
+  --text-faint: var(--glass-readable-faint);
 }
 
 .search-dropdown-item:hover,
