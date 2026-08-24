@@ -12,12 +12,12 @@ export default function Toasts() {
   if (!toasts.length) return null;
   return (
     <div className="toast-wrap">
-      {toasts.slice(-5).map((t, index) => (
+      {toasts.slice(-5).reverse().map((t, index) => (
         <div
           key={t.id}
           className={`toast ${t.type}`}
           data-stack-index={index}
-          style={{ top: `calc(-38px * ${index})` }}
+          style={{ top: `calc(38px * ${index})` }}
           role="status"
         >
           <span className="toast-icon">{META[t.type]}</span>
