@@ -56,6 +56,7 @@ export interface ToastMsg {
   id: number;
   text: string;
   type: "info" | "error" | "success";
+  exiting?: boolean;
 }
 
 export type ThemePreference = "system" | "light" | "dark";
@@ -742,10 +743,19 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   toast: (text, type = "info") => {
     const id = ++toastSeq;
     set((s) => ({ toasts: [...s.toasts, { id, text, type }] }));
-    setTimeout(() => get().dismissToast(id), 3200);
+    setTimeout(() => {
+      const earliest = get().toasts.find((item) => !item.exiting);
+      if (earliest) get().dismissToast(earliest.id);
+    }, 3200);
   },
-  dismissToast: (id) =>
-    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  dismissToast: (id) => {
+    set((s) => ({
+      toasts: s.toasts.map((t) => (t.id === id ? { ...t, exiting: true } : t)),
+    }));
+    setTimeout(() =>
+      set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+    260);
+  },
 
   setAudioEl: (el) => {
     if (!el) return;
