@@ -6979,3 +6979,8 @@ textarea {
 .digital-album-board-card strong { font-size: 12px; }
 .digital-album-board-card small { color: var(--text-dim); font-size: 10px; }
 .digital-album-board-card em { color: var(--accent); font-size: 11px; font-style: normal; }
+
+img[data-reverie-fallback="true"] {
+  object-fit: cover;
+  background: var(--bg-3);
+}
