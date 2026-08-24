@@ -4,7 +4,7 @@ import { sizedImage } from "../utils/image";
 import { CircleUserRound } from "lucide-react";
 import { getProfileCenter } from "../api/profile";
 import { useProfileStore } from "../store/profileStore";
-import { useExploreStore } from "../store/exploreStore";
+import FollowListDialog from "./FollowListDialog";
 import {
   captureInteractionOrigin,
   useOriginTransition,
@@ -19,7 +19,7 @@ export default function UserMenu() {
   const loadVipInfo = usePlayerStore((s) => s.loadVipInfo);
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const openProfile = useProfileStore((s) => s.openProfile);
-  const setSocialTab = useExploreStore((s) => s.setSocialTab);
+  const [followDialog, setFollowDialog] = useState<"follows" | "followers" | null>(null);
   const profileDetail = useProfileStore((s) => s.detail);
   const ref = useRef<HTMLDivElement>(null);
   const transition = useOriginTransition<HTMLDivElement>(open, "user-menu", 200);
@@ -110,8 +110,16 @@ export default function UserMenu() {
                 )}
               </div>
               <div className="uh-stats">
-                {profileDetail && <span>关注 {profileDetail.follows}</span>}
-                {profileDetail && <span>粉丝 {profileDetail.followeds}</span>}
+                {profileDetail && (
+                  <button className="user-dropdown-stat" onClick={() => { setOpen(false); setFollowDialog("follows"); }}>
+                    关注 {profileDetail.follows}
+                  </button>
+                )}
+                {profileDetail && (
+                  <button className="user-dropdown-stat" onClick={() => { setOpen(false); setFollowDialog("followers"); }}>
+                    粉丝 {profileDetail.followeds}
+                  </button>
+                )}
                 {isVip && expireTime > 0 && (
                   <span>
                     {new Date(expireTime).getFullYear()}年
@@ -145,12 +153,6 @@ export default function UserMenu() {
             >
               一起听
             </button>
-            <button className="user-dropdown-cell" onClick={() => { setOpen(false); setSocialTab("follows"); usePlayerStore.setState({ activeView: "social", prevView: "home" }); }}>
-              关注
-            </button>
-            <button className="user-dropdown-cell" onClick={() => { setOpen(false); setSocialTab("followers"); usePlayerStore.setState({ activeView: "social", prevView: "home" }); }}>
-              粉丝
-            </button>
           </div>
           <div className="user-dropdown-foot">
             <button className="user-dropdown-item" onClick={switchAccount}>
@@ -167,6 +169,9 @@ export default function UserMenu() {
             </button>
           </div>
         </div>
+      )}
+      {followDialog && (
+        <FollowListDialog type={followDialog} onClose={() => setFollowDialog(null)} />
       )}
     </div>
   );
