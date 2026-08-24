@@ -409,6 +409,21 @@ export interface VipGrowthEntry {
   time: number;
 }
 
+export interface VipTimeMachineItem {
+  id: string;
+  type: number;
+  title: string;
+  description: string;
+  coverUrl: string;
+}
+
+export interface VipTimeMachineInfo {
+  recordTime: number;
+  limitedCount: number;
+  hasMore: boolean;
+  items: VipTimeMachineItem[];
+}
+
 export interface UserCommentHistoryItem {
   id: number;
   content: string;

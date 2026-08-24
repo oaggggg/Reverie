@@ -1,5 +1,11 @@
 import { request } from "./client.ts";
-import type { VipGrowthEntry, VipGrowthInfo, VipTask } from "./types.ts";
+import type {
+  VipGrowthEntry,
+  VipGrowthInfo,
+  VipTask,
+  VipTimeMachineInfo,
+  VipTimeMachineItem,
+} from "./types.ts";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
@@ -78,10 +84,61 @@ export async function getVipGrowthDetails(
 export async function getVipTimeMachine(
   startTime?: number,
   endTime?: number,
-): Promise<Obj> {
+): Promise<VipTimeMachineInfo> {
   const params =
     startTime && endTime ? { startTime, endTime, type: 1, limit: 60 } : {};
-  return request<Obj>("/vip/timemachine", params, false);
+  const response = await request<Obj>("/vip/timemachine", params, false);
+  const value = obj(response.data ?? response.result ?? response);
+  const items = arr(value.detail ?? value.list ?? value.records)
+    .map((raw, index) => normalizeTimeMachineItem(raw, index))
+    .filter((item): item is VipTimeMachineItem => Boolean(item));
+  return {
+    recordTime: Number(value.recordTime ?? value.time ?? 0),
+    limitedCount: Number(value.notVipLimitNum ?? value.limit ?? 0),
+    hasMore: Boolean(value.hasnext ?? value.hasMore ?? false),
+    items,
+  };
+}
+
+function normalizeTimeMachineItem(
+  raw: unknown,
+  index: number,
+): VipTimeMachineItem | null {
+  const row = obj(raw);
+  let payload = obj(row.data ?? row.content ?? row);
+  if (typeof row.data === "string") {
+    try {
+      payload = obj(JSON.parse(row.data));
+    } catch {
+      payload = {};
+    }
+  }
+  const title = String(
+    payload.title ??
+      payload.keyword ??
+      payload.name ??
+      payload.songName ??
+      row.title ??
+      "",
+  ).trim();
+  const description = String(
+    payload.description ??
+      payload.desc ??
+      payload.subtitle ??
+      payload.content ??
+      payload.artistName ??
+      "",
+  ).trim();
+  if (!title && !description) return null;
+  return {
+    id: String(row.id ?? payload.id ?? `${row.type ?? "record"}-${index}`),
+    type: Number(row.type ?? payload.type ?? 0),
+    title: title || "听歌回忆",
+    description,
+    coverUrl: String(
+      payload.coverUrl ?? payload.picUrl ?? payload.imageUrl ?? "",
+    ),
+  };
 }
 
 export async function getVipGrowthpointInfo(): Promise<Obj> {
