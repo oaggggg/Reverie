@@ -116,6 +116,13 @@ export default function PlayerBar() {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [qualityOpen, queueOpen]);
 
+  useEffect(() => {
+    if (!showPlayerComments) return;
+    setQueueOpen(false);
+    setQualityOpen(false);
+    setShareOpen(false);
+  }, [showPlayerComments]);
+
 
 
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
@@ -212,7 +219,12 @@ export default function PlayerBar() {
 
         <div className="pb-right" ref={menuRef}>
           <div className="pb-queue-wrap">
-            <button className={`icon-btn ${queueOpen ? "active" : ""}`} title="播放列表" aria-expanded={queueOpen} onClick={() => { setQueueOpen((open) => !open); setQualityOpen(false); }}>
+            <button className={`icon-btn ${queueOpen ? "active" : ""}`} title="播放列表" aria-expanded={queueOpen} onClick={() => {
+              setQueueOpen((open) => !open);
+              setQualityOpen(false);
+              setShareOpen(false);
+              setShowPlayerComments(false);
+            }}>
               <ListMusic size={17} />
             </button>
             {queueOpen && <div className="pb-queue-menu" role="dialog" aria-label="播放列表">
@@ -235,6 +247,9 @@ export default function PlayerBar() {
               onClick={(event) => {
                 captureInteractionOrigin("player-quality", event.currentTarget);
                 setQualityOpen((open) => !open);
+                setQueueOpen(false);
+                setShareOpen(false);
+                setShowPlayerComments(false);
               }}
               title="音质"
               aria-haspopup="menu"
@@ -274,6 +289,9 @@ export default function PlayerBar() {
                 return;
               }
               captureInteractionOrigin("player-comments", event.currentTarget);
+              setQueueOpen(false);
+              setQualityOpen(false);
+              setShareOpen(false);
               setShowPlayerComments(!showPlayerComments);
             }}
             title="歌曲评论"
@@ -285,7 +303,10 @@ export default function PlayerBar() {
             onClick={(event) => {
               if (!currentSong) { toast("请先播放一首歌曲", "info"); return; }
               captureInteractionOrigin("player-share", event.currentTarget);
-              setShareOpen(true);
+              setQueueOpen(false);
+              setQualityOpen(false);
+              setShowPlayerComments(false);
+              setShareOpen((open) => !open);
             }}
             title="分享歌曲"
           >
