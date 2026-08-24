@@ -24,7 +24,11 @@ export default function TitleBar() {
     <header className="titlebar" data-tauri-drag-region>
       <div className="titlebar-drag" data-tauri-drag-region />
       <div className="titlebar-name" aria-label="Reverie">
-        <span className="titlebar-name-text" aria-hidden="true">
+        <span
+          className="titlebar-name-text"
+          data-text="Reverie"
+          aria-hidden="true"
+        >
           {Array.from("Reverie").map((letter, index) => (
             <span className="titlebar-letter" key={index}>
               {letter}
