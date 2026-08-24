@@ -254,7 +254,7 @@ export default function HomePage() {
           <h2>每日推荐</h2>
         </div>
         <SongCards
-          songs={recommendSongs.slice(0, 12)}
+          songs={recommendSongs.slice(0, 8)}
           loading={recommendSongsLoading}
           onDislike={dismissRecommend}
         />

@@ -2273,20 +2273,15 @@ textarea {
   font-size: 10px;
 }
 
-/* song cards (horizontal) */
+/* 首页每日推荐卡片：固定展示数量，避免首尾被横向滚动边界遮挡。 */
 .song-cards {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 150px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 16px;
   width: 100%;
   box-sizing: border-box;
-  overflow-x: auto;
-  padding: 4px 20px 12px;
-  scrollbar-width: none;
-}
-.song-cards::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
+  padding: 4px 0 12px;
 }
 .song-card {
   position: relative;
@@ -5412,6 +5407,9 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  .song-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
   .playlist-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -5421,6 +5419,9 @@ textarea {
 }
 
 @media (max-width: 760px) {
+  .song-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
   .playlist-discovery-toolbar {
     flex-direction: column;
     gap: 10px;
@@ -5497,6 +5498,12 @@ textarea {
   }
   .profile-record-list > button {
     grid-template-columns: 24px 42px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .song-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
