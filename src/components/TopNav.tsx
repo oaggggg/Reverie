@@ -241,6 +241,13 @@ export default function TopNav() {
     setTheme(THEME_ORDER[(i + 1) % THEME_ORDER.length]);
   };
 
+  const openSearchPage = (value: string) => {
+    const keyword = value.trim();
+    if (!keyword) return;
+    setSearchOpen(false);
+    void openSearch(keyword, "songs");
+  };
+
   return (
     <nav
       className={`topnav ${condensed ? "is-condensed" : ""} ${searchTransition.rendered ? "search-open" : ""}`}
@@ -280,7 +287,7 @@ export default function TopNav() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     window.clearTimeout(searchTimerRef.current);
-                    void openSearch(e.currentTarget.value, "songs");
+                    openSearchPage(e.currentTarget.value);
                   }
                   if (e.key === "Escape") {
                     setSearchOpen(false);
@@ -314,7 +321,7 @@ export default function TopNav() {
                         <button
                           key={term}
                           className="search-hot-item"
-                          onClick={() => void openSearch(term, "songs")}
+                          onClick={() => openSearchPage(term)}
                         >
                           <span
                             className={`hot-rank ${index < 3 ? "top" : ""}`}
@@ -340,9 +347,7 @@ export default function TopNav() {
                             <button
                               key={`${suggestion.keyword}-${suggestion.type}`}
                               className="search-suggest-item"
-                              onClick={() =>
-                                void openSearch(suggestion.keyword, "songs")
-                              }
+                              onClick={() => openSearchPage(suggestion.keyword)}
                             >
                               <strong>{suggestion.keyword}</strong>
                               <small>
@@ -383,9 +388,7 @@ export default function TopNav() {
                         ))}
                         <button
                           className="search-view-all"
-                          onClick={() =>
-                            void openSearch(searchKeyword, "songs")
-                          }
+                          onClick={() => openSearchPage(searchKeyword)}
                         >
                           查看全部搜索结果
                         </button>

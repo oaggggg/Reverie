@@ -531,6 +531,10 @@ textarea {
   border: 1px solid var(--border);
   animation: capsule-in 0.2s ease;
 }
+.search-capsule:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
 .search-capsule svg {
   color: var(--text-faint);
   flex: none;
@@ -541,6 +545,8 @@ textarea {
   border: none;
   outline: none;
   font-size: 13px;
+  color: var(--text);
+  caret-color: var(--accent);
 }
 .search-close {
   width: 26px;
@@ -5939,11 +5945,12 @@ textarea {
 .media-video-quality-menu button.active { color: #fff; font-weight: 600; }
 /* Window fullscreen fills the current player window. When the app itself is
    maximized this naturally fills the display without invoking system fullscreen. */
-.media-video-stage.window-fullscreen { display: grid; place-items: center; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-.media-video-stage.window-fullscreen { position: fixed; inset: 0; z-index: 9999; }
-.media-video-stage.window-fullscreen video { width: 100vw; height: 100vh; max-height: none; object-fit: contain; }
-.media-detail-backdrop.media-window-fullscreen-active, .media-detail-dialog.media-window-fullscreen-host { -webkit-backdrop-filter: none; backdrop-filter: none; }
-.media-detail-dialog.media-window-fullscreen-host { overflow: visible; transform: none; }
+.media-detail-backdrop.media-window-fullscreen-active { display: block; background: #000; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.media-detail-dialog.media-window-fullscreen-host { position: fixed; inset: 0; width: 100vw; height: 100vh; max-height: none; overflow: hidden; border: 0; border-radius: 0; background: #000; box-shadow: none; transform: none !important; animation: none !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.media-detail-dialog.media-window-fullscreen-host .media-detail-video { width: 100%; height: 100%; min-height: 0; }
+.media-detail-dialog.media-window-fullscreen-host .media-detail-body { display: none; }
+.media-video-stage.window-fullscreen { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; width: 100%; height: 100%; overflow: hidden; background: #000; }
+.media-video-stage.window-fullscreen video { width: 100%; height: 100%; max-height: none; object-fit: contain; }
 .media-detail-video-empty { display: grid; justify-items: center; gap: 8px; color: var(--text-faint); }
 .media-detail-body { padding: 16px 18px 20px; overflow-y: auto; }
 .media-detail-head { display: flex; align-items: center; gap: 12px; }
