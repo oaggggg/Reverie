@@ -31,9 +31,6 @@ const YunbeiPage = lazy(() => import("./components/YunbeiPage"));
 const CommentHistoryPage = lazy(
   () => import("./components/CommentHistoryPage"),
 );
-const DownloadHistoryPage = lazy(
-  () => import("./components/DownloadHistoryPage"),
-);
 const ListenTogetherPage = lazy(
   () => import("./components/ListenTogetherPage"),
 );
@@ -544,8 +541,6 @@ export default function App() {
         return <YunbeiPage />;
       case "commentHistory":
         return <CommentHistoryPage />;
-      case "downloadHistory":
-        return <DownloadHistoryPage />;
       case "listenTogether":
         return <ListenTogetherPage />;
       case "voiceWorkbench":

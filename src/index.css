@@ -5853,12 +5853,12 @@ textarea {
 .media-video-volume { position: relative; display: inline-flex; }
 /* Flush against the button (bottom: 28px = button height) with extra bottom
    padding so there is no hover gap between the icon and the vertical bar. */
-.media-video-volume-pop { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 12px 10px 20px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.media-video-volume-pop { position: absolute; bottom: 26px; left: 50%; width: 42px; box-sizing: border-box; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 12px 8px 20px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
 /* Custom-drawn vertical volume slider (div-based, player style). */
 .media-video-volume-track { position: relative; width: 5px; height: 100px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); cursor: pointer; touch-action: none; }
 .media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
 .media-video-volume-thumb { position: absolute; left: 50%; width: 10px; height: 10px; transform: translate(-50%, 50%); border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
-.media-video-volume-num { color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; }
+.media-video-volume-num { width: 3ch; color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
 .media-video-rate { position: relative; display: inline-flex; }
 .media-video-rate-btn { width: auto; min-width: 44px; padding: 0 8px; font-size: 12px; }
 .media-video-rate-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 66px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
@@ -5871,11 +5871,11 @@ textarea {
 .media-video-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 11px; border: 0; border-radius: 6px; background: transparent; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: 12px; cursor: pointer; }
 .media-video-quality-menu button:hover { background: rgba(255, 255, 255, 0.12); }
 .media-video-quality-menu button.active { color: #fff; font-weight: 600; }
-/* Native fullscreen keeps the video node mounted so playback and buffering
-   continue. The fixed mode is used only when WebView policy rejects it. */
-.media-video-stage:fullscreen, .media-video-stage.window-fullscreen { display: grid; place-items: center; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
+/* Window fullscreen fills the current player window. When the app itself is
+   maximized this naturally fills the display without invoking system fullscreen. */
+.media-video-stage.window-fullscreen { display: grid; place-items: center; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
 .media-video-stage.window-fullscreen { position: fixed; inset: 0; z-index: 9999; }
-.media-video-stage:fullscreen video, .media-video-stage.window-fullscreen video { width: 100vw; height: 100vh; max-height: none; object-fit: contain; }
+.media-video-stage.window-fullscreen video { width: 100vw; height: 100vh; max-height: none; object-fit: contain; }
 .media-detail-backdrop.media-window-fullscreen-active, .media-detail-dialog.media-window-fullscreen-host { -webkit-backdrop-filter: none; backdrop-filter: none; }
 .media-detail-dialog.media-window-fullscreen-host { overflow: visible; transform: none; }
 .media-detail-video-empty { display: grid; justify-items: center; gap: 8px; color: var(--text-faint); }
@@ -6476,6 +6476,9 @@ textarea {
 .comment-composer,
 .comment-composer textarea,
 .share-dialog textarea,
+.media-video-btn,
+.media-video-seek,
+.media-video-volume-track,
 .playlist-import-name,
 .playlist-import-modal textarea {
   --text-dim: var(--glass-readable-dim);
@@ -6498,6 +6501,7 @@ textarea {
 .user-dropdown-item:hover,
 .settings-sidebar nav button:hover,
 .player-bar .icon-btn:not(.primary):hover,
+.media-video-btn:hover,
 .pb-quality-btn:hover,
 .pb-quality-btn.active,
 .pb-quality-menu button:hover,

@@ -17,7 +17,6 @@ import { LoadingState } from "./Page";
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const CONTROLS_HIDE_DELAY = 3000;
 const CONTROLS_LEAVE_HIDE_DELAY = 800;
-type FullscreenMode = "none" | "native" | "window";
 
 function fmt(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
@@ -47,9 +46,7 @@ export default function MediaDetailDialog() {
   const [showVolume, setShowVolume] = useState(false);
   const [qualityOpen, setQualityOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
-  const [fullscreenMode, setFullscreenMode] =
-    useState<FullscreenMode>("none");
-  const fullscreen = fullscreenMode !== "none";
+  const [fullscreen, setFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   // Live flags for the hide timer; state values would be stale in the
   // window.setTimeout closure after rapid interactions.
@@ -160,26 +157,13 @@ export default function MediaDetailDialog() {
   }, [activeUrl, rate]);
 
   useEffect(() => {
-    const onFullscreenChange = () => {
-      const active = document.fullscreenElement === stageRef.current;
-      setFullscreenMode((mode) =>
-        active ? "native" : mode === "native" ? "none" : mode,
-      );
-    };
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", onFullscreenChange);
-  }, []);
-
-  // Native fullscreen handles Escape itself. The CSS fallback mirrors it.
-  useEffect(() => {
-    if (fullscreenMode !== "window") return;
+    if (!fullscreen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFullscreenMode("none");
+      if (e.key === "Escape") setFullscreen(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [fullscreenMode]);
+  }, [fullscreen]);
 
   // Close the popups (quality / rate) when clicking anywhere outside of them.
   useEffect(() => {
@@ -269,43 +253,18 @@ export default function MediaDetailDialog() {
 
   const toggleMute = () => applyVolume(volume === 0 ? 1 : 0);
 
-  const toggleFullscreen = async () => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    if (fullscreenMode === "native") {
-      try {
-        await document.exitFullscreen();
-      } catch {
-        setFullscreenMode("none");
-      }
-      return;
-    }
-    if (fullscreenMode === "window") {
-      setFullscreenMode("none");
-      return;
-    }
-    if (document.fullscreenEnabled && stage.requestFullscreen) {
-      try {
-        await stage.requestFullscreen({ navigationUI: "hide" });
-        setFullscreenMode("native");
-        return;
-      } catch {
-        // WebView policies can reject native fullscreen. Keep a local fallback.
-      }
-    }
-    setFullscreenMode("window");
-  };
+  const toggleFullscreen = () => setFullscreen((value) => !value);
 
   const VolumeIcon =
     volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div
-      className={`modal-backdrop media-detail-backdrop ${fullscreenMode === "window" ? "media-window-fullscreen-active" : ""}`}
+      className={`modal-backdrop media-detail-backdrop ${fullscreen ? "media-window-fullscreen-active" : ""}`}
       onMouseDown={(event) => event.target === event.currentTarget && close()}
     >
       <div
-        className={`media-detail-dialog ${fullscreenMode === "window" ? "media-window-fullscreen-host" : ""}`}
+        className={`media-detail-dialog ${fullscreen ? "media-window-fullscreen-host" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="media-detail-title"
@@ -315,7 +274,7 @@ export default function MediaDetailDialog() {
             <LoadingState label="正在获取播放地址…" />
           ) : activeUrl ? (
             <div
-              className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreenMode === "window" ? "window-fullscreen" : ""}`}
+              className={`media-video-stage ${controlsVisible ? "" : "controls-hidden"} ${fullscreen ? "window-fullscreen" : ""}`}
               ref={stageRef}
             >
               {/* No native controls: WebView2's built-in bar carries an
@@ -552,7 +511,7 @@ export default function MediaDetailDialog() {
                 <button
                   className="media-video-btn"
                   title={fullscreen ? "退出全屏" : "全屏"}
-                  onClick={() => void toggleFullscreen()}
+                  onClick={toggleFullscreen}
                 >
                   {fullscreen ? (
                     <Minimize size={16} />

@@ -74,8 +74,6 @@ const preloadView = (view: View) => {
       return import("./YunbeiPage");
     case "commentHistory":
       return import("./CommentHistoryPage");
-    case "downloadHistory":
-      return import("./DownloadHistoryPage");
     case "listenTogether":
       return import("./ListenTogetherPage");
     case "voiceWorkbench":

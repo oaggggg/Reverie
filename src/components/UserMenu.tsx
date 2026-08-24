@@ -124,18 +124,6 @@ export default function UserMenu() {
               onClick={() => {
                 setOpen(false);
                 usePlayerStore.setState({
-                  activeView: "downloadHistory",
-                  prevView: "home",
-                });
-              }}
-            >
-              下载与购买
-            </button>
-            <button
-              className="user-dropdown-cell"
-              onClick={() => {
-                setOpen(false);
-                usePlayerStore.setState({
                   activeView: "listenTogether",
                   prevView: "home",
                 });
