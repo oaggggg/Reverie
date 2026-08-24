@@ -1,9 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   CircleUserRound,
+  ChevronRight,
   Info,
   MonitorCog,
+  Music2,
   Palette,
+  ServerCog,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -25,10 +28,45 @@ const APP_THEMES: Array<{ id: ThemePreference; name: string }> = [
   { id: "dark", name: "深色" },
 ];
 
-const PRIVACY_TEXT = `· 个人数据（界面设置、最近播放、登录 Cookie 等）仅保存在本机，不会上传到 Reverie 的服务器。
-· 登录 Cookie 只在调用网易云音乐接口时用于身份认证。
-· 首页城市信息由第三方 IP 定位服务获取，仅用于展示。
-· 本应用不收集统计数据，不进行行为追踪。`;
+const PRIVACY_TEXT = `隐私说明
+
+1. 数据范围
+Reverie 不建立独立的用户账户体系，也不向 Reverie 服务器收集或出售个人信息。界面主题、外观偏好、播放历史、下载路径等设置仅保存在当前设备的本地存储中。
+
+2. 登录凭证
+当你使用网易云音乐账号登录时，登录 Cookie 仅用于向网易云音乐接口发起需要身份认证的请求。凭证由本地客户端保存，不会上传到 Reverie 的服务器；请勿在共享设备上保持登录状态。
+
+3. 网络请求
+搜索、播放、歌单、评论等功能会通过本地接口服务访问 NeteaseCloudMusicApi 及其所代理的网易云音乐接口。具体请求内容由你主动使用的功能决定，接口服务可能按照其自身隐私政策记录必要的访问日志。
+
+4. 位置信息
+首页位置由第三方 IP 定位服务根据网络出口地址推断，仅用于展示省市信息。应用不会读取 GPS、通讯录或精确地址；你可以在系统网络层面阻止相关请求。
+
+5. 数据删除
+清除应用数据、退出账号或删除本地存储即可移除本机保存的偏好和缓存。已发送到第三方服务的请求记录不受 Reverie 控制，请以对应服务的政策为准。
+
+6. 安全提示
+请使用可信网络环境并妥善保管账号凭证。Reverie 不会以任何理由索取你的密码、短信验证码或支付信息。`;
+
+const USAGE_TEXT = `使用说明
+
+1. 开始使用
+启动本地接口服务后即可浏览首页、搜索歌曲和播放公开内容。部分歌单、收藏、评论及同步功能需要先登录网易云音乐账号。
+
+2. 播放与音质
+播放栏支持播放控制、播放列表、循环模式和官方可用音质切换。可用音质由当前歌曲、账号权限和接口返回结果共同决定，不支持的音质不会显示。
+
+3. 下载与缓存
+下载路径可在“设置 > 常规”中修改。下载能力受歌曲版权、账号权限和接口返回状态限制；应用不会绕过平台权限或解除 DRM。
+
+4. 设置与外观
+“设置 > 外观”可调整透明程度、背景模糊和文字对比度；“设置 > 常规”可调整主题、动效、歌词翻译和字号。设置会即时生效并保存在本机。
+
+5. 更新与故障排查
+建议保持接口服务和客户端版本一致。遇到搜索、播放或登录异常时，请先确认网络连接、接口服务状态和账号登录状态，再重启本地接口服务或重新登录。
+
+6. 内容与版权
+音乐、歌词、评论、封面及相关元数据均来自第三方服务。请遵守所在地法律、平台服务协议和版权要求，仅将本应用用于个人学习与合法欣赏。`;
 
 const DISCLAIMER_TEXT = `· Reverie 是开源音乐播放器，仅供个人学习与交流使用。
 · 音乐数据来源于 NeteaseCloudMusicApi，歌曲版权归各版权方所有。
@@ -36,7 +74,7 @@ const DISCLAIMER_TEXT = `· Reverie 是开源音乐播放器，仅供个人学�
 · 若涉及合法权益问题，请联系移除相关内容。`;
 
 type Category = "general" | "appearance" | "account" | "about";
-type Panel = "privacy" | "disclaimer" | null;
+type Panel = "privacy" | "usage" | "disclaimer" | null;
 
 const CATEGORIES: Array<{
   id: Category;
@@ -385,12 +423,17 @@ export default function SettingsModal() {
             )}
 
             {category === "about" && (
-              <div className="settings-section">
+              <div className="settings-section about-section">
                 <h3>应用</h3>
-                <SettingRow
-                  title={`Reverie v${__APP_VERSION__}`}
-                  hint={`${window.ncm?.versions.runtime ?? "Tauri"} · WebView ${window.ncm?.versions.webview ?? "—"}`}
-                >
+                <div className="about-identity">
+                  <div className="about-app-icon" aria-hidden="true">
+                    <Music2 size={24} />
+                  </div>
+                  <div className="about-app-copy">
+                    <strong>Reverie</strong>
+                    <span>桌面音乐播放器</span>
+                    <small>{"v" + __APP_VERSION__ + " · " + (window.ncm?.versions.runtime ?? "Tauri") + " · WebView " + (window.ncm?.versions.webview ?? "—")}</small>
+                  </div>
                   <button
                     className="btn"
                     onClick={(event) => {
@@ -401,44 +444,31 @@ export default function SettingsModal() {
                   >
                     {checking ? "检查中…" : "检查更新"}
                   </button>
-                </SettingRow>
-                <SettingRow
-                  title={neteaseVersion ? `接口服务 v${neteaseVersion}` : "接口服务版本"}
-                  hint={neteaseSettings ? "已读取网易云设置" : "正在读取网易云设置"}
-                >
-                  <span className="setting-status">
-                    {neteaseVersion || (neteaseSettings ? "可用" : "读取中…")}
-                  </span>
-                </SettingRow>
-                <SettingRow title="隐私说明">
-                  <button
-                    className="btn"
-                    onClick={() =>
-                      setPanel(panel === "privacy" ? null : "privacy")
-                    }
-                  >
-                    {panel === "privacy" ? "收起" : "查看"}
+                </div>
+                <div className="about-service">
+                  <ServerCog size={19} aria-hidden="true" />
+                  <div>
+                    <strong>接口服务</strong>
+                    <span>NeteaseCloudMusicApi</span>
+                  </div>
+                  <b>{neteaseVersion ? "v" + neteaseVersion : neteaseSettings ? "可用" : "读取中…"}</b>
+                </div>
+                <h3>说明与政策</h3>
+                <div className="about-link-list">
+                  <button className={"about-link " + (panel === "privacy" ? "active" : "")} onClick={() => setPanel(panel === "privacy" ? null : "privacy")}>
+                    <span><strong>隐私说明</strong><small>数据处理、账号凭证与第三方服务</small></span><ChevronRight size={16} />
                   </button>
-                </SettingRow>
-                {panel === "privacy" && (
-                  <div className="about-panel">{PRIVACY_TEXT}</div>
-                )}
-                <SettingRow title="免责声明">
-                  <button
-                    className="btn"
-                    onClick={() =>
-                      setPanel(panel === "disclaimer" ? null : "disclaimer")
-                    }
-                  >
-                    {panel === "disclaimer" ? "收起" : "查看"}
+                  {panel === "privacy" && <article className="about-panel">{PRIVACY_TEXT}</article>}
+                  <button className={"about-link " + (panel === "usage" ? "active" : "")} onClick={() => setPanel(panel === "usage" ? null : "usage")}>
+                    <span><strong>使用说明</strong><small>播放、下载、设置与故障排查</small></span><ChevronRight size={16} />
                   </button>
-                </SettingRow>
-                {panel === "disclaimer" && (
-                  <div className="about-panel">{DISCLAIMER_TEXT}</div>
-                )}
-                <p className="settings-legal">
-                  数据来源：NeteaseCloudMusicApi · 仅供学习交流
-                </p>
+                  {panel === "usage" && <article className="about-panel">{USAGE_TEXT}</article>}
+                  <button className={"about-link " + (panel === "disclaimer" ? "active" : "")} onClick={() => setPanel(panel === "disclaimer" ? null : "disclaimer")}>
+                    <span><strong>免责声明</strong><small>版权归属、服务边界与责任范围</small></span><ChevronRight size={16} />
+                  </button>
+                  {panel === "disclaimer" && <article className="about-panel">{DISCLAIMER_TEXT}</article>}
+                </div>
+                <p className="settings-legal">数据来源：NeteaseCloudMusicApi · 仅供学习交流</p>
               </div>
             )}
           </div>
