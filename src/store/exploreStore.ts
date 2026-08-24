@@ -86,7 +86,7 @@ interface ExploreState {
   setSocialTab: (tab: SocialTab) => void;
   setFollowScene: (scene: FollowScene) => Promise<void>;
   checkMutualFollow: (userId: number) => Promise<boolean>;
-  loadSocial: () => Promise<void>;
+  loadSocial: (navigate?: boolean) => Promise<void>;
   toggleFollow: (user: SocialUser) => Promise<void>;
   toggleEventLike: (event: SocialEvent) => Promise<void>;
   forwardEvent: (event: SocialEvent, forwards: string) => Promise<boolean>;
@@ -418,10 +418,10 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
       return false;
     }
   },
-  loadSocial: async () => {
+  loadSocial: async (navigate = true) => {
     const uid = usePlayerStore.getState().profile?.userId;
     if (!uid) return;
-    showView("social");
+    if (navigate) showView("social");
     set({ loading: true });
     try {
       const [events, myEvents, mixed, followers] = await Promise.all([

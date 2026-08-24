@@ -21,7 +21,7 @@ export default function FollowListDialog({
   const toggleFollow = useExploreStore((state) => state.toggleFollow);
 
   useEffect(() => {
-    void loadSocial();
+    void loadSocial(false);
   }, [loadSocial]);
 
   return createPortal(
