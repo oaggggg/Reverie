@@ -168,6 +168,12 @@ button {
   background: none;
   color: inherit;
 }
+
+:root[data-input-mode="keyboard"]
+  :is(button, a, input, textarea, select, [role="button"], [role="tab"]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, white);
+  outline-offset: 2px;
+}
 input {
   font-family: inherit;
   color: inherit;
@@ -306,10 +312,48 @@ textarea {
 /* macOS draws its traffic lights over the top-left corner of the web view, so
    keep the drag filler and the now-playing back button clear of them. */
 [data-platform="darwin"] .titlebar {
-  padding-left: 78px;
+  height: 48px;
+  padding-left: 84px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  backdrop-filter: blur(20px) saturate(1.25);
+}
+[data-platform="darwin"] {
+  --titlebar-h: 48px;
+}
+[data-platform="darwin"] .titlebar-name {
+  color: var(--text-dim);
+  background: none;
+  filter: none;
+  animation: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+[data-platform="darwin"] .titlebar-controls {
+  align-items: center;
+  padding-right: 6px;
+}
+[data-platform="darwin"] .tb-settings {
+  width: 36px;
+  height: 32px;
+  border-radius: 6px;
 }
 [data-platform="darwin"] .np-back {
   left: 96px;
+}
+
+:root[data-window-active="false"] .titlebar-name,
+:root[data-window-active="false"] .pb-cover-img,
+:root[data-window-active="false"] .loading-spinner,
+:root[data-window-active="false"] .session-loading-mark,
+:root[data-window-active="false"] .boot-shell-mark {
+  animation-play-state: paused !important;
+}
+
+:root[data-window-active="false"] .app {
+  --glass-surface-filter: blur(18px) saturate(1.12);
 }
 
 /* ============================ Top navigation ============================ */

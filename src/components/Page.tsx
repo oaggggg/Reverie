@@ -1,4 +1,10 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+  type UIEvent,
+} from "react";
 import { usePlayerStore } from "../store/playerStore";
 
 export function PageHeader({
@@ -28,32 +34,38 @@ export function Page({ children }: { children: ReactNode }) {
   );
   const saveViewScroll = usePlayerStore((s) => s.saveViewScroll);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollFrameRef = useRef(0);
+
+  const publishScroll = useCallback((scrollTop: number) => {
+    window.cancelAnimationFrame(scrollFrameRef.current);
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      window.dispatchEvent(
+        new CustomEvent("reverie:page-scroll", { detail: { scrollTop } }),
+      );
+    });
+  }, []);
 
   useLayoutEffect(() => {
     const node = scrollRef.current;
     if (!node) return;
     node.scrollTop = savedTop;
-    window.dispatchEvent(
-      new CustomEvent("reverie:page-scroll", {
-        detail: { scrollTop: savedTop },
-      }),
-    );
-    return () => saveViewScroll(activeView, node.scrollTop);
-  }, [activeView, savedTop, saveViewScroll]);
+    publishScroll(savedTop);
+    return () => {
+      window.cancelAnimationFrame(scrollFrameRef.current);
+      saveViewScroll(activeView, node.scrollTop);
+    };
+  }, [activeView, publishScroll, savedTop, saveViewScroll]);
+
+  const handleScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      publishScroll(event.currentTarget.scrollTop);
+    },
+    [publishScroll],
+  );
 
   return (
     <div className="page">
-      <div
-        className="page-scroll"
-        ref={scrollRef}
-        onScroll={(event) => {
-          window.dispatchEvent(
-            new CustomEvent("reverie:page-scroll", {
-              detail: { scrollTop: event.currentTarget.scrollTop },
-            }),
-          );
-        }}
-      >
+      <div className="page-scroll" ref={scrollRef} onScroll={handleScroll}>
         {children}
       </div>
     </div>

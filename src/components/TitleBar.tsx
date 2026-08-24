@@ -21,19 +21,20 @@ export default function TitleBar() {
   }, []);
 
   return (
-    <header className="titlebar">
-      <div className="titlebar-drag" />
+    <header className="titlebar" data-tauri-drag-region>
+      <div className="titlebar-drag" data-tauri-drag-region />
       <div className="titlebar-name" data-text="Reverie">
         Reverie
       </div>
       <div className="titlebar-controls">
         <button
-          className="tb-btn"
+          className="tb-btn tb-settings"
           onClick={(event) => {
             captureInteractionOrigin("settings", event.currentTarget);
             setShowSettings(true);
           }}
           title="设置"
+          aria-label="设置"
         >
           <Settings size={15} />
         </button>
@@ -43,6 +44,7 @@ export default function TitleBar() {
               className="tb-btn"
               onClick={() => window.ncm?.minimize()}
               title="最小化"
+              aria-label="最小化"
             >
               <Minus size={15} />
             </button>
@@ -50,6 +52,7 @@ export default function TitleBar() {
               className="tb-btn"
               onClick={() => window.ncm?.maximize()}
               title={maximized ? "还原" : "最大化"}
+              aria-label={maximized ? "还原窗口" : "最大化窗口"}
             >
               {maximized ? <Copy size={13} /> : <Square size={13} />}
             </button>
@@ -57,6 +60,7 @@ export default function TitleBar() {
               className="tb-btn tb-close"
               onClick={() => window.ncm?.close()}
               title="关闭"
+              aria-label="关闭"
             >
               <X size={15} />
             </button>

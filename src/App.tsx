@@ -1,4 +1,13 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type SyntheticEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type SyntheticEvent,
+} from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { ensureAnalyser, resumeAnalyser } from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
@@ -87,8 +96,9 @@ export default function App() {
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
-  const [NowPlayingView, setNowPlayingView] =
-    useState<ComponentType | null>(null);
+  const [NowPlayingView, setNowPlayingView] = useState<ComponentType | null>(
+    null,
+  );
   const [mountedOverlays, setMountedOverlays] = useState({
     comments: showPlayerComments,
     login: showLogin,
@@ -109,7 +119,8 @@ export default function App() {
     const key = activeView;
     const frame = window.requestAnimationFrame(() => {
       const scroller = document.querySelector<HTMLElement>(".page-scroll");
-      if (scroller) scroller.scrollTop = scrollPositionsRef.current.get(key) ?? 0;
+      if (scroller)
+        scroller.scrollTop = scrollPositionsRef.current.get(key) ?? 0;
     });
     return () => {
       window.cancelAnimationFrame(frame);
@@ -121,10 +132,7 @@ export default function App() {
   useEffect(() => {
     if (!currentSong) return;
     let alive = true;
-    preloadNowPlayingAssets(
-      currentSong.picUrl,
-      coverQuality !== "image",
-    );
+    preloadNowPlayingAssets(currentSong.picUrl, coverQuality !== "image");
     void loadNowPlayingView().then((module) => {
       if (alive) setNowPlayingView(() => module.default);
     });
@@ -308,7 +316,25 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      const editing =
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable);
+      const command = window.ncm?.platform === "darwin" ? e.metaKey : e.ctrlKey;
+      if (command && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        const state = usePlayerStore.getState();
+        state.setPage("browse");
+        state.setSearchOpen(true);
+        return;
+      }
+      if (command && e.key === ",") {
+        e.preventDefault();
+        usePlayerStore.getState().setShowSettings(true);
+        return;
+      }
+      if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = usePlayerStore.getState();
       switch (e.code) {
         case "Space":
@@ -388,7 +414,10 @@ export default function App() {
     let frame = 0;
     let lastPaint = 0;
     const tick = (now: number) => {
-      if (now - lastPaint >= 32 && !document.hidden) {
+      const foreground =
+        document.visibilityState === "visible" && document.hasFocus();
+      const interval = foreground ? 32 : 250;
+      if (now - lastPaint >= interval && !document.hidden) {
         lastPaint = now;
         const progress = Math.floor(audio.currentTime * 1000);
         const duration = Number.isFinite(audio.duration)

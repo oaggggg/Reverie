@@ -188,7 +188,14 @@ export default function TopNav() {
       void loadSuggestions(keyword);
     }, 180);
     return () => window.clearTimeout(searchTimerRef.current);
-  }, [searchKeyword, searchOpen, doSearch, loadSuggestions, loadHotTerms, loggedIn]);
+  }, [
+    searchKeyword,
+    searchOpen,
+    doSearch,
+    loadSuggestions,
+    loadHotTerms,
+    loggedIn,
+  ]);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -246,6 +253,8 @@ export default function TopNav() {
             className={`topnav-item ${activeView === item.view && !searchOpen ? "active" : ""}`}
             onPointerEnter={() => void preloadView(item.view)}
             onClick={() => handleNav(item.view, item.auth)}
+            title={item.label}
+            aria-label={item.label}
           >
             {item.icon}
             <span>{item.label}</span>
@@ -338,7 +347,9 @@ export default function TopNav() {
                               <strong>{suggestion.keyword}</strong>
                               <small>
                                 {suggestion.type}
-                                {suggestion.source ? ` · ${suggestion.source}` : ""}
+                                {suggestion.source
+                                  ? ` · ${suggestion.source}`
+                                  : ""}
                               </small>
                             </button>
                           ))
@@ -372,7 +383,9 @@ export default function TopNav() {
                         ))}
                         <button
                           className="search-view-all"
-                          onClick={() => void openSearch(searchKeyword, "songs")}
+                          onClick={() =>
+                            void openSearch(searchKeyword, "songs")
+                          }
                         >
                           查看全部搜索结果
                         </button>
