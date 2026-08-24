@@ -255,9 +255,7 @@ textarea {
   font-weight: 800;
   letter-spacing: 0.2em;
   padding-inline: 0.2em;
-  color: transparent;
-  /* 静态基底：暖白—绯红—暖白的品牌化柔光，而非灰色 */
-  background: linear-gradient(
+  --brand-gradient: linear-gradient(
     100deg,
     color-mix(in srgb, var(--text-dim) 82%, var(--accent-2) 18%) 18%,
     color-mix(in srgb, var(--text) 88%, var(--accent-2) 12%) 38%,
@@ -268,30 +266,27 @@ textarea {
     color-mix(in srgb, var(--text) 88%, var(--accent) 12%) 78%,
     color-mix(in srgb, var(--text-dim) 82%, var(--accent) 18%) 94%
   );
-  background-size: 260% 100%;
-  background-position: 130% 50%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation:
-    reverie-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95) infinite alternate,
-    reverie-glow 5.6s ease-in-out infinite;
+  color: transparent;
+  background: none;
+  animation: reverie-glow 5.6s ease-in-out infinite;
   /* 提升渐变文字的抗锯齿锐度 */
   -webkit-font-smoothing: antialiased;
 }
 .titlebar-letter {
   display: inline-block;
   color: transparent;
-  background-image: inherit;
-  background-size: inherit;
-  background-position: inherit;
-  background-repeat: inherit;
-  background-origin: inherit;
+  background-image: var(--brand-gradient);
+  background-size: 260% 100%;
+  background-position: 130% 50%;
+  background-repeat: no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   transform-origin: 50% 100%;
-  animation: reverie-letter-bounce 5.6s cubic-bezier(0.32, 0.72, 0.24, 1)
-    infinite;
+  animation:
+    reverie-letter-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95) infinite
+      alternate,
+    reverie-letter-bounce 5.6s cubic-bezier(0.32, 0.72, 0.24, 1) infinite;
 }
 .titlebar-letter:nth-child(1) {
   animation-delay: 0ms;
@@ -314,8 +309,8 @@ textarea {
 .titlebar-letter:nth-child(7) {
   animation-delay: 420ms;
 }
-/* 一道高光斜带周期性扫过文字，其余时间保持静态渐变 */
-@keyframes reverie-sheen {
+/* 每个字母独立承载渐变，避免嵌套 background-clip 导致首字母残缺 */
+@keyframes reverie-letter-sheen {
   from {
     background-position: 130% 50%;
   }
