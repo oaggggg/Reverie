@@ -280,6 +280,15 @@ textarea {
 }
 .titlebar-letter {
   display: inline-block;
+  color: transparent;
+  background-image: inherit;
+  background-size: inherit;
+  background-position: inherit;
+  background-repeat: inherit;
+  background-origin: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   transform-origin: 50% 100%;
   animation: reverie-letter-bounce 5.6s cubic-bezier(0.32, 0.72, 0.24, 1)
     infinite;
@@ -406,6 +415,11 @@ textarea {
 }
 [data-platform="darwin"] .titlebar-letter {
   animation: none;
+  color: inherit;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
 }
 [data-platform="darwin"] .titlebar-controls {
   align-items: center;
