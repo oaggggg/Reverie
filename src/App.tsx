@@ -87,16 +87,20 @@ export default function App() {
   const seamlessTransitionRef = useRef(false);
   const skipNextFadeInRef = useRef(false);
 
+  const cancelAudioFade = (audio: HTMLAudioElement) => {
+    const frame = fadeFramesRef.current.get(audio);
+    if (frame !== undefined) {
+      window.cancelAnimationFrame(frame);
+      fadeFramesRef.current.delete(audio);
+    }
+  };
+
   const fadeAudioVolume = (
     audio: HTMLAudioElement,
     target: number,
     duration: number,
   ) => {
-    const previousFrame = fadeFramesRef.current.get(audio);
-    if (previousFrame !== undefined) {
-      window.cancelAnimationFrame(previousFrame);
-      fadeFramesRef.current.delete(audio);
-    }
+    cancelAudioFade(audio);
     const start = audio.volume;
     const end = Math.min(1, Math.max(0, target));
     if (duration <= 0 || Math.abs(start - end) < 0.005) {
@@ -444,11 +448,13 @@ export default function App() {
     const a = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!a) return;
     if (!currentUrl) {
+      cancelAudioFade(a);
       a.pause();
       a.removeAttribute("src");
       a.load();
       a.currentTime = 0;
     } else if (a.getAttribute("src") !== currentUrl) {
+      cancelAudioFade(a);
       a.pause();
       a.src = currentUrl;
       a.load();
@@ -547,12 +553,14 @@ export default function App() {
     if (!a) return;
     const targetUrl = qualitySwitchUrl ?? preloadedUrl;
     if (!targetUrl) {
+      cancelAudioFade(a);
       a.pause();
       a.removeAttribute("src");
       a.load();
       return;
     }
     if (a.getAttribute("src") !== targetUrl) {
+      cancelAudioFade(a);
       a.pause();
       a.src = targetUrl;
       a.load();

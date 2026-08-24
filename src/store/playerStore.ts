@@ -1064,6 +1064,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         })
         .catch(() => {});
     }
+    // Warm the following URL in the API cache as well. This keeps a rapid
+    // second skip from waiting on another sequential URL lookup while the
+    // single inactive decoder remains reserved for the immediate next song.
+    const warmSong = state.queue[state.index + 2];
+    if (warmSong && warmSong.id !== song.id && warmSong.id !== nextSong?.id) {
+      void resolveUrl(warmSong, state.playbackQuality).catch(() => {});
+    }
   },
   cyclePlayMode: () => {
     const order: PlayMode[] = ["sequence", "one", "shuffle"];
@@ -1605,13 +1612,23 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
 
     const token = ++playToken;
+    // Manual next/previous clicks should promote the already buffered decoder
+    // just like automatic end-of-track playback. Re-resolving the URL here
+    // discards the prepared buffer and is the main source of rapid-switch lag.
+    const promotedUrl =
+      st.preloadedSongId === song.id ? st.preloadedUrl : null;
+    const promotedAudio = promotedUrl
+      ? st.activeAudio === 0
+        ? 1
+        : 0
+      : st.activeAudio;
 
     set({
       queue: targetQueue,
       index: targetIndex,
       queueSource: source ?? (queue ? "list" : st.queueSource),
       currentSong: song,
-      currentUrl: null,
+      currentUrl: promotedUrl,
       preloadedSongId: null,
       preloadedUrl: null,
       qualitySwitchUrl: null,
@@ -1619,11 +1636,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       qualitySwitchPrevious: null,
       qualitySwitching: false,
       pendingSeek: options?.startAt ?? null,
-      loadingUrl: true,
+      loadingUrl: !promotedUrl,
       playing: autoplay,
       progress: 0,
       duration: song.duration || 0,
       availablePlaybackQualities: ["standard"],
+      activeAudio: promotedAudio,
     });
     void get().loadPlaybackQualities(song);
     if (
@@ -1651,7 +1669,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     get().loadLyrics(song);
     get().trackRecent(song);
 
-    const resolution = await resolveUrl(song, quality);
+    const resolution = promotedUrl
+      ? { url: promotedUrl, reason: "" }
+      : await resolveUrl(song, quality);
     // A newer play request started while this url was resolving: drop this one
     // instead of playing a song the user already moved on from.
     if (token !== playToken) return;
@@ -1690,6 +1710,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
           }
         })
         .catch(() => {});
+    }
+    const warmSong = nextIdx >= 0 ? state.queue[nextIdx + 1] : null;
+    if (warmSong && warmSong.id !== song.id && warmSong.id !== nextSong?.id) {
+      void resolveUrl(warmSong, quality).catch(() => {});
     }
   },
   /**
