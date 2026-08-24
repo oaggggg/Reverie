@@ -15,7 +15,7 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 const LOCATION_CACHE_KEY = "reverie_home_location";
 const LOCATION_CACHE_AT_KEY = "reverie_home_location_at";
-const LOCATION_CACHE_TTL = 24 * 60 * 60 * 1000;
+const LOCATION_CACHE_TTL = 2 * 60 * 60 * 1000;
 
 function readCachedLocation(): string {
   try {
@@ -45,6 +45,8 @@ function cacheLocation(value: string) {
 }
 
 function normalizeRegion(province: string, city: string): string {
+  if (!province && !city) return "";
+  if (!province) return city.endsWith("市") ? city : `${city}市`;
   const unit = /(省|市|自治区|特别行政区)$/.test(province);
   const p = unit ? province : `${province}省`;
   if (!city) return p;
@@ -54,7 +56,7 @@ function normalizeRegion(province: string, city: string): string {
   return `${p}${c}`;
 }
 
-// WebView 直连公网 IP 服务会被 CORS 拦截，由本地 sidecar 代理；主源带城市粒度。
+// WebView 直连公网 IP 服务会被 CORS 拦截，由本地 sidecar 代理；城市仅在多源一致时展示。
 async function fetchLocation(): Promise<string> {
   try {
     const res = await fetch("http://127.0.0.1:3939/reverie/location", {
@@ -118,31 +120,32 @@ export default function HomePage() {
 
   useEffect(() => {
     let alive = true;
-    void Promise.allSettled([getHomepageDragonBall(), getHomepageBlockPage()]).then(
-      ([dragon, blocks]) => {
-        if (!alive) return;
-        const entries = dragon.status === "fulfilled" ? dragon.value : [];
-        const blockEntries =
-          blocks.status === "fulfilled"
-            ? blocks.value.blocks
-                .filter((block) => block.title)
-                .map((block) => ({
-                  id: block.code,
-                  name: block.title,
-                  iconUrl: "",
-                  target: "",
-                }))
-            : [];
-        const seen = new Set<string>();
-        setHomepageEntries(
-          [...entries, ...blockEntries].filter((item) => {
-            if (seen.has(item.id)) return false;
-            seen.add(item.id);
-            return true;
-          }),
-        );
-      },
-    );
+    void Promise.allSettled([
+      getHomepageDragonBall(),
+      getHomepageBlockPage(),
+    ]).then(([dragon, blocks]) => {
+      if (!alive) return;
+      const entries = dragon.status === "fulfilled" ? dragon.value : [];
+      const blockEntries =
+        blocks.status === "fulfilled"
+          ? blocks.value.blocks
+              .filter((block) => block.title)
+              .map((block) => ({
+                id: block.code,
+                name: block.title,
+                iconUrl: "",
+                target: "",
+              }))
+          : [];
+      const seen = new Set<string>();
+      setHomepageEntries(
+        [...entries, ...blockEntries].filter((item) => {
+          if (seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        }),
+      );
+    });
     return () => {
       alive = false;
     };
@@ -275,7 +278,10 @@ export default function HomePage() {
           </div>
           <div className="home-comment-grid">
             {starpickComments.slice(0, 6).map((comment) => (
-              <article className="home-comment-card" key={`${comment.id}-${comment.content}`}>
+              <article
+                className="home-comment-card"
+                key={`${comment.id}-${comment.content}`}
+              >
                 <strong>{comment.nickname}</strong>
                 <p>{comment.content}</p>
                 <small>赞 {comment.likedCount.toLocaleString("zh-CN")}</small>

@@ -5,7 +5,10 @@ import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { Disc3, ThumbsDown } from "lucide-react";
 import { LoadingState } from "./Page";
-import { capturePointerOrigin, useOriginTransition } from "../utils/originTransition";
+import {
+  capturePointerOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
 
 interface SongContextMenu {
   song: Song;
@@ -25,12 +28,21 @@ export default function SongCards({
   const playSong = usePlayerStore((s) => s.playSong);
   const [dismissing, setDismissing] = useState<number[]>([]);
   const [contextMenu, setContextMenu] = useState<SongContextMenu | null>(null);
-  const [lastContextMenu, setLastContextMenu] = useState<SongContextMenu | null>(null);
-  const contextTransition = useOriginTransition<HTMLDivElement>(Boolean(contextMenu), "song-context-menu", 150);
+  const [lastContextMenu, setLastContextMenu] =
+    useState<SongContextMenu | null>(null);
+  const [contextSongId, setContextSongId] = useState<number | null>(null);
+  const contextTransition = useOriginTransition<HTMLDivElement>(
+    Boolean(contextMenu),
+    "song-context-menu",
+    150,
+  );
 
   useEffect(() => {
     if (!contextMenu) return;
-    const close = () => setContextMenu(null);
+    const close = () => {
+      setContextMenu(null);
+      setContextSongId(null);
+    };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") close();
     };
@@ -46,6 +58,7 @@ export default function SongCards({
 
   const dismiss = (song: Song) => {
     setContextMenu(null);
+    setContextSongId(null);
     setDismissing((current) => [...current, song.id]);
     window.setTimeout(() => onDislike?.(song), 220);
   };
@@ -60,17 +73,31 @@ export default function SongCards({
           return (
             <article
               key={song.id}
-              className={`song-card ${isDismissing ? "dismissing" : ""}`}
+              className={`song-card ${isDismissing ? "dismissing" : ""} ${contextSongId === song.id ? "context-active" : ""}`}
               onClick={() => playSong(song, songs)}
+              onPointerDown={(event) => {
+                if (event.button === 2 && onDislike) setContextSongId(song.id);
+              }}
               onContextMenu={(event) => {
                 if (!onDislike) return;
                 event.preventDefault();
+                setContextSongId(song.id);
                 const nextMenu = {
                   song,
-                  x: Math.max(8, Math.min(event.clientX, window.innerWidth - 142)),
-                  y: Math.max(8, Math.min(event.clientY, window.innerHeight - 48)),
+                  x: Math.max(
+                    8,
+                    Math.min(event.clientX, window.innerWidth - 142),
+                  ),
+                  y: Math.max(
+                    8,
+                    Math.min(event.clientY, window.innerHeight - 48),
+                  ),
                 };
-                capturePointerOrigin("song-context-menu", event.clientX, event.clientY);
+                capturePointerOrigin(
+                  "song-context-menu",
+                  event.clientX,
+                  event.clientY,
+                );
                 setLastContextMenu(nextMenu);
                 setContextMenu(nextMenu);
               }}
@@ -95,7 +122,8 @@ export default function SongCards({
           );
         })}
       </div>
-      {contextTransition.rendered && lastContextMenu &&
+      {contextTransition.rendered &&
+        lastContextMenu &&
         createPortal(
           <div
             ref={contextTransition.surfaceRef}
@@ -104,7 +132,10 @@ export default function SongCards({
             style={{ left: lastContextMenu.x, top: lastContextMenu.y }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <button role="menuitem" onClick={() => dismiss(lastContextMenu.song)}>
+            <button
+              role="menuitem"
+              onClick={() => dismiss(lastContextMenu.song)}
+            >
               <ThumbsDown size={14} />
               <span>不感兴趣</span>
             </button>
