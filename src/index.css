@@ -4886,11 +4886,11 @@ textarea {
   transform: none !important;
   animation: toast-slide-up 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.toast-wrap .toast:nth-child(n) { z-index: 5; }
-.toast-wrap .toast[data-stack-index="1"] { z-index: 4; }
+.toast-wrap .toast:nth-child(n) { z-index: 1; }
+.toast-wrap .toast[data-stack-index="1"] { z-index: 2; }
 .toast-wrap .toast[data-stack-index="2"] { z-index: 3; }
-.toast-wrap .toast[data-stack-index="3"] { z-index: 2; }
-.toast-wrap .toast[data-stack-index="4"] { z-index: 1; }
+.toast-wrap .toast[data-stack-index="3"] { z-index: 4; }
+.toast-wrap .toast[data-stack-index="4"] { z-index: 5; }
 .toast-wrap .toast-icon { color: var(--green); }
 .toast-wrap .toast-copy span { color: var(--text); font-size: 13px; line-height: 1.25; }
 .toast-wrap .toast-copy { min-width: 0; max-width: min(500px, calc(100vw - 96px)); }
