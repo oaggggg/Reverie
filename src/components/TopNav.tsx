@@ -140,9 +140,6 @@ export default function TopNav() {
   const openSearch = useSearchStore((s) => s.openSearch);
   const hotTerms = useSearchStore((s) => s.hotTerms);
   const loadHotTerms = useSearchStore((s) => s.loadHotTerms);
-  const suggestions = useSearchStore((s) => s.suggestions);
-  const suggestionsLoading = useSearchStore((s) => s.suggestionsLoading);
-  const loadSuggestions = useSearchStore((s) => s.loadSuggestions);
   const openNotifications = useNotificationStore((s) => s.openNotifications);
 
   const searchRef = useRef<HTMLInputElement>(null);
@@ -189,17 +186,9 @@ export default function TopNav() {
     }
     searchTimerRef.current = window.setTimeout(() => {
       void doSearch(keyword);
-      void loadSuggestions(keyword);
     }, 180);
     return () => window.clearTimeout(searchTimerRef.current);
-  }, [
-    searchKeyword,
-    searchOpen,
-    doSearch,
-    loadSuggestions,
-    loadHotTerms,
-    loggedIn,
-  ]);
+  }, [searchKeyword, searchOpen, doSearch, loadHotTerms, loggedIn]);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -305,8 +294,6 @@ export default function TopNav() {
             </div>
             {searching ||
             searchResults.length > 0 ||
-            suggestions.length > 0 ||
-            suggestionsLoading ||
             (!searchKeyword.trim() && (hotTerms.length > 0 || loggedIn)) ||
             (searchKeyword && !loggedIn) ? (
               <div className="search-dropdown">
@@ -341,30 +328,6 @@ export default function TopNav() {
                   </>
                 ) : (
                   <>
-                    {suggestionsLoading || suggestions.length > 0 ? (
-                      <>
-                        <div className="search-dropdown-caption">搜索建议</div>
-                        {suggestionsLoading ? (
-                          <div className="loading-hint">正在获取建议…</div>
-                        ) : (
-                          suggestions.slice(0, 6).map((suggestion) => (
-                            <button
-                              key={`${suggestion.keyword}-${suggestion.type}`}
-                              className="search-suggest-item"
-                              onClick={() => openSearchPage(suggestion.keyword)}
-                            >
-                              <strong>{suggestion.keyword}</strong>
-                              <small>
-                                {suggestion.type}
-                                {suggestion.source
-                                  ? ` · ${suggestion.source}`
-                                  : ""}
-                              </small>
-                            </button>
-                          ))
-                        )}
-                      </>
-                    ) : null}
                     {searchResults.length > 0 ? (
                       <>
                         <div className="search-dropdown-caption">歌曲匹配</div>
