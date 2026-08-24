@@ -21,7 +21,14 @@ test("digital album APIs normalize detail, sales and purchased records", async (
       });
     if (url.includes("purchased"))
       return Response.json({
-        data: { list: [{ id: 3, albumName: "已购", artistName: "歌手" }] },
+        paidAlbums: [
+          {
+            productId: 3,
+            productName: "已购",
+            artists: [{ name: "歌手" }],
+            coverUrl: "cover",
+          },
+        ],
       });
     return Response.json({
       data: {
@@ -38,7 +45,9 @@ test("digital album APIs normalize detail, sales and purchased records", async (
     assert.equal(detail?.name, "专辑");
     assert.equal(detail?.songs[0]?.id, 8);
     assert.equal((await getDigitalAlbumSales([2]))[2], 99);
-    assert.equal((await getPurchasedDigitalAlbums())[0]?.name, "已购");
+    const purchased = await getPurchasedDigitalAlbums();
+    assert.equal(purchased[0]?.name, "已购");
+    assert.equal(purchased[0]?.artistName, "歌手");
     assert.match(urls[0]!, /digitalAlbum\/detail\?id=2/);
     assert.match(urls[1]!, /digitalAlbum\/sales\?ids=2/);
   } finally {

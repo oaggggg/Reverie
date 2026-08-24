@@ -255,7 +255,6 @@ export type View =
   | "social"
   | "cloud"
   | "yunbei"
-  | "vip"
   | "commentHistory"
   | "downloadHistory"
   | "listenTogether"
@@ -383,45 +382,6 @@ export interface RecommendHistoryDay {
   date: string;
   displayDate: string;
   songCount: number;
-}
-
-export interface VipTask {
-  id: string;
-  name: string;
-  description: string;
-  reward: number;
-  completed: boolean;
-  claimed?: boolean;
-}
-
-export interface VipGrowthInfo {
-  level: number;
-  growth: number;
-  nextLevelGrowth: number;
-  progress: number;
-  expireTime: number;
-}
-
-export interface VipGrowthEntry {
-  id: string;
-  title: string;
-  amount: number;
-  time: number;
-}
-
-export interface VipTimeMachineItem {
-  id: string;
-  type: number;
-  title: string;
-  description: string;
-  coverUrl: string;
-}
-
-export interface VipTimeMachineInfo {
-  recordTime: number;
-  limitedCount: number;
-  hasMore: boolean;
-  items: VipTimeMachineItem[];
 }
 
 export interface UserCommentHistoryItem {

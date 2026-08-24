@@ -15,8 +15,6 @@ export default function UserMenu() {
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const openProfile = useProfileStore((s) => s.openProfile);
   const profileDetail = useProfileStore((s) => s.detail);
-  const openVip = () =>
-    usePlayerStore.setState({ activeView: "vip", prevView: "home" });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,15 +118,6 @@ export default function UserMenu() {
               }}
             >
               个人中心
-            </button>
-            <button
-              className="user-dropdown-cell"
-              onClick={() => {
-                setOpen(false);
-                openVip();
-              }}
-            >
-              会员中心
             </button>
             <button
               className="user-dropdown-cell"
