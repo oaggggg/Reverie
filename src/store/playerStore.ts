@@ -636,10 +636,47 @@ interface PlayerState {
   refreshLogin: () => Promise<void>;
 }
 
+type PlaybackUrlResult = {
+  url: string | null;
+  reason: string;
+};
+
+function reasonFromApi(code: number, message: string): string {
+  const text = message.toLowerCase();
+  if (
+    /vip|会员|付费|privilege|permission|权限|购买|订阅/.test(text) ||
+    code === -110 ||
+    code === 401 ||
+    code === 403
+  )
+    return "该歌曲需要网易云音乐会员或更高账号权限";
+  if (/copyright|版权|地区|region|territory|下架|不可用/.test(text))
+    return "该歌曲受版权或地区限制，当前无法播放";
+  if (/login|登录|cookie|未登录|账号/.test(text))
+    return "该歌曲需要登录网易云音乐账号后播放";
+  return message.trim();
+}
+
+export function playbackFailureMessage(
+  song: Song | null,
+  detail?: { code?: number; message?: string },
+): string {
+  const apiReason = reasonFromApi(
+    Number(detail?.code ?? 0),
+    String(detail?.message ?? ""),
+  );
+  if (apiReason) return apiReason;
+  const loggedIn = usePlayerStore.getState().loggedIn;
+  if (song?.fee === 1 && !loggedIn)
+    return "该歌曲为 VIP 歌曲，请登录并开通网易云音乐会员后播放";
+  if (song?.fee === 1) return "该歌曲需要网易云音乐会员或更高账号权限";
+  return "该歌曲暂无可用播放资源，可能受版权、地区或账号权限限制";
+}
+
 async function resolveUrl(
   song: Song,
   preferredQuality: PlaybackQuality,
-): Promise<string | null> {
+): Promise<PlaybackUrlResult> {
   // VIP songs without login fail on every level; only try standard once to stay fast.
   const loggedIn = usePlayerStore.getState().loggedIn;
   const requestedLevels: PlaybackQuality[] =
@@ -652,21 +689,30 @@ async function resolveUrl(
           : [preferredQuality, "lossless", "exhigh", "higher", "standard"];
   const levels =
     song.fee === 1 && !loggedIn ? (["standard"] as const) : requestedLevels;
+  let lastReason = "";
   for (const level of levels) {
     try {
-      const { url } = await getSongUrl(song.id, level);
-      if (url) return url;
+      const result = await getSongUrl(song.id, level);
+      if (result.url) return { url: result.url, reason: "" };
+      const reason = reasonFromApi(result.code ?? 0, result.message ?? "");
+      if (reason) lastReason = reason;
     } catch {
-      /* try next level */
+      lastReason = "播放地址服务暂时不可用，请检查网络连接后重试";
     }
   }
   try {
-    const { url } = await getLegacySongUrl(song.id);
-    if (url) return url;
+    const result = await getLegacySongUrl(song.id);
+    if (result.url) return { url: result.url, reason: "" };
+    const reason = reasonFromApi(result.code ?? 0, result.message ?? "");
+    if (reason) lastReason = reason;
   } catch {
-    /* final fallback exhausted */
+    lastReason = "播放地址服务暂时不可用，请检查网络连接后重试";
   }
-  return null;
+  return {
+    url: null,
+    reason:
+      lastReason || playbackFailureMessage(song),
+  };
 }
 
 export const usePlayerStore = create<PlayerState>()((set, get) => ({
@@ -887,14 +933,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     write("reverie_playback_quality", quality);
     const { currentSong } = get();
     if (!currentSong) return;
-    const url = await resolveUrl(currentSong, quality);
+    const resolution = await resolveUrl(currentSong, quality);
     const latest = get();
     if (
       latest.currentSong?.id !== currentSong.id ||
       latest.playbackQuality !== quality
     )
       return;
-    if (!url) {
+    if (!resolution.url) {
       set({
         playbackQuality: previousQuality,
         qualitySwitchUrl: null,
@@ -903,11 +949,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         qualitySwitching: false,
       });
       write("reverie_playback_quality", previousQuality);
-      get().toast("该歌曲暂不支持此音质，已保留原音质", "info");
+      get().toast(
+        resolution.reason || "该歌曲暂不支持此音质，已保留原音质",
+        "info",
+      );
       return;
     }
     set({
-      qualitySwitchUrl: url,
+      qualitySwitchUrl: resolution.url,
       qualitySwitchQuality: quality,
       qualitySwitching: true,
     });
@@ -1000,14 +1049,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const nextSong = queue[nextIndex];
     if (nextSong && nextSong.id !== song.id) {
       void resolveUrl(nextSong, state.playbackQuality)
-        .then((nextUrl) => {
+        .then((resolution) => {
           const latest = get();
           if (
             latest.currentSong?.id === song.id &&
             latest.currentUrl === url &&
-            nextUrl
+            resolution.url
           ) {
-            set({ preloadedSongId: nextSong.id, preloadedUrl: nextUrl });
+            set({
+              preloadedSongId: nextSong.id,
+              preloadedUrl: resolution.url,
+            });
           }
         })
         .catch(() => {});
@@ -1599,20 +1651,16 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     get().loadLyrics(song);
     get().trackRecent(song);
 
-    const url = await resolveUrl(song, quality);
+    const resolution = await resolveUrl(song, quality);
     // A newer play request started while this url was resolving: drop this one
     // instead of playing a song the user already moved on from.
     if (token !== playToken) return;
-    if (!url) {
+    if (!resolution.url) {
       set({ loadingUrl: false, currentUrl: null, playing: false });
-      get().failCurrent(
-        song.fee === 1
-          ? "该歌曲为 VIP 歌曲，请登录并开通会员后播放"
-          : "无法获取播放地址（可能需要登录）",
-      );
+      get().failCurrent(resolution.reason);
       return;
     }
-    set({ currentUrl: url, loadingUrl: false, playing: autoplay });
+    set({ currentUrl: resolution.url, loadingUrl: false, playing: autoplay });
 
     // Prefetch the next track's URL while the current one plays; it lands in
     // the song-url cache and makes the next playSong near-instant.
@@ -1628,14 +1676,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const nextSong = nextIdx >= 0 ? state.queue[nextIdx] : null;
     if (nextSong && nextSong.id !== song.id) {
       void resolveUrl(nextSong, quality)
-        .then((nextUrl) => {
+        .then((resolution) => {
           const latest = get();
           if (
             token === playToken &&
             latest.currentSong?.id === song.id &&
-            nextUrl
+            resolution.url
           ) {
-            set({ preloadedSongId: nextSong.id, preloadedUrl: nextUrl });
+            set({
+              preloadedSongId: nextSong.id,
+              preloadedUrl: resolution.url,
+            });
           }
         })
         .catch(() => {});

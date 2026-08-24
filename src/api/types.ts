@@ -738,6 +738,9 @@ export interface SongUrlResponse {
     url?: string | null;
     br?: number;
     type?: string;
+    code?: number;
+    message?: string;
+    msg?: string;
   }>;
 }
 
