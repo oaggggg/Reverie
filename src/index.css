@@ -2866,19 +2866,19 @@ textarea {
 }
 .origin-backdrop.origin-opening { animation: origin-backdrop-in var(--origin-duration, var(--motion-normal)) ease both; }
 .origin-backdrop.origin-closing { animation: origin-backdrop-out var(--origin-duration, var(--motion-normal)) ease both; pointer-events: none; }
-.origin-surface { will-change: transform, opacity, filter; }
+.origin-surface { will-change: transform, opacity; }
 .origin-surface.origin-opening { animation: origin-surface-in var(--origin-duration, var(--motion-normal)) var(--motion-enter) both; }
 .origin-surface.origin-closing { animation: origin-surface-out var(--origin-duration, var(--motion-normal)) var(--motion-exit) both; pointer-events: none; }
 .origin-surface.origin-open { animation: none; }
 @keyframes origin-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes origin-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes origin-surface-in {
-  from { opacity: 0; filter: blur(5px); transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
-  to { opacity: 1; filter: blur(0); transform: translate(0, 0) scale(1); }
+  from { opacity: 0; transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes origin-surface-out {
-  from { opacity: 1; filter: blur(0); transform: translate(0, 0) scale(1); }
-  to { opacity: 0; filter: blur(5px); transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to { opacity: 0; transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
 }
 .modal h2 {
   font-size: 18px;
@@ -6948,6 +6948,17 @@ textarea {
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* ConfirmModal still declares a legacy animation; keep it on the same
+   origin-timed path as every other modal to prevent a material flash. */
+.confirm-modal.origin-opening {
+  animation: origin-surface-in var(--origin-duration, var(--motion-normal))
+    var(--motion-enter) both !important;
+}
+.confirm-modal.origin-closing {
+  animation: origin-surface-out var(--origin-duration, var(--motion-normal))
+    var(--motion-exit) both !important;
 }
 
 /* Interaction feedback stays inside each control's footprint. Content cards
