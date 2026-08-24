@@ -384,6 +384,7 @@ let homeQuoteLoadPromise: Promise<void> | null = null;
 let fmBatchPromise: Promise<Song[]> | null = null;
 let fmRetryStreak = 0;
 let searchToken = 0;
+let playlistRequestToken = 0;
 const searchCache = new Map<string, { at: number; songs: Song[] }>();
 const SEARCH_CACHE_TTL = 5 * 60 * 1000;
 const MAX_SEARCH_CACHE_ENTRIES = 24;
@@ -1424,15 +1425,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
   },
   openPlaylist: async (id, name) => {
+    const requestToken = ++playlistRequestToken;
     set({
       activeView: "playlist",
       playlistName: name,
       prevView: get().activeView,
-      playlistSongs: [],
+      // Keep the previous rows visible while the next playlist loads. Clearing
+      // them first causes a visible blank/loading flash during navigation.
       playlistLoading: true,
     });
     try {
       const detail = await getPlaylistDetail(id);
+      if (requestToken !== playlistRequestToken) return;
       const { songs } = detail;
       set({
         playlistSongs: songs,
@@ -1445,9 +1449,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       });
       if (!songs.length) get().toast("歌单为空", "info");
     } catch {
+      if (requestToken !== playlistRequestToken) return;
       get().toast("载入歌单失败", "error");
     } finally {
-      set({ playlistLoading: false });
+      if (requestToken === playlistRequestToken) set({ playlistLoading: false });
     }
   },
   closePlaylist: () => {
