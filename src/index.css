@@ -3152,6 +3152,11 @@ textarea {
   gap: 8px;
 }
 
+/* Only排行榜保留右上角手动刷新；其他页面依靠进入页面时自动加载。 */
+.page-actions button:has(svg.lucide-refresh-cw):not([title="刷新榜单"]) {
+  display: none;
+}
+
 .btn.active {
   color: var(--accent-2);
   border-color: rgba(236, 65, 65, 0.45);

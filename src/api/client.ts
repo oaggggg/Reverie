@@ -343,6 +343,17 @@ export async function downloadSongFile(song: Song): Promise<void> {
   }));
   if (!result.url) result = await getLegacySongUrl(song.id);
   if (!result.url) throw new Error("该歌曲暂时没有可下载地址");
+  const configuredPath = localStorage.getItem("reverie_download_path") || "D:\\Reverie\\Downloads";
+  if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const response = await fetch(result.url);
+    if (!response.ok) throw new Error("歌曲下载失败");
+    const bytes = Array.from(new Uint8Array(await response.arrayBuffer()));
+    const fileName = (song.name + " - " + song.artists + ".mp3").replace(/[\\/:*?"<>|]/g, "_");
+    const path = configuredPath.replace(/[\\/]+$/, "") + "/" + fileName;
+    await invoke("save_download_file", { path, data: bytes });
+    return;
+  }
   if (typeof document === "undefined") return;
   const anchor = document.createElement("a");
   anchor.href = result.url;
