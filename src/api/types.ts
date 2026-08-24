@@ -256,7 +256,6 @@ export type View =
   | "cloud"
   | "yunbei"
   | "commentHistory"
-  | "downloadHistory"
   | "listenTogether"
   | "voiceWorkbench"
   | "lyricsMark"
@@ -421,11 +420,6 @@ export interface SongMusicDetail {
   url?: string;
 }
 
-export type DownloadHistoryCategory =
-  | "all"
-  | "month"
-  | "purchased"
-  | "singlePurchased";
 
 export interface ListenTogetherRoom {
   roomId: string;
