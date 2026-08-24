@@ -18,7 +18,9 @@ export default function Toasts() {
           key={t.id}
           className={`toast ${t.type}${t.exiting ? " is-exiting" : ""}`}
           data-stack-index={index}
-          style={{ top: `calc(-8px * ${index})` }}
+          // Keep the first toast at its current position; each newer toast
+          // sits slightly lower so the older toast's top edge remains visible.
+          style={{ top: `calc(8px * ${index})` }}
           role="status"
         >
           <span className="toast-icon">{META[t.type]}</span>
