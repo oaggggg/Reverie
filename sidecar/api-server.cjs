@@ -66,9 +66,12 @@ function chooseLocation(candidates) {
     (a, b) => b[1] - a[1],
   )[0];
   const province = topProvince?.[0] || clean[0].province;
-  const agreedCity =
-    [...cityVotes.entries()].find(([, count]) => count >= 2)?.[0] || "";
-  const city = agreedCity ? agreedCity.split("|")[1] || "" : "";
+  // 城市结果不要求所有来源完全一致：只要与最高票省份匹配，就使用
+  // 该省份下票数最高的城市，避免定位结果无故退化为只有省份。
+  const cityEntry = [...cityVotes.entries()]
+    .filter(([key]) => key.startsWith(`${province}|`))
+    .sort((a, b) => b[1] - a[1])[0];
+  const city = cityEntry ? cityEntry[0].split("|")[1] || "" : "";
   const matching = clean.find((item) => item.province === province) || clean[0];
   return {
     country: matching.country || "中国",
