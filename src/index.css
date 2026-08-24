@@ -2439,10 +2439,10 @@ textarea {
 .pb-queue-menu { position: absolute; right: 0; bottom: calc(100% + 12px); width: min(360px, 76vw); max-height: min(52vh, 440px); overflow: hidden; border: 1px solid var(--glass-popup-border); border-radius: 12px; background: var(--glass-popup); box-shadow: var(--glass-surface-shadow); z-index: 40; }
 .pb-queue-menu {
   /* Keep the queue readable over album art and page content. */
-  background: color-mix(in srgb, var(--bg-2) 94%, transparent);
-  border-color: color-mix(in srgb, var(--border) 90%, transparent);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  background: var(--glass-surface);
+  border-color: var(--glass-surface-border);
+  -webkit-backdrop-filter: var(--glass-surface-filter);
+  backdrop-filter: var(--glass-surface-filter);
 }
 .pb-queue-head { display: flex; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 12px; }
 .pb-queue-head span { color: var(--text-dim); }
@@ -6895,6 +6895,45 @@ textarea {
 .media-video-rate-menu button:hover,
 .media-video-quality-menu button:hover {
   background: var(--glass-surface-hover);
+}
+
+/* Final glass contract: every popup/list surface uses the same material as
+   the condensed navigation and floating player. Keep this block last so
+   feature-specific legacy rules cannot make one surface more opaque. */
+.search-dropdown,
+.user-dropdown,
+.modal,
+.settings-modal,
+.volume-popover,
+.player-comments-drawer,
+.share-dialog-backdrop .share-dialog,
+.np-visual-panel,
+.pb-quality-menu,
+.pb-queue-menu,
+.song-card-context-menu,
+.media-detail-dialog,
+.media-video-volume-pop,
+.media-video-rate-menu,
+.media-video-quality-menu,
+.voice-detail-dialog,
+.playlist-import-modal,
+.broadcast-detail-dialog,
+.podcast-program-dialog {
+  --text-dim: var(--glass-readable-dim);
+  --text-faint: var(--glass-readable-faint);
+  background: var(--glass-surface) !important;
+  border-color: var(--glass-surface-border) !important;
+  box-shadow: var(--glass-surface-shadow) !important;
+  -webkit-backdrop-filter: var(--glass-surface-filter) !important;
+  backdrop-filter: var(--glass-surface-filter) !important;
+}
+
+/* Fullscreen video remains an intentional opaque black stage. */
+.media-detail-dialog.media-window-fullscreen-host {
+  background: #000 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* Interaction feedback stays inside each control's footprint. Content cards
