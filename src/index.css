@@ -5455,9 +5455,9 @@ textarea {
   will-change: transform;
 }
 
-.media-card:hover .card-cover,
-.playlist-card:hover .card-cover,
-.song-card:hover .card-cover,
+.media-card .card-cover:hover,
+.playlist-card .card-cover:hover,
+.song-card .card-cover:hover,
 .song-card.context-active .card-cover,
 .song-card.context-active:active .card-cover {
   transform: translateY(-5px) scale(1.01);
@@ -6978,9 +6978,9 @@ textarea {
     filter var(--motion-normal) ease;
 }
 
-.media-card:hover .card-cover,
-.playlist-card:hover .card-cover,
-.song-card:hover .card-cover,
+.media-card .card-cover:hover,
+.playlist-card .card-cover:hover,
+.song-card .card-cover:hover,
 .song-card.context-active .card-cover,
 .song-card.context-active:active .card-cover {
   transform: translateY(-3px) scale(1.018);
