@@ -23,8 +23,10 @@ export default function TitleBar() {
   return (
     <header className="titlebar" data-tauri-drag-region>
       <div className="titlebar-drag" data-tauri-drag-region />
-      <div className="titlebar-name" data-text="Reverie">
-        Reverie
+      <div className="titlebar-name">
+        <span className="titlebar-name-text" data-text="Reverie">
+          Reverie
+        </span>
       </div>
       <div className="titlebar-controls">
         <button
