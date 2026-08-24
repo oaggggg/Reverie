@@ -304,7 +304,7 @@ export default function TopNav() {
         {NAV.map((item) => (
           <button
             key={item.view}
-            className={`topnav-item ${activeView === item.view && !searchOpen ? "active" : ""}`}
+            className={`topnav-item ${activeView === item.view ? "active" : ""}`}
             onPointerEnter={() => void preloadView(item.view)}
             onClick={() => handleNav(item.view, item.auth)}
             title={item.label}
