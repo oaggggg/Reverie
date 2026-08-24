@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 import UserMenu from "./UserMenu";
 import { sizedImage } from "../utils/image";
-import { captureInteractionOrigin } from "../utils/originTransition";
+import {
+  captureInteractionOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
 
 interface NavItem {
   view: View;
@@ -146,6 +149,11 @@ export default function TopNav() {
   const navRef = useRef<HTMLElement>(null);
   const searchTimerRef = useRef(0);
   const [condensed, setCondensed] = useState(false);
+  const searchTransition = useOriginTransition<HTMLDivElement>(
+    searchOpen,
+    "topnav-search",
+    200,
+  );
 
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus();
@@ -228,7 +236,7 @@ export default function TopNav() {
 
   return (
     <nav
-      className={`topnav ${condensed ? "is-condensed" : ""} ${searchOpen ? "search-open" : ""}`}
+      className={`topnav ${condensed ? "is-condensed" : ""} ${searchTransition.rendered ? "search-open" : ""}`}
       ref={navRef}
     >
       <div className="topnav-items">
@@ -246,8 +254,11 @@ export default function TopNav() {
       </div>
 
       <div className="topnav-actions">
-        {searchOpen ? (
-          <div className="search-wrap">
+        {searchTransition.rendered ? (
+          <div
+            ref={searchTransition.surfaceRef}
+            className={`search-wrap ${searchTransition.surfaceClassName}`}
+          >
             <div className="search-capsule">
               <Search size={15} />
               <input
@@ -375,7 +386,9 @@ export default function TopNav() {
         ) : (
           <button
             className="topnav-icon-btn"
-            onClick={() => {
+            data-origin-key="topnav-search"
+            onClick={(event) => {
+              captureInteractionOrigin("topnav-search", event.currentTarget);
               // reopen clean: don't keep the previous search content
               setSearchOpen(true);
               setPage("browse");
@@ -426,6 +439,7 @@ export default function TopNav() {
         <button
           className="topnav-icon-btn"
           onPointerEnter={() => void preloadView("notifications")}
+          data-origin-key={loggedIn ? undefined : "login"}
           onClick={(event) => {
             if (!loggedIn) {
               captureInteractionOrigin("login", event.currentTarget);

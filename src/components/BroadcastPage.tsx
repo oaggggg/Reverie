@@ -98,13 +98,12 @@ export default function BroadcastPage() {
           {error}
         </div>
       )}
-      {activeChannel && (
-        <BroadcastChannelDialog
-          channel={activeChannel}
-          loading={currentInfoLoading}
-          onClose={closeCurrentInfo}
-        />
-      )}
+      <BroadcastChannelDialog
+        open={Boolean(activeChannel)}
+        channel={activeChannel}
+        loading={currentInfoLoading}
+        onClose={closeCurrentInfo}
+      />
     </Page>
   );
 }

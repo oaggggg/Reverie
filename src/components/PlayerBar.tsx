@@ -8,6 +8,7 @@ import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
 import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
+import { preloadNowPlayingAssets } from "../utils/nowPlayingPreload";
 import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
 import {
@@ -130,8 +131,10 @@ export default function PlayerBar() {
           <div
             className={`pb-cover ${playing ? "spinning" : "paused"}`}
             onPointerEnter={() => {
-              void import("./NowPlayingView");
-              if (coverQuality !== "image") void import("./ParticleAlbumCover");
+              preloadNowPlayingAssets(
+                currentSong?.picUrl,
+                coverQuality !== "image",
+              );
             }}
             onClick={(event) => {
               captureCoverOrigin(event.currentTarget);

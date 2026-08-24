@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, LoaderCircle, Search, X } from "lucide-react";
 import { searchSongs } from "../api/client.ts";
 import type { Song } from "../api/types.ts";
+import { useOriginTransition } from "../utils/originTransition";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ export default function PlaylistTrackPicker({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const transition = useOriginTransition<HTMLDivElement>(open, "playlist-picker", 220);
 
   useEffect(() => {
     if (!open) {
@@ -30,7 +32,7 @@ export default function PlaylistTrackPicker({
     }
   }, [open]);
 
-  if (!open) return null;
+  if (!transition.rendered) return null;
 
   const search = async () => {
     const value = keyword.trim();
@@ -59,11 +61,12 @@ export default function PlaylistTrackPicker({
 
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${transition.backdropClassName}`}
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <div
-        className="modal playlist-track-picker"
+        ref={transition.surfaceRef}
+        className={`modal playlist-track-picker ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="playlist-picker-title"

@@ -9,10 +9,11 @@ import {
 } from "react";
 import { ChevronDown, Disc3, SlidersHorizontal } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
+import { loadParticleAlbumCover } from "../utils/nowPlayingPreload";
 // three.js is ~530 kB of the bundle and only the particle cover needs it.
 // Loading it lazily keeps it out of the first paint entirely, and a machine on
 // the "image" tier never downloads or parses it at all.
-const ParticleAlbumCover = lazy(() => import("./ParticleAlbumCover"));
+const ParticleAlbumCover = lazy(loadParticleAlbumCover);
 import CoverErrorBoundary from "./CoverErrorBoundary";
 import { QUALITY_GRID } from "../utils/gpuBenchmark";
 import Lyrics3D from "./Lyrics3D";

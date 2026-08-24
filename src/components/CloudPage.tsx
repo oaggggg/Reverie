@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Cloud,
   Download,
@@ -16,6 +16,7 @@ import type { CloudSong } from "../api/types";
 import ConfirmModal from "./ConfirmModal";
 import { LoadingState, Page, PageHeader } from "./Page";
 import { sizedImage } from "../utils/image";
+import { useOriginTransition } from "../utils/originTransition";
 
 function formatBytes(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "大小未知";
@@ -161,21 +162,29 @@ function CloudDetailDialog({
   loading: boolean;
   onClose: () => void;
 }) {
-  if (!song) return null;
+  const cachedSong = useRef<CloudSong | null>(song);
+  if (song) cachedSong.current = song;
+  const transition = useOriginTransition<HTMLDivElement>(
+    Boolean(song),
+    "cloud-detail",
+    220,
+  );
+  const currentSong = cachedSong.current;
+  if (!transition.rendered || !currentSong) return null;
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal entity-editor" onClick={(event) => event.stopPropagation()}>
-        <h2>{song.name}</h2>
+    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
+      <div ref={transition.surfaceRef} className={`modal entity-editor ${transition.surfaceClassName}`} onClick={(event) => event.stopPropagation()}>
+        <h2>{currentSong.name}</h2>
         <p className="sub">{loading ? "正在加载云盘详情…" : "云盘歌曲详情"}</p>
         <div className="cloud-detail-list">
-          <div><span>歌手</span><strong>{song.artists || "未知歌手"}</strong></div>
-          <div><span>专辑</span><strong>{song.album || "未知专辑"}</strong></div>
-          <div><span>歌曲 ID</span><strong>{song.id || "-"}</strong></div>
-          <div><span>云盘 ID</span><strong>{song.cloudId || "-"}</strong></div>
-          <div><span>文件名</span><strong>{song.fileName || "-"}</strong></div>
-          <div><span>文件大小</span><strong>{formatBytes(song.fileSize)}</strong></div>
-          <div><span>比特率</span><strong>{song.bitrate ? `${Math.round(song.bitrate / 1000)} kbps` : "未知"}</strong></div>
-          <div><span>匹配歌曲</span><strong>{song.matchedSongId || "未匹配"}</strong></div>
+          <div><span>歌手</span><strong>{currentSong.artists || "未知歌手"}</strong></div>
+          <div><span>专辑</span><strong>{currentSong.album || "未知专辑"}</strong></div>
+          <div><span>歌曲 ID</span><strong>{currentSong.id || "-"}</strong></div>
+          <div><span>云盘 ID</span><strong>{currentSong.cloudId || "-"}</strong></div>
+          <div><span>文件名</span><strong>{currentSong.fileName || "-"}</strong></div>
+          <div><span>文件大小</span><strong>{formatBytes(currentSong.fileSize)}</strong></div>
+          <div><span>比特率</span><strong>{currentSong.bitrate ? `${Math.round(currentSong.bitrate / 1000)} kbps` : "未知"}</strong></div>
+          <div><span>匹配歌曲</span><strong>{currentSong.matchedSongId || "未匹配"}</strong></div>
         </div>
         <div className="modal-actions">
           <button className="btn" onClick={onClose}>关闭</button>
@@ -219,10 +228,11 @@ function CloudImportDialog({
   onSubmit: (input: ImportValues) => Promise<boolean>;
 }) {
   const [values, setValues] = useState<ImportValues>(emptyImport);
+  const transition = useOriginTransition<HTMLDivElement>(open, "cloud-import", 220);
   useEffect(() => {
     if (open) setValues(emptyImport);
   }, [open]);
-  if (!open) return null;
+  if (!transition.rendered) return null;
   const update = (key: keyof ImportValues, value: string) =>
     setValues((current) => ({ ...current, [key]: value }));
   const submit = async () => {
@@ -230,8 +240,8 @@ function CloudImportDialog({
     if (await onSubmit(values)) onClose();
   };
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal entity-editor" onClick={(event) => event.stopPropagation()}>
+    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
+      <div ref={transition.surfaceRef} className={`modal entity-editor ${transition.surfaceClassName}`} onClick={(event) => event.stopPropagation()}>
         <h2>导入已有歌曲</h2>
         <p className="sub">使用歌曲文件的 MD5 和元数据，将已存在的资源加入云盘。</p>
         <label className="field-label">
@@ -335,7 +345,7 @@ export default function CloudPage() {
                 }}
               />
             </label>
-            <button className="btn" title="导入已有歌曲" onClick={() => setImportOpen(true)}>
+            <button className="btn" data-origin-key="cloud-import" title="导入已有歌曲" onClick={() => setImportOpen(true)}>
               <Download size={15} /> 导入已有歌曲
             </button>
           </div>

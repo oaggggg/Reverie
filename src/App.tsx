@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type SyntheticEvent } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type SyntheticEvent } from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { ensureAnalyser, resumeAnalyser } from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
@@ -10,6 +10,10 @@ import Toasts from "./components/Toasts";
 import SettingsModal from "./components/SettingsModal";
 import MediaDetailDialog from "./components/MediaDetailDialog";
 import { reportScrobble, reportWeblog } from "./api/playbackReport";
+import {
+  loadNowPlayingView,
+  preloadNowPlayingAssets,
+} from "./utils/nowPlayingPreload";
 
 const ChartPage = lazy(() => import("./components/ChartPage"));
 const SearchPage = lazy(() => import("./components/SearchPage"));
@@ -51,7 +55,6 @@ const LibraryPage = lazy(() => import("./components/LibraryPage"));
 const CalendarPage = lazy(() => import("./components/CalendarPage"));
 const PrivateDjPage = lazy(() => import("./components/PrivateDjPage"));
 const VideoPage = lazy(() => import("./components/VideoPage"));
-const NowPlayingView = lazy(() => import("./components/NowPlayingView"));
 const PlayerCommentsDrawer = lazy(
   () => import("./components/PlayerCommentsDrawer"),
 );
@@ -81,8 +84,11 @@ export default function App() {
   const showLogin = usePlayerStore((s) => s.showLogin);
   const showUpdate = usePlayerStore((s) => s.showUpdate);
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
+  const [NowPlayingView, setNowPlayingView] =
+    useState<ComponentType | null>(null);
   const [mountedOverlays, setMountedOverlays] = useState({
     comments: showPlayerComments,
     login: showLogin,
@@ -111,6 +117,21 @@ export default function App() {
       if (scroller) scrollPositionsRef.current.set(key, scroller.scrollTop);
     };
   }, [activeView, currentPage]);
+
+  useEffect(() => {
+    if (!currentSong) return;
+    let alive = true;
+    preloadNowPlayingAssets(
+      currentSong.picUrl,
+      coverQuality !== "image",
+    );
+    void loadNowPlayingView().then((module) => {
+      if (alive) setNowPlayingView(() => module.default);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [coverQuality, currentSong?.id, currentSong?.picUrl]);
 
   useEffect(() => {
     if (
@@ -593,11 +614,12 @@ export default function App() {
           </main>
         </div>
       )}
-      {currentPage === "nowplaying" && (
-        <Suspense fallback={<div className="now-playing-loading" />}>
+      {currentPage === "nowplaying" &&
+        (NowPlayingView ? (
           <NowPlayingView />
-        </Suspense>
-      )}
+        ) : (
+          <div className="now-playing-loading" />
+        ))}
       {mountedOverlays.comments && (
         <Suspense fallback={null}>
           <PlayerCommentsDrawer />

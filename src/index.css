@@ -71,6 +71,11 @@
    type, glass) stays in the theme tokens above; everything below only
    describes where structural surfaces sit. */
 :root {
+  --motion-fast: 160ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+  --motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-exit: cubic-bezier(0.4, 0, 0.8, 0.2);
   /* Single glass contract: every transient surface matches the condensed nav. */
   --glass-surface: color-mix(in srgb, var(--glass) 86%, transparent);
   --glass-surface-border: color-mix(in srgb, var(--border) 88%, transparent);
@@ -2707,19 +2712,21 @@ textarea {
   overflow-y: auto;
   box-shadow: 0 24px 80px var(--shadow);
 }
-.origin-backdrop.origin-opening { animation: origin-backdrop-in .22s ease both; }
-.origin-backdrop.origin-closing { animation: origin-backdrop-out .22s ease both; pointer-events: none; }
-.origin-surface.origin-opening { animation: origin-surface-in .22s cubic-bezier(.22,1,.36,1) both; }
-.origin-surface.origin-closing { animation: origin-surface-out .22s cubic-bezier(.4,0,.8,.2) both; pointer-events: none; }
+.origin-backdrop.origin-opening { animation: origin-backdrop-in var(--origin-duration, var(--motion-normal)) ease both; }
+.origin-backdrop.origin-closing { animation: origin-backdrop-out var(--origin-duration, var(--motion-normal)) ease both; pointer-events: none; }
+.origin-surface { will-change: transform, opacity, filter; }
+.origin-surface.origin-opening { animation: origin-surface-in var(--origin-duration, var(--motion-normal)) var(--motion-enter) both; }
+.origin-surface.origin-closing { animation: origin-surface-out var(--origin-duration, var(--motion-normal)) var(--motion-exit) both; pointer-events: none; }
+.origin-surface.origin-open { animation: none; }
 @keyframes origin-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes origin-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes origin-surface-in {
-  from { opacity: 0; transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
-  to { opacity: 1; transform: translate(0, 0) scale(1); }
+  from { opacity: 0; filter: blur(5px); transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
+  to { opacity: 1; filter: blur(0); transform: translate(0, 0) scale(1); }
 }
 @keyframes origin-surface-out {
-  from { opacity: 1; transform: translate(0, 0) scale(1); }
-  to { opacity: 0; transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
+  from { opacity: 1; filter: blur(0); transform: translate(0, 0) scale(1); }
+  to { opacity: 0; filter: blur(5px); transform: translate(var(--origin-x, 0), var(--origin-y, 10px)) scale(var(--origin-scale-x, .9), var(--origin-scale-y, .9)); }
 }
 .modal h2 {
   font-size: 18px;
@@ -5007,6 +5014,11 @@ textarea {
   animation: page-content-arrive 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.user-dropdown.origin-surface,
+.search-wrap.origin-surface .search-capsule {
+  animation-name: none;
+}
+
 @keyframes page-content-arrive {
   from {
     opacity: 0;
@@ -5859,6 +5871,16 @@ textarea {
 .media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
 .media-video-volume-thumb { position: absolute; left: 50%; width: 10px; height: 10px; transform: translate(-50%, 50%); border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
 .media-video-volume-num { width: 3ch; color: rgba(255, 255, 255, 0.85); font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
+.media-video-volume-pop.origin-opening { animation: media-volume-origin-in var(--origin-duration, 160ms) var(--motion-enter) both; }
+.media-video-volume-pop.origin-closing { animation: media-volume-origin-out var(--origin-duration, 160ms) var(--motion-exit) both; }
+@keyframes media-volume-origin-in {
+  from { opacity: 0; filter: blur(4px); transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 8px)) scale(var(--origin-scale-x, .7), var(--origin-scale-y, .7)); }
+  to { opacity: 1; filter: blur(0); transform: translate(-50%, 0) scale(1); }
+}
+@keyframes media-volume-origin-out {
+  from { opacity: 1; filter: blur(0); transform: translate(-50%, 0) scale(1); }
+  to { opacity: 0; filter: blur(4px); transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 8px)) scale(var(--origin-scale-x, .7), var(--origin-scale-y, .7)); }
+}
 .media-video-rate { position: relative; display: inline-flex; }
 .media-video-rate-btn { width: auto; min-width: 44px; padding: 0 8px; font-size: 12px; }
 .media-video-rate-menu { position: absolute; bottom: 34px; right: 0; display: grid; min-width: 66px; padding: 4px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
@@ -6511,6 +6533,79 @@ textarea {
 .media-video-rate-menu button:hover,
 .media-video-quality-menu button:hover {
   background: var(--glass-surface-hover);
+}
+
+/* Interaction feedback stays inside each control's footprint. Content cards
+   keep their labels stationary; only their dedicated cover layer may travel. */
+.icon-btn,
+.icon-button,
+.media-video-btn,
+.topnav-item,
+.btn,
+.primary-button,
+.segmented-control button,
+[role="tab"] {
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    opacity var(--motion-fast) ease,
+    transform var(--motion-fast) var(--motion-enter);
+}
+
+.icon-btn:active,
+.icon-button:active,
+.media-video-btn:active,
+.topnav-item:active,
+.btn:active,
+.primary-button:active,
+.segmented-control button:active,
+[role="tab"]:active {
+  transform: scale(0.94);
+  transition-timing-function: var(--motion-exit);
+}
+
+.card-cover,
+.media-card .card-cover,
+.playlist-card .card-cover,
+.song-card .card-cover {
+  transform-origin: center;
+  transition:
+    transform var(--motion-slow) var(--motion-enter),
+    box-shadow var(--motion-normal) ease,
+    filter var(--motion-normal) ease;
+}
+
+.media-card:hover .card-cover,
+.playlist-card:hover .card-cover,
+.song-card:hover .card-cover {
+  transform: translateY(-3px) scale(1.018);
+}
+
+.media-card:active .card-cover,
+.playlist-card:active .card-cover,
+.song-card:active .card-cover {
+  transform: translateY(0) scale(0.985);
+  transition-timing-function: var(--motion-exit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .origin-surface,
+  .page-scroll,
+  .card-cover {
+    filter: none !important;
+    transform: none !important;
+  }
 }
 
 /* Digital album sales board */
