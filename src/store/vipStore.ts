@@ -7,14 +7,19 @@ import {
   getVipTimeMachine,
   claimVipTaskRewards,
 } from "../api/vip.ts";
-import type { VipGrowthEntry, VipGrowthInfo, VipTask } from "../api/types.ts";
+import type {
+  VipGrowthEntry,
+  VipGrowthInfo,
+  VipTask,
+  VipTimeMachineInfo,
+} from "../api/types.ts";
 import { usePlayerStore } from "./playerStore.ts";
 
 interface VipState {
   growth: VipGrowthInfo | null;
   tasks: VipTask[];
   details: VipGrowthEntry[];
-  timeMachine: Record<string, unknown> | null;
+  timeMachine: VipTimeMachineInfo | null;
   growthInfo: Record<string, unknown> | null;
   loading: boolean;
   claiming: boolean;

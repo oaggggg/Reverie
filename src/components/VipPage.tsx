@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Check, Crown, Gift, History, RefreshCw, Sparkles } from "lucide-react";
 import { useVipStore } from "../store/vipStore.ts";
+import { sizedImage } from "../utils/image.ts";
 import { LoadingState, Page, PageHeader } from "./Page";
 
 function infoEntries(value: Record<string, unknown> | null): Array<[string, string]> {
@@ -153,13 +154,34 @@ export default function VipPage() {
               </div>
             </section>
           )}
-          {timeMachine && (
+          {timeMachine && timeMachine.items.length > 0 && (
             <section className="vip-section vip-time-machine">
-              <div>
-                <Sparkles size={18} />
-                <strong>黑胶时光机</strong>
+              <div className="vip-time-machine-head">
+                <div>
+                  <Sparkles size={18} />
+                  <strong>黑胶时光机</strong>
+                </div>
+                {timeMachine.recordTime > 0 && (
+                  <time>{formatTime(timeMachine.recordTime)}</time>
+                )}
               </div>
-              <pre>{JSON.stringify(timeMachine, null, 2)}</pre>
+              <div className="vip-time-machine-grid">
+                {timeMachine.items.map((item) => (
+                  <article key={item.id} className="vip-time-machine-card">
+                    {item.coverUrl ? (
+                      <img src={sizedImage(item.coverUrl, 120)} alt="" />
+                    ) : (
+                      <span className="vip-time-machine-icon">
+                        <Sparkles size={18} />
+                      </span>
+                    )}
+                    <div>
+                      <strong>{item.title}</strong>
+                      {item.description && <p>{item.description}</p>}
+                    </div>
+                  </article>
+                ))}
+              </div>
             </section>
           )}
         </>
