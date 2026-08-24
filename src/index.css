@@ -4879,7 +4879,7 @@ textarea {
   transform: none !important;
   animation: toast-codex-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.toast-wrap .toast + .toast { margin-top: -34px; }
+.toast-wrap .toast + .toast { margin-top: -22px; }
 .toast-wrap .toast:nth-child(n) { z-index: auto; }
 .toast-wrap .toast:first-child { z-index: 5; }
 .toast-wrap .toast:nth-child(2) { z-index: 4; }
