@@ -27,6 +27,10 @@ import {
 const FALLBACK_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='18' fill='%23e9eaf0'/%3E%3Ccircle cx='80' cy='80' r='42' fill='%23c9cad4'/%3E%3Ccircle cx='80' cy='80' r='14' fill='%23f5f5f8'/%3E%3Cpath d='M94 42v46.5a20 20 0 1 1-8-16V42h8Z' fill='%237b7f92'/%3E%3C/svg%3E";
 
+const AUDIO_FADE_IN_MS = 180;
+const AUDIO_FADE_OUT_MS = 140;
+const SEAMLESS_CROSSFADE_MS = 260;
+
 const ChartPage = lazy(() => import("./components/ChartPage"));
 const SearchPage = lazy(() => import("./components/SearchPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
@@ -76,6 +80,42 @@ const UpdateModal = lazy(() => import("./components/UpdateModal"));
 export default function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadAudioRef = useRef<HTMLAudioElement>(null);
+  const fadeFramesRef = useRef(new Map<HTMLAudioElement, number>());
+  const seamlessTransitionRef = useRef(false);
+  const skipNextFadeInRef = useRef(false);
+
+  const fadeAudioVolume = (
+    audio: HTMLAudioElement,
+    target: number,
+    duration: number,
+  ) => {
+    const previousFrame = fadeFramesRef.current.get(audio);
+    if (previousFrame !== undefined) {
+      window.cancelAnimationFrame(previousFrame);
+      fadeFramesRef.current.delete(audio);
+    }
+    const start = audio.volume;
+    const end = Math.min(1, Math.max(0, target));
+    if (duration <= 0 || Math.abs(start - end) < 0.005) {
+      audio.volume = end;
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      const startedAt = performance.now();
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        audio.volume = start + (end - start) * eased;
+        if (progress >= 1) {
+          fadeFramesRef.current.delete(audio);
+          resolve();
+          return;
+        }
+        fadeFramesRef.current.set(audio, window.requestAnimationFrame(step));
+      };
+      fadeFramesRef.current.set(audio, window.requestAnimationFrame(step));
+    });
+  };
 
   const currentUrl = usePlayerStore((s) => s.currentUrl);
   const preloadedUrl = usePlayerStore((s) => s.preloadedUrl);
@@ -85,6 +125,8 @@ export default function App() {
   const activeAudio = usePlayerStore((s) => s.activeAudio);
   const pendingSeek = usePlayerStore((s) => s.pendingSeek);
   const playing = usePlayerStore((s) => s.playing);
+  const volume = usePlayerStore((s) => s.volume);
+  const muted = usePlayerStore((s) => s.muted);
   const theme = usePlayerStore((s) => s.theme);
   const glassOpacity = usePlayerStore((s) => s.glassOpacity);
   const glassBlur = usePlayerStore((s) => s.glassBlur);
@@ -408,8 +450,92 @@ export default function App() {
       a.src = currentUrl;
       a.load();
     }
-    if (currentUrl && playing) a.play().catch(() => {});
+    if (!currentUrl) return;
+    if (playing) {
+      const target = muted ? 0 : volume;
+      if (skipNextFadeInRef.current) {
+        skipNextFadeInRef.current = false;
+        a.volume = target;
+        if (a.paused) a.play().catch(() => {});
+      } else {
+        a.volume = 0;
+        a.play()
+          .then(() => fadeAudioVolume(a, target, AUDIO_FADE_IN_MS))
+          .catch(() => {});
+      }
+    } else if (!a.paused) {
+      void fadeAudioVolume(a, 0, AUDIO_FADE_OUT_MS).then(() => {
+        a.pause();
+        a.volume = muted ? 0 : volume;
+      });
+    }
   }, [activeAudio, currentUrl, playing]);
+
+  // Start the next already-buffered track slightly before the current one
+  // ends. The store is promoted only after both decoders finish their volume
+  // ramps, so the progress clock and lyrics keep following one active track.
+  useEffect(() => {
+    if (
+      !playing ||
+      !currentUrl ||
+      !preloadedUrl ||
+      !preloadedSongId ||
+      seamlessTransitionRef.current
+    )
+      return;
+    const current =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    const nextAudio =
+      activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
+    if (!current || !nextAudio) return;
+    const timer = window.setInterval(() => {
+      if (
+        seamlessTransitionRef.current ||
+        !Number.isFinite(current.duration) ||
+        current.duration - current.currentTime > SEAMLESS_CROSSFADE_MS / 1000
+      )
+        return;
+      const state = usePlayerStore.getState();
+      if (
+        state.playMode === "one" ||
+        (state.playMode === "sequence" && state.index >= state.queue.length - 1)
+      )
+        return;
+      const nextSong = state.queue.find((song) => song.id === preloadedSongId);
+      if (!nextSong || nextAudio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
+        return;
+      seamlessTransitionRef.current = true;
+      nextAudio.currentTime = 0;
+      nextAudio.volume = 0;
+      nextAudio
+        .play()
+        .then(() =>
+          Promise.all([
+            fadeAudioVolume(current, 0, SEAMLESS_CROSSFADE_MS),
+            fadeAudioVolume(
+              nextAudio,
+              state.muted ? 0 : state.volume,
+              SEAMLESS_CROSSFADE_MS,
+            ),
+          ]),
+        )
+        .then(() => {
+          current.pause();
+          current.currentTime = 0;
+          skipNextFadeInRef.current = true;
+          usePlayerStore
+            .getState()
+            .commitPreloaded(nextSong, state.queue, state.queueSource, preloadedUrl);
+          seamlessTransitionRef.current = false;
+        })
+        .catch(() => {
+          nextAudio.pause();
+          nextAudio.volume = state.muted ? 0 : state.volume;
+          seamlessTransitionRef.current = false;
+        });
+    }, 50);
+    return () => window.clearInterval(timer);
+  }, [activeAudio, currentUrl, playing, preloadedSongId, preloadedUrl]);
 
   // Fill the inactive decoder while the current track plays. The URL comes
   // directly from Netease's official song URL endpoint.
@@ -434,8 +560,9 @@ export default function App() {
   useEffect(() => {
     const a = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!a || !currentUrl) return;
-    if (playing) a.play().catch(() => {});
-    else a.pause();
+    if (playing && a.paused) {
+      a.play().catch(() => {});
+    }
   }, [activeAudio, playing, currentUrl]);
 
   // `timeupdate` only fires a few times per second in WebView. Sample the
@@ -471,7 +598,10 @@ export default function App() {
     return () => window.cancelAnimationFrame(frame);
   }, [activeAudio, playing, currentUrl]);
 
-  const handleEnded = () => {
+  const handleEnded = (event: SyntheticEvent<HTMLAudioElement>) => {
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    if (event.currentTarget !== active || seamlessTransitionRef.current) return;
     const st = usePlayerStore.getState();
     const endedSong = st.currentSong;
     if (endedSong) {
