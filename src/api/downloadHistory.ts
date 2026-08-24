@@ -79,24 +79,38 @@ export async function getDownloadHistory(
   limit = 30,
   offset = 0,
 ): Promise<Song[]> {
-  const route =
+  const routes =
     category === "all"
-      ? "/song/downlist"
+      ? ["/song/downlist"]
       : category === "month"
-        ? "/song/monthdownlist"
+        ? ["/song/monthdownlist"]
         : category === "purchased"
-          ? "/song/purchased"
-          : "/song/singledownlist";
-  const response = await request<Obj>(route, { limit, offset }, false);
-  const data = obj(response.data ?? response);
-  return arr(
-    data.info ??
-      data.list ??
-      data.songs ??
-      response.info ??
-      response.songs ??
-      response.data,
-  )
-    .map(normalizeDownloadSong)
-    .filter((song): song is Song => song !== null);
+          ? ["/song/purchased", "/song/singledownlist"]
+          : ["/song/singledownlist", "/song/purchased"];
+  let receivedResponse = false;
+  let lastError: unknown;
+  for (const route of routes) {
+    try {
+      const response = await request<Obj>(route, { limit, offset }, false);
+      receivedResponse = true;
+      const data = obj(response.data ?? response.result ?? response);
+      const songs = arr(
+        data.info ??
+          data.list ??
+          data.songs ??
+          data.records ??
+          data.items ??
+          response.info ??
+          response.songs ??
+          response.data,
+      )
+        .map(normalizeDownloadSong)
+        .filter((song): song is Song => song !== null);
+      if (songs.length > 0) return songs;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!receivedResponse && lastError) throw lastError;
+  return [];
 }
