@@ -6152,9 +6152,9 @@ textarea {
 .media-video-time { flex: none; color: rgba(255, 255, 255, 0.85); font-size: 12px; font-variant-numeric: tabular-nums; }
 .media-video-seek { flex: 1; min-width: 40px; height: 5px; accent-color: #fff; cursor: pointer; }
 .media-video-volume { position: relative; display: inline-flex; }
-/* Flush against the button (bottom: 28px = button height) with extra bottom
-   padding so there is no hover gap between the icon and the vertical bar. */
-.media-video-volume-pop { position: absolute; bottom: 26px; left: 50%; width: 42px; box-sizing: border-box; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 12px 8px 20px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+/* Keep the volume surface directly above the 34px control button. The edges
+   touch without overlapping, so the popup cannot cover or resize the button. */
+.media-video-volume-pop { position: absolute; bottom: 34px; left: 50%; z-index: 4; width: 42px; box-sizing: border-box; transform: translateX(-50%); display: grid; justify-items: center; gap: 8px; padding: 10px 8px 12px; border-radius: 8px; background: rgba(12, 14, 22, 0.92); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
 /* Custom-drawn vertical volume slider (div-based, player style). */
 .media-video-volume-track { position: relative; width: 5px; height: 100px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); cursor: pointer; touch-action: none; }
 .media-video-volume-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: #fff; }
