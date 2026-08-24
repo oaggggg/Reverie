@@ -299,7 +299,12 @@ const SONG_URL_CACHE_TTL = 30 * 60 * 1000;
 export async function getSongUrl(
   id: number,
   level: PlaybackQuality = "exhigh",
-): Promise<{ url: string | null; br: number }> {
+): Promise<{
+  url: string | null;
+  br: number;
+  code?: number;
+  message?: string;
+}> {
   const key = cacheKey("/song/url/v1", { id, level });
   const hit = responseCache.get(key);
   if (hit && Date.now() - hit.at < SONG_URL_CACHE_TTL) {
@@ -310,7 +315,12 @@ export async function getSongUrl(
   const run = request<SongUrlResponse>("/song/url/v1", { id, level })
     .then((res) => {
       const d = res.data?.[0];
-      const out = { url: d?.url ?? null, br: d?.br ?? 0 };
+      const out = {
+        url: d?.url ?? null,
+        br: d?.br ?? 0,
+        code: Number(d?.code ?? res.code ?? 0),
+        message: String(d?.message ?? d?.msg ?? ""),
+      };
       // Only cache playable results; a null url may become available later
       // (e.g. right after login).
       if (out.url) responseCache.set(key, { at: Date.now(), data: out });
@@ -370,13 +380,23 @@ export async function downloadSongFile(song: Song): Promise<void> {
 
 export async function getLegacySongUrl(
   id: number,
-): Promise<{ url: string | null; br: number }> {
+): Promise<{
+  url: string | null;
+  br: number;
+  code?: number;
+  message?: string;
+}> {
   const res = await request<SongUrlResponse>("/song/url", {
     id,
     br: 320000,
   });
   const d = res.data?.[0];
-  return { url: d?.url ?? null, br: d?.br ?? 0 };
+  return {
+    url: d?.url ?? null,
+    br: d?.br ?? 0,
+    code: Number(d?.code ?? res.code ?? 0),
+    message: String(d?.message ?? d?.msg ?? ""),
+  };
 }
 
 export async function getLyric(id: number): Promise<{

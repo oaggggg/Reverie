@@ -8,7 +8,10 @@ import {
   type ComponentType,
   type SyntheticEvent,
 } from "react";
-import { usePlayerStore } from "./store/playerStore";
+import {
+  playbackFailureMessage,
+  usePlayerStore,
+} from "./store/playerStore";
 import { ensureAnalyser, resumeAnalyser } from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
 import TopNav from "./components/TopNav";
@@ -711,8 +714,18 @@ export default function App() {
       return;
     }
     if (event.currentTarget !== active) return;
+    const mediaCode = event.currentTarget.error?.code;
+    const currentSong = usePlayerStore.getState().currentSong;
+    const message =
+      mediaCode === MediaError.MEDIA_ERR_NETWORK
+        ? "音频网络加载失败，请检查网络连接后重试"
+        : mediaCode === MediaError.MEDIA_ERR_DECODE
+          ? "音频文件解码失败，该歌曲资源可能已损坏或失效"
+          : mediaCode === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED
+            ? playbackFailureMessage(currentSong)
+            : "音频播放被中断，请稍后重试";
     usePlayerStore.setState({ playing: false });
-    usePlayerStore.getState().failCurrent("音频加载失败");
+    usePlayerStore.getState().failCurrent(message);
   };
 
   const renderPage = () => {
