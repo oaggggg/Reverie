@@ -24,6 +24,9 @@ import {
   preloadNowPlayingAssets,
 } from "./utils/nowPlayingPreload";
 
+const FALLBACK_IMAGE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='18' fill='%23e9eaf0'/%3E%3Ccircle cx='80' cy='80' r='42' fill='%23c9cad4'/%3E%3Ccircle cx='80' cy='80' r='14' fill='%23f5f5f8'/%3E%3Cpath d='M94 42v46.5a20 20 0 1 1-8-16V42h8Z' fill='%237b7f92'/%3E%3C/svg%3E";
+
 const ChartPage = lazy(() => import("./components/ChartPage"));
 const SearchPage = lazy(() => import("./components/SearchPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
@@ -104,6 +107,19 @@ export default function App() {
     login: showLogin,
     update: showUpdate,
   });
+
+  useEffect(() => {
+    const handleImageError = (event: Event) => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+      if (image.dataset.reverieFallback === "true") return;
+      image.dataset.reverieFallback = "true";
+      image.removeAttribute("srcset");
+      image.src = FALLBACK_IMAGE;
+    };
+    window.addEventListener("error", handleImageError, true);
+    return () => window.removeEventListener("error", handleImageError, true);
+  }, []);
 
   useEffect(() => {
     if (!showPlayerComments && !showLogin && !showUpdate) return;
