@@ -13,7 +13,13 @@ export default function Toasts() {
   return (
     <div className="toast-wrap">
       {toasts.slice(-5).map((t, index) => (
-        <div key={t.id} className={`toast ${t.type}`} data-stack-index={index} role="status">
+        <div
+          key={t.id}
+          className={`toast ${t.type}`}
+          data-stack-index={index}
+          style={{ top: `calc(-22px * ${index})` }}
+          role="status"
+        >
           <span className="toast-icon">{META[t.type]}</span>
           <div className="toast-copy">
             <span>{t.text}</span>
