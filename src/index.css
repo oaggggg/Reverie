@@ -548,6 +548,11 @@ textarea {
   color: var(--text);
   caret-color: var(--accent);
 }
+.search-capsule input:focus,
+.search-capsule input:focus-visible {
+  outline: 0;
+  box-shadow: none;
+}
 .search-close {
   width: 26px;
   height: 26px;

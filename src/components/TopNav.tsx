@@ -156,8 +156,12 @@ export default function TopNav() {
   );
 
   useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
-  }, [searchOpen]);
+    if (!searchTransition.rendered) return;
+    const frame = window.requestAnimationFrame(() => {
+      searchRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [searchTransition.rendered]);
 
   useEffect(() => {
     const onPageScroll = (event: Event) => {
