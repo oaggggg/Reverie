@@ -6652,6 +6652,43 @@ textarea {
   backdrop-filter: none !important;
 }
 
+/* 弹窗和下拉层提高底色不透明度，避免透明背景削弱文字对比度。 */
+.search-dropdown,
+.user-dropdown,
+.modal,
+.settings-modal,
+.volume-popover,
+.player-comments-drawer,
+.share-dialog-backdrop .share-dialog,
+.np-visual-panel,
+.pb-quality-menu,
+.song-card-context-menu,
+.media-detail-dialog,
+.media-video-volume-pop,
+.media-video-rate-menu,
+.media-video-quality-menu,
+.voice-detail-dialog,
+.playlist-import-modal,
+.broadcast-detail-dialog,
+.podcast-program-dialog,
+.toast {
+  --text-dim: color-mix(in srgb, var(--text) 88%, var(--bg));
+  --text-faint: color-mix(in srgb, var(--text) 72%, var(--bg));
+  background: color-mix(in srgb, var(--bg-2) 82%, transparent) !important;
+  border-color: color-mix(in srgb, var(--border) 86%, transparent) !important;
+}
+
+.settings-sidebar,
+.player-comment-editor,
+.player-comment-editor textarea,
+.comment-composer,
+.comment-composer textarea,
+.share-dialog textarea,
+.playlist-import-name,
+.playlist-import-modal textarea {
+  background: color-mix(in srgb, var(--bg-3) 68%, transparent) !important;
+}
+
 .settings-sidebar,
 .topnav .search-capsule,
 .topnav .topnav-user,
