@@ -4858,7 +4858,7 @@ textarea {
   width: max-content;
   max-width: calc(100vw - 32px);
   gap: 0;
-  flex-direction: column-reverse;
+  flex-direction: column;
 }
 .toast-wrap .toast {
   width: max-content;
@@ -4881,13 +4881,13 @@ textarea {
   transform: none !important;
   animation: toast-codex-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.toast-wrap .toast + .toast { margin-bottom: -22px; }
+.toast-wrap .toast + .toast { margin-top: -22px; }
 .toast-wrap .toast:nth-child(n) { z-index: auto; }
-.toast-wrap .toast:first-child { z-index: 5; }
-.toast-wrap .toast:nth-child(2) { z-index: 4; }
+.toast-wrap .toast:first-child { z-index: 1; }
+.toast-wrap .toast:nth-child(2) { z-index: 2; }
 .toast-wrap .toast:nth-child(3) { z-index: 3; }
-.toast-wrap .toast:nth-child(4) { z-index: 2; }
-.toast-wrap .toast:nth-child(5) { z-index: 1; }
+.toast-wrap .toast:nth-child(4) { z-index: 4; }
+.toast-wrap .toast:nth-child(5) { z-index: 5; }
 .toast-wrap .toast-icon { color: var(--green); }
 .toast-wrap .toast-copy span { color: var(--text); font-size: 13px; line-height: 1.25; }
 .toast-wrap .toast-copy { min-width: 0; max-width: min(500px, calc(100vw - 96px)); }
