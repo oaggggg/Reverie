@@ -2279,8 +2279,8 @@ textarea {
   grid-auto-flow: column;
   grid-auto-columns: 150px;
   gap: 16px;
-  width: calc(100% + 36px);
-  margin-inline: -18px;
+  width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
   padding: 4px 20px 12px;
   scrollbar-width: none;
