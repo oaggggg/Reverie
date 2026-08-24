@@ -4854,15 +4854,17 @@ textarea {
    overlap, no scale/opacity cascade, and the newest item in front. */
 .toast-wrap {
   top: 154px;
-  width: min(318px, calc(100vw - 32px));
+  width: max-content;
+  max-width: calc(100vw - 32px);
   gap: 0;
 }
 .toast-wrap .toast {
-  width: 318px;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 32px));
   min-width: 0;
   min-height: 48px;
   box-sizing: border-box;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, auto);
   gap: 10px;
   padding: 10px 18px;
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent) !important;
@@ -4882,6 +4884,8 @@ textarea {
 .toast-wrap .toast:nth-child(5) { z-index: 1; }
 .toast-wrap .toast-icon { color: var(--green); }
 .toast-wrap .toast-copy span { color: var(--text); font-size: 13px; line-height: 1.25; }
+.toast-wrap .toast-copy { min-width: 0; max-width: min(500px, calc(100vw - 96px)); }
+.toast-wrap .toast-copy span { white-space: normal; overflow-wrap: anywhere; }
 .toast-wrap .toast-life { display: none; }
 @keyframes toast-codex-in {
   from { opacity: 0; transform: translateY(-8px) !important; }
