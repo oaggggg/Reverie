@@ -10,14 +10,15 @@ const META = {
 export default function Toasts() {
   const toasts = usePlayerStore((s) => s.toasts);
   if (!toasts.length) return null;
+  const visibleToasts = toasts.slice(-5);
   return (
     <div className="toast-wrap">
-      {toasts.slice(-5).map((t, index) => (
+      {visibleToasts.map((t, index) => (
         <div
           key={t.id}
           className={`toast ${t.type}`}
           data-stack-index={index}
-          style={{ top: `calc(44px * ${index})` }}
+          style={{ top: `calc(-12px * ${visibleToasts.length - 1 - index})` }}
           role="status"
         >
           <span className="toast-icon">{META[t.type]}</span>
