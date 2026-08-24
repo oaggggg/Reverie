@@ -254,7 +254,6 @@ textarea {
   font-size: 16.5px;
   font-weight: 800;
   letter-spacing: 0.2em;
-  padding-inline: 0.2em;
   --brand-gradient: linear-gradient(
     100deg,
     color-mix(in srgb, var(--text-dim) 82%, var(--accent-2) 18%) 18%,
@@ -273,21 +272,18 @@ textarea {
   /* 提升渐变文字的抗锯齿锐度 */
   -webkit-font-smoothing: antialiased;
 }
-.titlebar-name-text::after {
-  content: attr(data-text);
+.titlebar-letter-layer,
+.titlebar-sheen-layer {
+  display: inline-flex;
+  align-items: baseline;
+  padding-inline: 0.2em;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+.titlebar-sheen-layer {
   position: absolute;
   inset: 0;
-  color: transparent;
-  background: var(--brand-gradient);
-  background-size: 260% 100%;
-  background-position: 130% 50%;
-  background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
   pointer-events: none;
-  animation: reverie-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95)
-    infinite alternate;
 }
 .titlebar-letter {
   display: inline-block;
@@ -357,6 +353,19 @@ textarea {
     transform: translateY(0) scale(1) rotate(0deg);
   }
 }
+.titlebar-sheen-letter {
+  display: inline-block;
+  color: transparent;
+  background: var(--brand-gradient);
+  background-size: 260% 100%;
+  background-position: 130% 50%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: reverie-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95)
+    infinite alternate;
+}
 .titlebar-controls {
   display: flex;
   height: 100%;
@@ -416,7 +425,7 @@ textarea {
   font-weight: 600;
   letter-spacing: 0;
 }
-[data-platform="darwin"] .titlebar-name-text::after {
+[data-platform="darwin"] .titlebar-sheen-layer {
   display: none;
 }
 [data-platform="darwin"] .titlebar-letter {
@@ -5887,8 +5896,8 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .titlebar-name,
   .titlebar-name-text,
-  .titlebar-name-text::after,
   .titlebar-letter,
+  .titlebar-sheen-letter,
   .toast,
   .np-visual-panel,
   .card-cover,

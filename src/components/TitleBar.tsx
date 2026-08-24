@@ -29,11 +29,20 @@ export default function TitleBar() {
           data-text="Reverie"
           aria-hidden="true"
         >
-          {Array.from("Reverie").map((letter, index) => (
-            <span className="titlebar-letter" key={index}>
-              {letter}
-            </span>
-          ))}
+          <span className="titlebar-letter-layer" aria-hidden="true">
+            {Array.from("Reverie").map((letter, index) => (
+              <span className="titlebar-letter" key={index}>
+                {letter}
+              </span>
+            ))}
+          </span>
+          <span className="titlebar-sheen-layer" aria-hidden="true">
+            {Array.from("Reverie").map((letter, index) => (
+              <span className="titlebar-sheen-letter" key={index}>
+                {letter}
+              </span>
+            ))}
+          </span>
         </span>
       </div>
       <div className="titlebar-controls">
