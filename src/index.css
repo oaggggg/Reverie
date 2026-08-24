@@ -81,8 +81,8 @@
   --glass-surface-border: color-mix(in srgb, var(--border) 76%, transparent);
   --glass-surface-hover: color-mix(in srgb, var(--hover) 68%, transparent);
   --glass-surface-control: color-mix(in srgb, var(--bg-3) 58%, transparent);
-  --glass-readable-dim: color-mix(in srgb, var(--text) 78%, var(--bg));
-  --glass-readable-faint: color-mix(in srgb, var(--text) 62%, var(--bg));
+  --glass-readable-dim: color-mix(in srgb, var(--text) 92%, var(--bg));
+  --glass-readable-faint: color-mix(in srgb, var(--text) 82%, var(--bg));
   --glass-surface-shadow: 0 18px 30px
     color-mix(in srgb, var(--shadow) 46%, transparent);
   --glass-surface-filter: blur(30px) saturate(1.45);
@@ -6845,8 +6845,8 @@ textarea {
 .broadcast-detail-dialog,
 .podcast-program-dialog,
 .toast {
-  --text-dim: color-mix(in srgb, var(--text) 88%, var(--bg));
-  --text-faint: color-mix(in srgb, var(--text) 72%, var(--bg));
+  --text-dim: color-mix(in srgb, var(--text) 92%, var(--bg));
+  --text-faint: color-mix(in srgb, var(--text) 82%, var(--bg));
   background: color-mix(in srgb, var(--bg-2) 82%, transparent) !important;
   border-color: color-mix(in srgb, var(--border) 86%, transparent) !important;
 }
@@ -6935,6 +6935,7 @@ textarea {
 .podcast-program-dialog {
   --text-dim: var(--glass-readable-dim);
   --text-faint: var(--glass-readable-faint);
+  color: var(--text);
   background: var(--glass-surface) !important;
   border-color: var(--glass-surface-border) !important;
   box-shadow: var(--glass-surface-shadow) !important;
