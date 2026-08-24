@@ -57,10 +57,10 @@ Reverie 是一款音乐播放器，使用 Tauri 2、React、TypeScript 和 Rust 
 
 前往 [GitHub Releases](https://github.com/oaggggg/Reverie/releases) 下载对应版本：
 
-| 文件                           | 适用场景                                      |
-| ------------------------------ | --------------------------------------------- |
-| `Reverie_<版本>_x64-setup.exe` | Windows x64，支持开始菜单和卸载流程           |
-| `Reverie_<版本>_universal.dmg` | macOS Universal，同时支持 Intel 与 Apple 芯片 |
+| 文件                                   | 适用场景                                      |
+| -------------------------------------- | --------------------------------------------- |
+| `Reverie_<版本>_Windows_x64_setup.exe` | Windows x64，支持开始菜单和卸载流程           |
+| `Reverie_<版本>_macOS_universal.dmg`   | macOS Universal，同时支持 Intel 与 Apple 芯片 |
 
 Windows 版本需要可用的 WebView2 运行时。安装包通常会由系统或安装器处理 WebView2；若启动失败，请先更新 Windows WebView2 Runtime。
 
