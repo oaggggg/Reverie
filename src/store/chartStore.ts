@@ -48,8 +48,7 @@ export const useChartStore = create<ChartState>()((set, get) => ({
       });
       if (!charts.length) throw new Error("榜单目录为空");
       if (token !== requestToken) return;
-      const selectedId = get().selectedId || charts[0]?.id || 0;
-      set({ charts, selectedId, loading: false });
+      set({ charts, selectedId: 0, songs: [], loading: false });
     } catch {
       if (token !== requestToken) return;
       set({ charts: [], songs: [], selectedId: 0, loading: false });
@@ -58,7 +57,10 @@ export const useChartStore = create<ChartState>()((set, get) => ({
   },
 
   select: async (id) => {
-    if (!id) return;
+    if (!id) {
+      set({ selectedId: 0, songs: [], songsLoading: false });
+      return;
+    }
     const token = ++requestToken;
     set({ selectedId: id, songsLoading: true });
     try {

@@ -4,6 +4,7 @@ import { sizedImage } from "../utils/image";
 import { CircleUserRound } from "lucide-react";
 import { getProfileCenter } from "../api/profile";
 import { useProfileStore } from "../store/profileStore";
+import { useExploreStore } from "../store/exploreStore";
 import {
   captureInteractionOrigin,
   useOriginTransition,
@@ -18,6 +19,7 @@ export default function UserMenu() {
   const loadVipInfo = usePlayerStore((s) => s.loadVipInfo);
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const openProfile = useProfileStore((s) => s.openProfile);
+  const setSocialTab = useExploreStore((s) => s.setSocialTab);
   const profileDetail = useProfileStore((s) => s.detail);
   const ref = useRef<HTMLDivElement>(null);
   const transition = useOriginTransition<HTMLDivElement>(open, "user-menu", 200);
@@ -142,6 +144,12 @@ export default function UserMenu() {
               }}
             >
               一起听
+            </button>
+            <button className="user-dropdown-cell" onClick={() => { setOpen(false); setSocialTab("follows"); usePlayerStore.setState({ activeView: "social", prevView: "home" }); }}>
+              关注
+            </button>
+            <button className="user-dropdown-cell" onClick={() => { setOpen(false); setSocialTab("followers"); usePlayerStore.setState({ activeView: "social", prevView: "home" }); }}>
+              粉丝
             </button>
           </div>
           <div className="user-dropdown-foot">

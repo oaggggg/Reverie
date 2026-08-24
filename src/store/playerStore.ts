@@ -576,7 +576,7 @@ interface PlayerState {
   doSearch: (kw: string) => Promise<void>;
   loadTopSongs: () => Promise<void>;
   loadPersonalFm: () => Promise<void>;
-  loadUserPlaylists: () => Promise<void>;
+  loadUserPlaylists: (navigate?: boolean) => Promise<void>;
   openPlaylist: (id: number, name: string) => Promise<void>;
   closePlaylist: () => void;
   playSong: (
@@ -592,6 +592,7 @@ interface PlayerState {
   failCurrent: (message: string) => void;
   notePlaybackOk: () => void;
   playQueueAt: (i: number) => Promise<void>;
+  playNext: (song: Song) => void;
   fmNext: () => Promise<void>;
   fmDislike: () => Promise<void>;
   toggleLike: () => Promise<void>;
@@ -1405,14 +1406,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       get().toast("加载私人漫游失败", "error");
     }
   },
-  loadUserPlaylists: async () => {
+  loadUserPlaylists: async (navigate = true) => {
     const uid = get().profile?.userId;
     if (!uid) {
       get().toast("请先登录", "info");
       set({ showLogin: true });
       return;
     }
-    set({ activeView: "userlist", userPlaylistsLoading: true });
+    set({ ...(navigate ? { activeView: "userlist" as View } : {}), userPlaylistsLoading: true });
     try {
       const lists = await getUserPlaylists(uid);
       set({ userPlaylists: lists });
@@ -1602,6 +1603,19 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const song = queue[i];
     if (!song) return;
     await get().playSong(song, queue, queueSource);
+  },
+  playNext: (song) => {
+    const state = get();
+    if (!state.currentSong || !state.queue.length) {
+      void get().playSong(song, [song]);
+      return;
+    }
+    const queue = state.queue.filter((item) => item.id !== song.id);
+    const currentIndex = queue.findIndex((item) => item.id === state.currentSong?.id);
+    queue.splice(Math.min(currentIndex + 1, queue.length), 0, song);
+    set({ queue, index: currentIndex });
+    writeSession({ queue, index: currentIndex, currentSong: state.currentSong });
+    get().toast("已加入下一首播放", "success");
   },
   fmNext: async () => {
     const { queue, index, queueSource } = get();
@@ -1835,6 +1849,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         void get().loadLiked();
         void get().loadVipInfo();
         void get().loadHome();
+        void get().loadUserPlaylists(false);
         return true;
       }
       clearCookie();
@@ -1935,6 +1950,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         writeJson(PROFILE_CACHE_KEY, profile);
         void get().loadLiked();
         void get().loadVipInfo();
+        void get().loadUserPlaylists(false);
       } else {
         clearCookie();
         localStorage.removeItem(PROFILE_CACHE_KEY);

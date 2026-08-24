@@ -4,6 +4,7 @@ import {
   Disc3,
   Download,
   FileText,
+  ListEnd,
   MessageCircle,
   Play,
   Trash2,
@@ -46,6 +47,7 @@ export default function SongList({
 }: Props) {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const playSong = usePlayerStore((s) => s.playSong);
+  const playNext = usePlayerStore((s) => s.playNext);
   const openAlbum = useExploreStore((s) => s.openAlbum);
   const openArtist = useExploreStore((s) => s.openArtist);
   const openComments = useCommentStore((s) => s.openResourceComments);
@@ -208,6 +210,9 @@ export default function SongList({
                       <Trash2 size={15} />
                     </button>
                   )}
+                  <button className="icon-action" title="下一首播放" onClick={() => playNext(song)}>
+                    <ListEnd size={15} />
+                  </button>
                   <button
                     className="icon-action"
                     title="下载歌曲"
