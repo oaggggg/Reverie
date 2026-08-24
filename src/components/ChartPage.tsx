@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ArrowLeft, Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, Play } from "lucide-react";
 import { useChartStore } from "../store/chartStore";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
@@ -59,16 +59,6 @@ export default function ChartPage() {
       <PageHeader
         title="排行榜"
         subtitle="官方榜单 · 每天更新"
-        actions={
-          <button
-            className="icon-button"
-            title="刷新榜单"
-            onClick={() => void load()}
-            disabled={loading}
-          >
-            <RefreshCw size={17} className={loading ? "spin" : ""} />
-          </button>
-        }
       />
       {selectedChart ? (
         <section className="chart-detail">
