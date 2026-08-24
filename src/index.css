@@ -2279,8 +2279,10 @@ textarea {
   grid-auto-flow: column;
   grid-auto-columns: 150px;
   gap: 16px;
+  width: calc(100% + 36px);
+  margin-inline: -18px;
   overflow-x: auto;
-  padding: 4px 2px 12px;
+  padding: 4px 20px 12px;
   scrollbar-width: none;
 }
 .song-cards::-webkit-scrollbar {
@@ -2303,12 +2305,6 @@ textarea {
   object-fit: cover;
   background: var(--bg-3);
   box-shadow: 0 6px 18px var(--shadow);
-}
-.home-section .song-cards > .song-card:first-child img,
-.home-section .song-cards > .song-card:last-child img,
-.home-section .playlist-grid > .playlist-card:first-child img,
-.home-section .playlist-grid > .playlist-card:last-child img {
-  box-shadow: none;
 }
 .song-card-ph {
   width: 100%;
@@ -4862,10 +4858,11 @@ textarea {
   align-items: center;
 }
 
-/* Lazy-render offscreen home sections. */
+/* Card shadows extend outside each home section; paint containment would clip
+   the first and last cards into visible grey edges. */
 .home-section {
-  content-visibility: auto;
-  contain-intrinsic-size: 520px;
+  content-visibility: visible;
+  contain: none;
 }
 
 .modal,
