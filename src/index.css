@@ -547,11 +547,13 @@ textarea {
   font-size: 13px;
   color: var(--text);
   caret-color: var(--accent);
+  appearance: none;
 }
-.search-capsule input:focus,
-.search-capsule input:focus-visible {
-  outline: 0;
-  box-shadow: none;
+.topnav .search-wrap .search-capsule > input:focus,
+.topnav .search-wrap .search-capsule > input:focus-visible {
+  border-color: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 .search-close {
   width: 26px;
