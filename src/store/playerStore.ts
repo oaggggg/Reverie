@@ -743,10 +743,16 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   toast: (text, type = "info") => {
     const id = ++toastSeq;
     set((s) => ({ toasts: [...s.toasts, { id, text, type }] }));
-    setTimeout(() => {
-      const earliest = get().toasts.find((item) => !item.exiting);
+    const expire = () => {
+      const current = get().toasts;
+      if (current.some((item) => item.exiting)) {
+        setTimeout(expire, 260);
+        return;
+      }
+      const earliest = current.find((item) => !item.exiting);
       if (earliest) get().dismissToast(earliest.id);
-    }, 3200);
+    };
+    setTimeout(expire, 3200);
   },
   dismissToast: (id) => {
     set((s) => ({
