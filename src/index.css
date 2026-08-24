@@ -1198,20 +1198,41 @@ textarea {
 }
 
 /* ============================ Search center ============================ */
+.search-page-hero {
+  display: grid;
+  justify-items: center;
+  width: min(1120px, 100%);
+  margin: 0 auto 22px;
+}
+.search-page-hero .page-header {
+  justify-content: center;
+  width: 100%;
+  padding-inline: 0;
+  text-align: center;
+}
+.search-page-hero .page-heading {
+  display: grid;
+  justify-items: center;
+}
 .search-page-form {
   display: flex;
   align-items: center;
   gap: 10px;
   width: min(760px, 100%);
-  padding: 8px 10px 8px 14px;
-  margin-bottom: 18px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-2);
+  min-height: 52px;
+  padding: 7px 8px 7px 18px;
+  margin-bottom: 20px;
+  border: 1px solid var(--glass-surface-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-3) 45%, transparent);
   color: var(--text-dim);
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--shadow) 35%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 .search-page-form:focus-within {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 .search-page-form input {
   flex: 1;
@@ -1221,9 +1242,18 @@ textarea {
   background: transparent;
   color: var(--text);
   font-size: 14px;
+  caret-color: var(--accent);
+}
+.search-page-form input:focus,
+.search-page-form input:focus-visible {
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 .search-page-form .btn {
   flex: none;
+  min-height: 38px;
+  border-radius: 999px;
+  padding-inline: 22px;
 }
 .search-clear {
   display: grid;
@@ -1231,7 +1261,7 @@ textarea {
   width: 30px;
   height: 30px;
   color: var(--text-faint);
-  border-radius: 8px;
+  border-radius: 999px;
 }
 .search-clear:hover {
   color: var(--text);
@@ -1279,7 +1309,9 @@ textarea {
 }
 .search-category-tabs {
   display: flex;
+  justify-content: center;
   gap: 4px;
+  width: 100%;
   overflow-x: auto;
   margin-bottom: 20px;
   padding-bottom: 4px;
