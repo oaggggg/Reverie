@@ -246,6 +246,11 @@ textarea {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  line-height: 1;
+  pointer-events: none;
+}
+.titlebar-name-text {
+  display: inline-block;
   font-size: 16.5px;
   font-weight: 800;
   letter-spacing: 0.2em;
@@ -269,9 +274,8 @@ textarea {
   background-clip: text;
   animation:
     reverie-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95) infinite alternate,
-    reverie-glow 5.6s ease-in-out infinite;
-  pointer-events: none;
-  line-height: 1;
+    reverie-glow 5.6s ease-in-out infinite,
+    reverie-bounce 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95) infinite;
   /* 提升渐变文字的抗锯齿锐度 */
   -webkit-font-smoothing: antialiased;
 }
@@ -296,6 +300,22 @@ textarea {
     filter: drop-shadow(
       0 0 12px color-mix(in srgb, var(--accent-2) 38%, transparent)
     );
+  }
+}
+/* 扫光掠过时的轻微弹性跳动，保持品牌名稳定且不影响外层居中 */
+@keyframes reverie-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  42% {
+    transform: translateY(-0.5px) scale(1.006);
+  }
+  52% {
+    transform: translateY(-1px) scale(1.012);
+  }
+  62% {
+    transform: translateY(-0.35px) scale(1.004);
   }
 }
 .titlebar-controls {
@@ -346,6 +366,9 @@ textarea {
   --titlebar-h: 48px;
 }
 [data-platform="darwin"] .titlebar-name {
+  line-height: 1;
+}
+[data-platform="darwin"] .titlebar-name-text {
   color: var(--text-dim);
   background: none;
   filter: none;
@@ -368,6 +391,7 @@ textarea {
 }
 
 :root[data-window-active="false"] .titlebar-name,
+:root[data-window-active="false"] .titlebar-name-text,
 :root[data-window-active="false"] .pb-cover-img,
 :root[data-window-active="false"] .loading-spinner,
 :root[data-window-active="false"] .session-loading-mark,
@@ -5814,6 +5838,7 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
   .titlebar-name,
+  .titlebar-name-text,
   .toast,
   .np-visual-panel,
   .card-cover,
