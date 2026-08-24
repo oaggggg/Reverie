@@ -483,6 +483,7 @@ interface PlayerState {
 
   // --- appearance ---
   theme: ThemePreference;
+  reducedMotion: boolean;
   lyricTheme: string;
   lyricFontSize: number;
   particleEffect: ParticleEffect;
@@ -559,6 +560,7 @@ interface PlayerState {
   dismissUpdate: () => void;
   applyUpdateEvent: (type: string, data?: unknown) => void;
   setTheme: (t: ThemePreference) => void;
+  setReducedMotion: (v: boolean) => void;
   setLyricTheme: (t: string) => void;
   setLyricFontSize: (s: number) => void;
   setParticleEffect: (e: ParticleEffect) => void;
@@ -700,6 +702,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   // --- appearance ---
   theme: readThemePref(),
+  reducedMotion: readBool("reverie_reduced_motion", false),
   lyricTheme: readStr("reverie_lyrictheme", "neon"),
   lyricFontSize: readNum("reverie_lyricfont", 22),
   particleEffect: readParticleEffect(),
@@ -1217,6 +1220,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setTheme: (t) => {
     set({ theme: t });
     write("reverie_theme", t);
+  },
+  setReducedMotion: (v) => {
+    set({ reducedMotion: v });
+    write("reverie_reduced_motion", v ? "1" : "0");
   },
   setLyricTheme: (t) => {
     set({ lyricTheme: t });

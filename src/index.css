@@ -7095,3 +7095,21 @@ img[data-reverie-fallback="true"] {
 .follow-list-row > div { display: grid; min-width: 0; flex: 1; gap: 3px; }
 .follow-list-row strong, .follow-list-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .follow-list-row span { color: var(--text-dim); font-size: 12px; }
+
+/* User-controlled reduced-motion mode mirrors the system preference and is
+   applied immediately through the root data attribute. */
+:root[data-reduced-motion="true"] *,
+:root[data-reduced-motion="true"] *::before,
+:root[data-reduced-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0ms !important;
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+}
+:root[data-reduced-motion="true"] .origin-surface,
+:root[data-reduced-motion="true"] .card-cover {
+  filter: none !important;
+  transform: none !important;
+}
