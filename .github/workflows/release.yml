@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release tag to build, for example v1.1.0"
+        description: "Release tag to build, for example v1.1.3"
         required: true
         type: string
       release_draft:
@@ -24,9 +24,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  windows:
-    name: Build Windows release
-    runs-on: windows-latest
+  build:
+    name: Build ${{ matrix.name }} release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            platform: windows-latest
+            rust_targets: x86_64-pc-windows-msvc
+            build_args: ""
+            sidecar_target: win32-x64
+          - name: macOS Universal
+            platform: macos-latest
+            rust_targets: x86_64-apple-darwin,aarch64-apple-darwin
+            build_args: --target universal-apple-darwin
+            sidecar_target: darwin-universal
+    runs-on: ${{ matrix.platform }}
+
     steps:
       - name: Checkout release source
         uses: actions/checkout@v4
@@ -35,34 +50,17 @@ jobs:
 
       - name: Resolve release tag
         id: release
-        shell: pwsh
+        shell: bash
         env:
           INPUT_TAG: ${{ inputs.tag_name }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          $tag = if ([string]::IsNullOrWhiteSpace($env:INPUT_TAG)) { $env:REF_NAME } else { $env:INPUT_TAG }
-          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
-            throw "Release tag '$tag' is not a valid vX.Y.Z tag."
-          }
-          "tag=$tag" >> $env:GITHUB_OUTPUT
-
-      - name: Validate release version
-        shell: pwsh
-        env:
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-        run: |
-          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $cargoMatch = Select-String -Path src-tauri/Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"'
-          if (-not $cargoMatch) { throw 'Could not read version from src-tauri/Cargo.toml.' }
-          $cargoVersion = $cargoMatch.Matches[0].Groups[1].Value
-          $expectedTag = "v$packageVersion"
-          if ($packageVersion -ne $tauriVersion -or $packageVersion -ne $cargoVersion) {
-            throw "Version mismatch: package.json=$packageVersion, tauri.conf.json=$tauriVersion, Cargo.toml=$cargoVersion."
-          }
-          if ($env:RELEASE_TAG -ne $expectedTag) {
-            throw "Release tag $env:RELEASE_TAG does not match project version $expectedTag."
-          }
+          tag="${INPUT_TAG:-$REF_NAME}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag '$tag' is not a valid vX.Y.Z tag." >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
@@ -70,13 +68,21 @@ jobs:
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: ${{ matrix.name }}
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: npm run validate:release
 
       - name: Verify project
         run: npm run check
@@ -84,14 +90,20 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Verify updater signing key
-        shell: pwsh
+      - name: Build target sidecar
+        env:
+          REVERIE_SIDECAR_TARGET: ${{ matrix.sidecar_target }}
+        run: npm run prepare:sidecar
+
+      - name: Verify updater integrity key
+        shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
-            throw "Missing TAURI_SIGNING_PRIVATE_KEY repository secret."
-          }
+          if [[ -z "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
+            echo "Missing TAURI_SIGNING_PRIVATE_KEY repository secret." >&2
+            exit 1
+          fi
 
       - name: Build and publish GitHub Release
         uses: tauri-apps/tauri-action@v0
@@ -99,14 +111,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          REVERIE_SIDECAR_TARGET: ${{ matrix.sidecar_target }}
         with:
           tagName: ${{ steps.release.outputs.tag }}
           releaseName: "Reverie __VERSION__"
           releaseBody: |
             ## Reverie __VERSION__
 
-            Windows installer and signed in-app updater artifacts are attached below.
+            ### 本次更新
+            - 全面优化桌面端性能、动画反馈和高频交互体验。
+            - 播放器在窗口失焦或隐藏时主动降低渲染开销。
+            - macOS 使用原生交通灯、Overlay 标题栏和系统化交互布局。
+            - Windows 与 macOS 共享同一套自动更新与发布流程。
+
+            ### 下载说明
+            - Windows：下载 NSIS 安装程序。
+            - macOS：下载 Universal DMG，同时支持 Intel 与 Apple 芯片。
+            - 两个平台均未进行操作系统代码签名；首次运行时可能出现系统安全提示。
           releaseDraft: ${{ inputs.release_draft || false }}
           prerelease: false
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
+          args: ${{ matrix.build_args }}

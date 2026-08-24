@@ -13,16 +13,6 @@ const targets = {
     triple: "aarch64-pc-windows-msvc",
     extension: ".exe",
   },
-  "linux-x64": {
-    pkg: "node22-linux-x64",
-    triple: "x86_64-unknown-linux-gnu",
-    extension: "",
-  },
-  "linux-arm64": {
-    pkg: "node22-linux-arm64",
-    triple: "aarch64-unknown-linux-gnu",
-    extension: "",
-  },
   "darwin-x64": {
     pkg: "node22-macos-x64",
     triple: "x86_64-apple-darwin",
@@ -35,21 +25,9 @@ const targets = {
   },
 };
 
-const key = `${process.platform}-${process.arch}`;
-const target = targets[key];
-if (!target) throw new Error(`Unsupported sidecar target: ${key}`);
-
 const root = resolve(import.meta.dirname, "..");
 const outputDir = join(root, "src-tauri", "binaries");
-const output = join(
-  outputDir,
-  `reverie-api-${target.triple}${target.extension}`,
-);
 const input = join(root, "sidecar", "api-server.cjs");
-const temporaryOutput = join(
-  outputDir,
-  `reverie-api-${target.triple}.tmp${target.extension}`,
-);
 const config = join(root, "package.json");
 const lockfile = join(root, "package-lock.json");
 const apiPackage = join(
@@ -78,35 +56,84 @@ const newestInput = Math.max(
   statSync(lockfile).mtimeMs,
   statSync(apiPackage).mtimeMs,
 );
-if (existsSync(output) && statSync(output).mtimeMs >= newestInput) {
-  console.log(`API sidecar is current: ${output}`);
-  process.exit(0);
-}
 
 mkdirSync(outputDir, { recursive: true });
-rmSync(temporaryOutput, { force: true });
-try {
-  execFileSync(
-    process.execPath,
-    [
-      pkgCli,
-      input,
-      "--config",
-      config,
-      "--target",
-      target.pkg,
-      "--public",
-      "--public-packages",
-      "*",
-      "--no-bytecode",
-      "--output",
-      temporaryOutput,
-    ],
-    { cwd: root, stdio: "inherit" },
-  );
-  rmSync(output, { force: true });
-  renameSync(temporaryOutput, output);
-} finally {
-  rmSync(temporaryOutput, { force: true });
+
+function outputPath(target) {
+  return join(outputDir, `reverie-api-${target.triple}${target.extension}`);
 }
-console.log(`Built API sidecar: ${output}`);
+
+function buildTarget(key) {
+  const target = targets[key];
+  if (!target) throw new Error(`Unsupported sidecar target: ${key}`);
+
+  const output = outputPath(target);
+  if (existsSync(output) && statSync(output).mtimeMs >= newestInput) {
+    console.log(`API sidecar is current: ${output}`);
+    return output;
+  }
+
+  const temporaryOutput = join(
+    outputDir,
+    `reverie-api-${target.triple}.tmp${target.extension}`,
+  );
+  rmSync(temporaryOutput, { force: true });
+  try {
+    execFileSync(
+      process.execPath,
+      [
+        pkgCli,
+        input,
+        "--config",
+        config,
+        "--target",
+        target.pkg,
+        "--public",
+        "--public-packages",
+        "*",
+        "--no-bytecode",
+        "--output",
+        temporaryOutput,
+      ],
+      { cwd: root, stdio: "inherit" },
+    );
+    rmSync(output, { force: true });
+    renameSync(temporaryOutput, output);
+  } finally {
+    rmSync(temporaryOutput, { force: true });
+  }
+  console.log(`Built API sidecar: ${output}`);
+  return output;
+}
+
+function buildUniversalMacSidecar() {
+  if (process.platform !== "darwin") {
+    throw new Error("The universal macOS sidecar must be built on macOS");
+  }
+  const x64 = buildTarget("darwin-x64");
+  const arm64 = buildTarget("darwin-arm64");
+  const output = join(outputDir, "reverie-api-universal-apple-darwin");
+  const temporaryOutput = `${output}.tmp`;
+  const newestSlice = Math.max(statSync(x64).mtimeMs, statSync(arm64).mtimeMs);
+  if (existsSync(output) && statSync(output).mtimeMs >= newestSlice) {
+    console.log(`API sidecar is current: ${output}`);
+    return;
+  }
+  rmSync(temporaryOutput, { force: true });
+  try {
+    execFileSync("lipo", ["-create", x64, arm64, "-output", temporaryOutput], {
+      stdio: "inherit",
+    });
+    rmSync(output, { force: true });
+    renameSync(temporaryOutput, output);
+  } finally {
+    rmSync(temporaryOutput, { force: true });
+  }
+  console.log(`Built universal API sidecar: ${output}`);
+}
+
+const requestedTarget =
+  process.env.REVERIE_SIDECAR_TARGET ?? `${process.platform}-${process.arch}`;
+
+if (requestedTarget === "darwin-universal") buildUniversalMacSidecar();
+else buildTarget(requestedTarget);

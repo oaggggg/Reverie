@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "1.1.2"
+version = "1.1.3"
 description = "Reverie — 一款音乐播放器"
 authors = ["Tenth-G"]
 license = "GPL-3.0"
