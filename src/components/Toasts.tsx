@@ -12,7 +12,7 @@ export default function Toasts() {
   if (!toasts.length) return null;
   return (
     <div className="toast-wrap">
-      {toasts.slice(-5).reverse().map((t, index) => (
+      {toasts.slice(-5).map((t, index) => (
         <div
           key={t.id}
           className={`toast ${t.type}`}
