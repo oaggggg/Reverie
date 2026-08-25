@@ -8,7 +8,7 @@ import {
   captureInteractionOrigin,
   useOriginTransition,
 } from "../utils/originTransition";
-import { preloadNowPlayingAssets } from "../utils/nowPlayingPreload";
+import { preloadNowPlayingAssets, warmCoverImage } from "../utils/nowPlayingPreload";
 import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
 import {
@@ -131,6 +131,14 @@ export default function PlayerBar() {
     setDynamicCover("");
     setRemoteLiked(null);
     if (!currentSong) return;
+    // 预热播放栏 120px 缩略图：切歌瞬间 <img> 换 src 时直接命中缓存，
+    // 配合下方不重建元素的写法，封面不再闪动。
+    warmCoverImage(currentSong.picUrl, 120);
+    // 预热队列中的下一曲，提前把它的封面拉进缓存。
+    const nextSong = queue[queueIndex + 1];
+    if (nextSong && nextSong.id !== currentSong.id) {
+      warmCoverImage(nextSong.picUrl, 120);
+    }
     void getDynamicSongCover(currentSong.id)
       .then((url) => {
         if (alive && url) setDynamicCover(url);
@@ -240,10 +248,13 @@ export default function PlayerBar() {
               style={{ cursor: "pointer" }}
             >
               {showCover && currentSong ? (
+                /* 故意不设 key：切歌时复用同一个 <img> 元素原地换 src，
+                   浏览器会保留旧封面直到新图解码完成，不会闪一下；
+                   加 key 会强制卸载重挂，加载期露出占位底色。 */
                 <img
-                  key={currentSong.id}
                   src={sizedImage(coverUrl, 120)}
                   alt=""
+                  decoding="async"
                   onError={() => setFailedCover(coverUrl)}
                 />
               ) : (
