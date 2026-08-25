@@ -254,7 +254,6 @@ export type View =
   | "social"
   | "cloud"
   | "yunbei"
-  | "commentHistory"
   | "listenTogether"
   | "voiceWorkbench"
   | "lyricsMark"

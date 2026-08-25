@@ -57,8 +57,8 @@ const RadioDetailPage = lazy(() => import("./components/RadioDetailPage"));
 const SocialPage = lazy(() => import("./components/SocialPage"));
 const CloudPage = lazy(() => import("./components/CloudPage"));
 const YunbeiPage = lazy(() => import("./components/YunbeiPage"));
-const CommentHistoryPage = lazy(
-  () => import("./components/CommentHistoryPage"),
+const CommentHistoryModal = lazy(
+  () => import("./components/CommentHistoryModal"),
 );
 const ListenTogetherPage = lazy(
   () => import("./components/ListenTogetherPage"),
@@ -164,6 +164,7 @@ export default function App() {
   const showLogin = usePlayerStore((s) => s.showLogin);
   const showUpdate = usePlayerStore((s) => s.showUpdate);
   const showNotifications = usePlayerStore((s) => s.showNotifications);
+  const showCommentHistory = usePlayerStore((s) => s.showCommentHistory);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
@@ -176,6 +177,7 @@ export default function App() {
     login: showLogin,
     update: showUpdate,
     notifications: showNotifications,
+    commentHistory: showCommentHistory,
   });
 
   useEffect(() => {
@@ -192,15 +194,28 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!showPlayerComments && !showLogin && !showUpdate && !showNotifications)
+    if (
+      !showPlayerComments &&
+      !showLogin &&
+      !showUpdate &&
+      !showNotifications &&
+      !showCommentHistory
+    )
       return;
     setMountedOverlays((current) => ({
       comments: current.comments || showPlayerComments,
       login: current.login || showLogin,
       update: current.update || showUpdate,
       notifications: current.notifications || showNotifications,
+      commentHistory: current.commentHistory || showCommentHistory,
     }));
-  }, [showLogin, showPlayerComments, showUpdate, showNotifications]);
+  }, [
+    showLogin,
+    showPlayerComments,
+    showUpdate,
+    showNotifications,
+    showCommentHistory,
+  ]);
 
   useLayoutEffect(() => {
     if (currentPage !== "browse") return;
@@ -1040,8 +1055,6 @@ export default function App() {
         return <CloudPage />;
       case "yunbei":
         return <YunbeiPage />;
-      case "commentHistory":
-        return <CommentHistoryPage />;
       case "listenTogether":
         return <ListenTogetherPage />;
       case "voiceWorkbench":
@@ -1114,6 +1127,11 @@ export default function App() {
       {mountedOverlays.notifications && (
         <Suspense fallback={null}>
           <NotificationModal />
+        </Suspense>
+      )}
+      {mountedOverlays.commentHistory && (
+        <Suspense fallback={null}>
+          <CommentHistoryModal />
         </Suspense>
       )}
       <SettingsModal />

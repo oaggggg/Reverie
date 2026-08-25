@@ -407,16 +407,10 @@ export default function NotificationModal() {
 
   if (!transition.rendered) return null;
 
-  // 从弹窗跳转「我的评论」页面：先收起弹窗再切换视图。
+  // 「我的评论」同样是弹窗：收起消息中心后原地打开评论弹窗，不切换页面。
   const openCommentHistory = () => {
     setShowNotifications(false);
-    const player = usePlayerStore.getState();
-    const previous = player.activeView;
-    player.setPage("browse");
-    usePlayerStore.setState({
-      activeView: "commentHistory",
-      prevView: previous === "commentHistory" ? "home" : previous,
-    });
+    usePlayerStore.getState().setShowCommentHistory(true);
   };
 
   return (
