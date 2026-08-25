@@ -216,7 +216,7 @@ export default function PlayerBar() {
           </div>
           <div className="pb-info">
             <div className="t">
-              {currentSong?.name ?? "未在播放"}
+              <span className="pb-title">{currentSong?.name ?? "未在播放"}</span>
               {currentSong?.fee === 1 && <span className="vip-badge">VIP</span>}
               {previewEnd !== null && (
                 <span className="preview-badge" title="当前为 60 秒试听">
@@ -271,9 +271,27 @@ export default function PlayerBar() {
               <ListMusic size={17} />
             </button>
             {queueTransition.rendered && <div ref={queueTransition.surfaceRef} className={`pb-queue-menu ${queueTransition.surfaceClassName}`} role="dialog" aria-label="播放列表">
-              <div className="pb-queue-head"><strong>播放列表</strong><span>{queue.length} 首</span></div>
+              <div className="pb-queue-head">
+                <strong>播放列表</strong>
+                <span>{queue.length} 首</span>
+              </div>
               <div className="pb-queue-list">
-                {queue.length ? queue.map((song, index) => <button key={`${song.id}-${index}`} className={index === queueIndex ? "active" : ""} onClick={() => { void playQueueAt(index); setQueueOpen(false); }}><span>{index + 1}</span><span>{song.name}</span><small>{song.artists}</small></button>) : <div className="empty">暂无播放歌曲</div>}
+                {queue.length
+                  ? queue.map((song, index) => (
+                      <button
+                        key={`${song.id}-${index}`}
+                        className={index === queueIndex ? "active" : ""}
+                        onClick={() => {
+                          void playQueueAt(index);
+                          setQueueOpen(false);
+                        }}
+                      >
+                        <span className="pb-queue-index">{index + 1}</span>
+                        <span className="pb-queue-title">{song.name}</span>
+                        <small>{song.artists}</small>
+                      </button>
+                    ))
+                  : <div className="empty">暂无播放歌曲</div>}
               </div>
             </div>}
           </div>
