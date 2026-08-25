@@ -84,6 +84,7 @@ export default function App() {
   const playbackSyncRef = useRef(0);
   const seamlessTransitionRef = useRef(false);
   const skipNextFadeInRef = useRef(false);
+  const handledEndedUrlRef = useRef<string | null>(null);
 
   const cancelAudioFade = (audio: HTMLAudioElement) => {
     const frame = fadeFramesRef.current.get(audio);
@@ -674,11 +675,13 @@ export default function App() {
     return () => window.cancelAnimationFrame(frame);
   }, [activeAudio, playing, currentUrl, previewEnd]);
 
-  const handleEnded = (event: SyntheticEvent<HTMLAudioElement>) => {
+  const advanceAfterEnded = (audio: HTMLAudioElement) => {
     const active =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
-    if (event.currentTarget !== active || seamlessTransitionRef.current) return;
+    if (audio !== active || seamlessTransitionRef.current) return;
     const st = usePlayerStore.getState();
+    if (!st.currentUrl || handledEndedUrlRef.current === st.currentUrl) return;
+    handledEndedUrlRef.current = st.currentUrl;
     const endedSong = st.currentSong;
     if (endedSong) {
       void reportWeblog({
@@ -694,12 +697,14 @@ export default function App() {
       return;
     }
     if (mode === "one") {
+      handledEndedUrlRef.current = null;
       st.seek(0);
       const active =
         activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
       if (active) {
         resumeAnalyser();
         void active.play().catch(() => {
+          handledEndedUrlRef.current = null;
           usePlayerStore.setState({ playing: false });
           usePlayerStore
             .getState()
@@ -727,6 +732,27 @@ export default function App() {
       next();
     }
   };
+
+  const handleEnded = (event: SyntheticEvent<HTMLAudioElement>) => {
+    advanceAfterEnded(event.currentTarget);
+  };
+
+  // WebView media events can be dropped during decoder promotion. The native
+  // ended flag is stable, so use it as a low-frequency fallback for the same
+  // transition path.
+  useEffect(() => {
+    const audio =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    if (!playing) {
+      handledEndedUrlRef.current = null;
+      return;
+    }
+    if (!audio || !currentUrl) return;
+    const timer = window.setInterval(() => {
+      if (audio.ended) advanceAfterEnded(audio);
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, [activeAudio, currentUrl, playing, preloadedSongId, preloadedUrl]);
 
   const handleAudioTimeUpdate = (event: SyntheticEvent<HTMLAudioElement>) => {
     const active =
