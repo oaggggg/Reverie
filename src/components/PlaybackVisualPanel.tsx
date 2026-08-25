@@ -1,4 +1,11 @@
-import { Gauge, Sparkles, Type, WandSparkles, X } from "lucide-react";
+import {
+  Feather,
+  ImagePlay,
+  Spotlight,
+  Type,
+  WandSparkles,
+  X,
+} from "lucide-react";
 import type { RefObject } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import type { LyricTheme, ParticleEffect } from "../store/playerStore";
@@ -64,7 +71,7 @@ export default function PlaybackVisualPanel({
     >
       <header>
         <div>
-          <Sparkles size={17} />
+          <Spotlight size={17} />
           <strong>DIY</strong>
         </div>
         <button className="icon-btn" onClick={onClose} title="关闭">
@@ -130,7 +137,7 @@ export default function PlaybackVisualPanel({
 
         <section>
           <h3>
-            <Gauge size={14} /> 动态封面
+            <ImagePlay size={14} /> 动态封面
           </h3>
           <div className="np-visual-row stacked">
             <span>
@@ -179,7 +186,7 @@ export default function PlaybackVisualPanel({
             className="btn np-pure-btn"
             onClick={() => applyDiyPreset("pure")}
           >
-            <Sparkles size={14} /> 使用纯净预设
+            <Feather size={14} /> 使用纯净预设
           </button>
         </section>
       </div>

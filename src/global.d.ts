@@ -13,6 +13,11 @@ interface NcmBridge {
   minimize: () => void;
   maximize: () => void;
   close: () => void;
+  /**
+   * 打开系统“选择文件夹”对话框；仅 Tauri 环境可用。
+   * 用户取消或非桌面环境返回 null。
+   */
+  pickFolder: (defaultPath?: string) => Promise<string | null>;
   isMaximized: () => Promise<boolean>;
   onMaximized: (callback: (maximized: boolean) => void) => () => void;
   /** Trigger an update check through the Tauri updater plugin. */

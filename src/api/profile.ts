@@ -94,9 +94,11 @@ export async function getListeningRecords(
 export async function getProfileCenter(
   uid: number,
 ): Promise<ProfileCenterData> {
+  // /user/detail 偶发失败不应让个人中心整页空白：降级为空档案继续返回，
+  // 由调用方（profileStore）叠加本地缓存的基础身份信息。
   const [detailResponse, levelResponse, subcountResponse, records] =
     await Promise.all([
-      request<Obj>("/user/detail", { uid }),
+      request<Obj>("/user/detail", { uid }).catch(() => ({}) as Obj),
       request<Obj>("/user/level", {}, false).catch(() => ({}) as Obj),
       request<Obj>("/user/subcount", {}, false).catch(() => ({}) as Obj),
       getListeningRecords(uid, "week").catch(() => []),

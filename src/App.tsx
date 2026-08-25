@@ -9,7 +9,11 @@ import {
   type SyntheticEvent,
 } from "react";
 import { playbackFailureMessage, usePlayerStore } from "./store/playerStore";
-import { ensureAnalyser, resumeAnalyser } from "./utils/audioAnalyser";
+import {
+  audioGraphState,
+  ensureAnalyser,
+  resumeAnalyser,
+} from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
 import TopNav from "./components/TopNav";
 import PlayerBar from "./components/PlayerBar";
@@ -85,6 +89,12 @@ export default function App() {
   const seamlessTransitionRef = useRef(false);
   const skipNextFadeInRef = useRef(false);
   const handledEndedUrlRef = useRef<string | null>(null);
+  // 静音看门狗：AudioContext 被系统挂起或音量被竞态留在 0 时，
+  // 媒体元素照常走表（播放栏正常）却没有声音。连续多帧异常才触发自愈，
+  // 避免把正常的淡入淡出误判为故障；toast 只提示一次，防止刷屏。
+  const silentGraphTicksRef = useRef(0);
+  const silentVolumeTicksRef = useRef(0);
+  const silentToastShownRef = useRef(false);
 
   const cancelAudioFade = (audio: HTMLAudioElement) => {
     const frame = fadeFramesRef.current.get(audio);
@@ -242,14 +252,22 @@ export default function App() {
   }, [activeAudio, setAudioEl]);
 
   // A suspended Web Audio context is allowed to make an otherwise healthy
-  // media element advance silently. Resume it from the next real user gesture.
+  // media element advance silently. Resume it from the next real user gesture,
+  // and also when the window regains focus: 系统休眠唤醒、切换音频设备后
+  // AudioContext 常停留在 suspended，仅靠点击无法覆盖“放着放着没声了”。
   useEffect(() => {
     const resume = () => resumeAnalyser();
     document.addEventListener("pointerdown", resume, true);
     document.addEventListener("keydown", resume, true);
+    document.addEventListener("visibilitychange", resume, true);
+    window.addEventListener("focus", resume);
+    window.addEventListener("pageshow", resume);
     return () => {
       document.removeEventListener("pointerdown", resume, true);
       document.removeEventListener("keydown", resume, true);
+      document.removeEventListener("visibilitychange", resume, true);
+      window.removeEventListener("focus", resume);
+      window.removeEventListener("pageshow", resume);
     };
   }, []);
 
@@ -501,10 +519,14 @@ export default function App() {
         a.volume = 0;
         a.play()
           .then(() => {
-            if (
-              syncToken !== playbackSyncRef.current ||
-              !usePlayerStore.getState().playing
-            ) {
+            const latest = usePlayerStore.getState();
+            if (syncToken !== playbackSyncRef.current) {
+              // 更新的同步轮次已接管此解码器。绝不能在这里暂停它：
+              // 那会把新一轮刚启动的播放打断，而新一轮的 .then 已经过了，
+              // 没有人会再恢复 —— 状态停在“播放中”却永远无声/冻结。
+              return;
+            }
+            if (!latest.playing) {
               a.pause();
               a.volume = target;
               return;
@@ -513,8 +535,14 @@ export default function App() {
           })
           .catch(() => {
             a.volume = target;
+            // 过期轮次的 play 被新一轮 load() 打断属正常现象；
+            // 只有当前轮次失败才代表真的无法播放。
             const state = usePlayerStore.getState();
-            if (state.currentUrl === currentUrl && state.playing) {
+            if (
+              syncToken === playbackSyncRef.current &&
+              state.currentUrl === currentUrl &&
+              state.playing
+            ) {
               usePlayerStore.setState({ playing: false });
               state.toast("音频启动失败，请点击播放重试", "error");
             }
@@ -653,9 +681,41 @@ export default function App() {
       if (now - lastPaint >= interval && !document.hidden) {
         lastPaint = now;
         const progress = Math.floor(audio.currentTime * 1000);
-        const duration = Number.isFinite(audio.duration)
-          ? Math.floor(audio.duration * 1000)
-          : 0;
+        // ── 静音自愈看门狗 ──────────────────────────────────────────
+        // 症状：进度条正常前进，但听不到声音。两个已知成因：
+        // 1) Web Audio 图被系统挂起（设备切换/休眠唤醒/autoplay 策略），
+        //    元素输出被路由进挂起的上下文 → 整条链静音；
+        // 2) 淡入淡出竞态把元素音量留在 ≈0。
+        if (!audio.paused && audio.volume < 0.01 && !state.muted) {
+          silentVolumeTicksRef.current += 1;
+        } else {
+          silentVolumeTicksRef.current = 0;
+        }
+        const graphState = audioGraphState();
+        const graphSilent =
+          graphState !== null && graphState !== "running" && !state.muted;
+        if (graphSilent && !audio.paused) {
+          silentGraphTicksRef.current += 1;
+          resumeAnalyser();
+        } else {
+          silentGraphTicksRef.current = 0;
+        }
+        // ≈600ms（前台）仍无起色才动手：淡入只有 180ms，不会误伤。
+        if (
+          silentGraphTicksRef.current > 18 ||
+          silentVolumeTicksRef.current > 18
+        ) {
+          silentGraphTicksRef.current = 0;
+          silentVolumeTicksRef.current = 0;
+          audio.volume = state.muted ? 0 : state.volume;
+          resumeAnalyser();
+          if (!silentToastShownRef.current) {
+            silentToastShownRef.current = true;
+            usePlayerStore
+              .getState()
+              .toast("检测到音频输出被系统中断，已自动恢复", "info");
+          }
+        }
         if (state.previewEnd !== null && progress >= state.previewEnd) {
           const previewPosition = state.previewEnd;
           audio.pause();
@@ -669,6 +729,9 @@ export default function App() {
           });
           return;
         }
+        const duration = Number.isFinite(audio.duration)
+          ? Math.floor(audio.duration * 1000)
+          : 0;
         const visibleDuration =
           state.previewEnd === null
             ? duration
@@ -833,8 +896,14 @@ export default function App() {
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     const position = active ? Math.max(0, active.currentTime * 1000) : 0;
     inactive.currentTime = position / 1000;
-    active?.pause();
+    // 先让新音质真正出声，再停掉旧解码器。旧实现先 pause 再 play，
+    // 一旦 play() 因缓冲/系统原因迟迟不返回，UI 停在“播放中”却既无进度
+    // 也无声；现在最坏情况只是短暂双声重叠，不会出现静默挂起。
+    const switchSuperseded = () =>
+      usePlayerStore.getState().qualitySwitchUrl !== qualitySwitchUrl ||
+      usePlayerStore.getState().qualitySwitchQuality !== qualitySwitchQuality;
     if (!usePlayerStore.getState().playing) {
+      active?.pause();
       commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
       return;
     }
@@ -842,14 +911,18 @@ export default function App() {
     void inactive
       .play()
       .then(() => {
+        if (switchSuperseded()) return;
+        active?.pause();
         commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
       })
       .catch(() => {
         inactive.pause();
-        cancelQualitySwitch();
-        usePlayerStore
-          .getState()
-          .toast("音质切换启动失败，已保留当前播放", "info");
+        if (!switchSuperseded()) {
+          cancelQualitySwitch();
+          usePlayerStore
+            .getState()
+            .toast("音质切换启动失败，已保留当前播放", "info");
+        }
       });
   };
 

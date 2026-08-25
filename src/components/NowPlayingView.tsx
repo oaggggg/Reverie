@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChevronDown, Disc3, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, DiscAlbum, MicVocal, SlidersHorizontal } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
 import { loadParticleAlbumCover } from "../utils/nowPlayingPreload";
 // three.js is ~530 kB of the bundle and only the particle cover needs it.
@@ -193,7 +193,7 @@ export default function NowPlayingView() {
     />
   ) : (
     <div className="np-cover-ph">
-      <Disc3 size={56} />
+      <DiscAlbum size={56} />
     </div>
   );
 
@@ -241,7 +241,7 @@ export default function NowPlayingView() {
         <div className="np-cover-3d">
           {!currentSong?.picUrl ? (
             <div className="np-cover-ph">
-              <Disc3 size={56} />
+              <MicVocal size={56} />
             </div>
           ) : coverQuality === "image" ? (
             staticCover

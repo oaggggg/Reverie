@@ -3,7 +3,10 @@ import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { CircleUserRound } from "lucide-react";
 import { getProfileCenter } from "../api/profile";
-import { useProfileStore } from "../store/profileStore";
+import {
+  mergeWithCachedIdentity,
+  useProfileStore,
+} from "../store/profileStore";
 import FollowListDialog from "./FollowListDialog";
 import {
   captureInteractionOrigin,
@@ -39,7 +42,11 @@ export default function UserMenu() {
     const uid = usePlayerStore.getState().profile?.userId;
     if (profile && uid && !useProfileStore.getState().detail) {
       void getProfileCenter(uid)
-        .then((data) => useProfileStore.setState({ detail: data.detail }))
+        .then((data) =>
+          useProfileStore.setState({
+            detail: mergeWithCachedIdentity(data.detail),
+          }),
+        )
         .catch(() => {});
     }
   };

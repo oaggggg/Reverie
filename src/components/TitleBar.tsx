@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import { Copy, Minus, Settings, Square, X } from "lucide-react";
 import { captureInteractionOrigin } from "../utils/originTransition";
@@ -6,6 +6,13 @@ import { captureInteractionOrigin } from "../utils/originTransition";
 /** macOS draws its own close/minimize/zoom buttons; only Windows needs ours. */
 const isMac =
   typeof window !== "undefined" && window.ncm?.platform === "darwin";
+
+/**
+ * 品牌名动效的编排数据：光带从左向右扫过整段字标（一个周期内完成一次），
+ * 每个字母的光效与跳动都由 CSS 依据自身序号（--letter-i）推算触发时刻，
+ * 波形永远沿 “R → e → v → e → r → i → e” 从左向右传播并无限循环。
+ */
+const BRAND_LETTERS = Array.from("Reverie");
 
 export default function TitleBar() {
   const [maximized, setMaximized] = useState(false);
@@ -30,15 +37,23 @@ export default function TitleBar() {
           aria-hidden="true"
         >
           <span className="titlebar-letter-layer" aria-hidden="true">
-            {Array.from("Reverie").map((letter, index) => (
-              <span className="titlebar-letter" key={index}>
+            {BRAND_LETTERS.map((letter, index) => (
+              <span
+                className="titlebar-letter"
+                key={index}
+                style={{ "--letter-i": index } as CSSProperties}
+              >
                 {letter}
               </span>
             ))}
           </span>
           <span className="titlebar-sheen-layer" aria-hidden="true">
-            {Array.from("Reverie").map((letter, index) => (
-              <span className="titlebar-sheen-letter" key={index}>
+            {BRAND_LETTERS.map((letter, index) => (
+              <span
+                className="titlebar-sheen-letter"
+                key={index}
+                style={{ "--letter-i": index } as CSSProperties}
+              >
                 {letter}
               </span>
             ))}

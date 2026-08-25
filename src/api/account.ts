@@ -23,24 +23,43 @@ function maskPhone(value: string): string {
 }
 
 export async function getAccountOverview(): Promise<AccountOverview> {
+  // 三个来源各自独立降级：任一扩展接口失败都不应把“用户信息没有数据”
+  // 的空壳抛给设置页；/user/account 是账号身份的权威来源，必须成功。
   const [account, detail, binding] = await Promise.all([
     request<Obj>("/user/account", {}, false),
     request<Obj>("/user/detail/new", {}, false).catch(() => ({}) as Obj),
     request<Obj>("/user/binding", {}, false).catch(() => ({}) as Obj),
   ]);
-  const profile = obj(detail.profile ?? detail.data ?? detail);
+  // /user/account 同时携带 account{} 与 profile{}；profile 字段
+  // （等级/会员/昵称/签名）比 detail 接口更全且随登录态实时更新，
+  // 因此以它优先，detail 仅作补充。
   const accountData = obj(account.account ?? account.data ?? account);
-  const bindings = obj(binding.bindings ?? binding.data ?? binding);
+  const accountProfile = obj(account.profile);
+  const detailProfile = obj(detail.profile ?? detail.data ?? detail);
+  const mergedProfile: Obj = { ...detailProfile };
+  for (const [key, value] of Object.entries(accountProfile)) {
+    if (value !== null && value !== undefined && value !== "") {
+      mergedProfile[key] = value;
+    }
+  }
+  const bindingsRaw = binding.bindings ?? binding.binding ?? binding.data;
+  const bindings = Array.isArray(bindingsRaw)
+    ? bindingsObjFromArray(bindingsRaw)
+    : obj(bindingsRaw ?? binding);
   const phone = String(
     bindings.phone ?? bindings.mobile ?? accountData.mobile ?? "",
   );
   const email = String(bindings.email ?? accountData.email ?? "");
   return {
-    userId: Number(accountData.id ?? accountData.userId ?? profile.userId ?? 0),
-    nickname: String(profile.nickname ?? accountData.nickname ?? "网易云用户"),
+    userId: Number(
+      accountData.id ?? accountData.userId ?? mergedProfile.userId ?? 0,
+    ),
+    nickname: String(mergedProfile.nickname ?? accountData.nickname ?? "网易云用户"),
     accountType: Number(accountData.type ?? accountData.accountType ?? 0),
-    level: Number(profile.level ?? accountData.level ?? 0),
-    vipType: Number(profile.vipType ?? accountData.vipType ?? 0),
+    level: Number(mergedProfile.level ?? accountData.level ?? 0),
+    vipType: Number(
+      mergedProfile.vipType ?? accountData.vipType ?? accountProfile.vipType ?? 0,
+    ),
     email,
     phone: phone ? maskPhone(phone) : "",
     bindings: Object.entries(bindings)
@@ -50,6 +69,31 @@ export async function getAccountOverview(): Promise<AccountOverview> {
           ["phone", "mobile", "email", "qq", "weibo", "weixin"].includes(key),
       )
       .map(([key]) => key),
-    detail: String(profile.signature ?? profile.description ?? ""),
+    detail: String(
+      mergedProfile.signature ?? mergedProfile.description ?? "",
+    ),
   };
+}
+
+/**
+ * /user/binding 在不同版本返回数组（[{type,url},…]）或对象两种形态。
+ * 数组形态的 type 是数字枚举：0 手机 / 2 邮箱 / 常见第三方见映射表。
+ */
+function bindingsObjFromArray(value: unknown[]): Obj {
+  const TYPE_NAMES: Record<number, string> = {
+    0: "phone",
+    1: "weibo",
+    2: "email",
+    3: "weixin",
+    4: "qq",
+  };
+  const result: Obj = {};
+  for (const raw of value) {
+    const item = obj(raw);
+    const key =
+      TYPE_NAMES[Number(item.type)] || String(item.type ?? "") || "";
+    if (!key) continue;
+    result[key] = Boolean(item.url ?? item.token ?? true);
+  }
+  return result;
 }

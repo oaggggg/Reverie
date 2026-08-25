@@ -77,6 +77,15 @@ export function resumeAnalyser(): void {
   if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
 }
 
+/**
+ * 当前音频图状态：未接入 Web Audio 时返回 null。
+ * "suspended"/"interrupted"/"closed" 的上下文会让媒体元素照常走表但整条
+ * 输出链静音（播放栏一切正常却没有声音），调用方需要据此自愈重试。
+ */
+export function audioGraphState(): AudioContextState | null {
+  return ctx ? ctx.state : null;
+}
+
 /** Current spectrum energy, or null when no analyser is wired up. */
 export function readBands(): Bands | null {
   if (!analyser || !data) return null;
