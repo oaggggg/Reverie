@@ -34,6 +34,15 @@ const MODE_LABEL: Record<PlayMode, string> = {
   shuffle: "随机播放",
 };
 
+const PLAYER_FOCUS_SCOPE_SELECTOR = [
+  ".player-bar",
+  ".pb-queue-menu",
+  ".pb-quality-menu",
+  ".player-comments-drawer",
+  ".share-dialog",
+  ".np-visual-panel",
+].join(",");
+
 function ModeIcon({ mode }: { mode: PlayMode }) {
   if (mode === "shuffle") return <Shuffle size={18} />;
   if (mode === "one") return <Repeat1 size={18} />;
@@ -123,7 +132,32 @@ export default function PlayerBar() {
     setShareOpen(false);
   }, [showPlayerComments]);
 
+  useEffect(() => {
+    let frame = 0;
+    const clearFocus = () => {
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement &&
+        active.closest(PLAYER_FOCUS_SCOPE_SELECTOR)
+      ) {
+        active.blur();
+      }
+    };
+    const scheduleClearFocus = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(clearFocus);
+    };
 
+    document.addEventListener("pointerdown", scheduleClearFocus, true);
+    document.addEventListener("pointerup", scheduleClearFocus, true);
+    document.addEventListener("pointercancel", scheduleClearFocus, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", scheduleClearFocus, true);
+      document.removeEventListener("pointerup", scheduleClearFocus, true);
+      document.removeEventListener("pointercancel", scheduleClearFocus, true);
+    };
+  }, []);
 
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
   const liked = currentSong ? remoteLiked ?? likedIds.includes(currentSong.id) : false;
