@@ -185,7 +185,7 @@ export default function PlayerBar() {
     if (coverLayers.length < 2 || !coverLayers[0]?.ready) return;
     const timer = window.setTimeout(
       () => setCoverLayers((current) => current.slice(0, 1)),
-      460,
+      620,
     );
     return () => window.clearTimeout(timer);
   }, [coverLayers]);
@@ -202,6 +202,16 @@ export default function PlayerBar() {
       current.includes(url) ? current : [...current, url],
     );
     setCoverLayers((current) => current.filter((layer) => layer.url !== url));
+  };
+  // 预热命中的图片可能在 load 事件派发前就已 complete：
+  // 挂载时兜底检查，避免前层永远停留在透明状态导致旧图滞留。
+  // 双 rAF 推迟一帧再标记，确保初始透明态先完成一次绘制，
+  // 否则挂载与就绪合并进同一次样式计算，淡入会退化成硬切。
+  const attachCoverRef = (url: string, el: HTMLImageElement | null) => {
+    if (!el || !el.complete || el.naturalWidth <= 0) return;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => handleCoverLoad(url)),
+    );
   };
 
   useEffect(() => {
@@ -301,6 +311,7 @@ export default function PlayerBar() {
                 {coverLayers.map((layer, index) => (
                   <img
                     key={layer.url}
+                    ref={(el) => attachCoverRef(layer.url, el)}
                     className={`pb-cover-layer${index === 0 && layer.ready ? " on" : ""}`}
                     src={sizedImage(layer.url, 120)}
                     alt=""
