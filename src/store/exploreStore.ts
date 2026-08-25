@@ -123,6 +123,16 @@ function toastError(message: string) {
   usePlayerStore.getState().toast(message, "error");
 }
 
+let navToken = 0;
+
+function beginNavLoad() {
+  return ++navToken;
+}
+
+function isNavStale(token: number) {
+  return token !== navToken;
+}
+
 export const useExploreStore = create<ExploreState>()((set, get) => ({
   loading: false,
   followListLoading: false,
@@ -152,15 +162,18 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
 
   openAlbum: async (id) => {
     if (!id) return;
+    const token = beginNavLoad();
     showView("album");
     set({ loading: true, album: null, albumSongs: [] });
     try {
       const result = await getAlbum(id);
+      if (isNavStale(token)) return;
       set({ album: result.album, albumSongs: result.songs });
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载专辑失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   toggleAlbumSubscription: async () => {
@@ -179,6 +192,7 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
   },
   openArtist: async (id) => {
     if (!id) return;
+    const token = beginNavLoad();
     showView("artist");
     set({
       loading: true,
@@ -189,6 +203,7 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
     });
     try {
       const result = await getArtist(id);
+      if (isNavStale(token)) return;
       set({
         artist: result.artist,
         artistSongs: result.songs,
@@ -196,9 +211,10 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
         artistVideos: result.videos,
       });
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载歌手详情失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   toggleArtistSubscription: async () => {
@@ -216,6 +232,7 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
     }
   },
   openComments: async (song) => {
+    const token = beginNavLoad();
     set({
       loading: true,
       commentSong: song,
@@ -226,38 +243,44 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
     });
     try {
       const result = await getSongComments(song.id, 1, 2);
+      if (isNavStale(token)) return;
       set({
         comments: result.comments,
         commentTotal: result.total,
         commentHasMore: result.hasMore,
       });
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载评论失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   setCommentSort: async (sort) => {
     const song = get().commentSong;
     if (!song || sort === get().commentSort) return;
+    const token = beginNavLoad();
     set({ loading: true, commentSort: sort, commentPage: 1, comments: [], commentHasMore: false });
     try {
       const result = await getSongComments(song.id, 1, sort === "hot" ? 2 : 3);
+      if (isNavStale(token)) return;
       set({
         comments: result.comments,
         commentTotal: result.total,
         commentHasMore: result.hasMore,
       });
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载评论失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   loadMoreComments: async () => {
     const { commentSong, commentPage, commentSort, commentHasMore, loading } =
       get();
     if (!commentSong || !commentHasMore || loading) return;
+    const token = beginNavLoad();
     const nextPage = commentPage + 1;
     set({ loading: true });
     try {
@@ -266,15 +289,17 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
         nextPage,
         commentSort === "hot" ? 2 : 3,
       );
+      if (isNavStale(token)) return;
       set((state) => ({
         comments: [...state.comments, ...result.comments],
         commentPage: nextPage,
         commentHasMore: result.hasMore,
       }));
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载更多评论失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   submitComment: async (content) => {
@@ -335,10 +360,12 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
     }
   },
   loadRadios: async () => {
+    const token = beginNavLoad();
     showView("radio");
     set({ loading: true });
     try {
       const result = await getRadioHome();
+      if (isNavStale(token)) return;
       const subscribedRadios = result.subscribed.map((radio) => ({
         ...radio,
         subscribed: true,
@@ -352,16 +379,19 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
         subscribedRadios,
       });
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载播客与电台失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   openRadio: async (id) => {
+    const token = beginNavLoad();
     showView("radioDetail");
     set({ loading: true, currentRadio: null, radioPrograms: [] });
     try {
       const result = await getRadioDetail(id);
+      if (isNavStale(token)) return;
       const subscribed = get().subscribedRadios.some(
         (radio) => radio.id === id,
       );
@@ -373,9 +403,10 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
         radioPrograms: result.programs,
       });
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载电台详情失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   toggleRadioSubscription: async (target) => {
@@ -425,20 +456,24 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
   loadFollowList: async (type) => {
     const uid = usePlayerStore.getState().profile?.userId;
     if (!uid) return;
+    const token = beginNavLoad();
     set({ followListLoading: true });
     try {
       const users =
         type === "follows" ? await getFollows(uid) : await getFollowers(uid);
+      if (isNavStale(token)) return;
       set(type === "follows" ? { follows: users } : { followers: users });
     } catch {
+      if (isNavStale(token)) return;
       toastError(type === "follows" ? "加载关注列表失败" : "加载粉丝列表失败");
     } finally {
-      set({ followListLoading: false });
+      if (!isNavStale(token)) set({ followListLoading: false });
     }
   },
   loadSocial: async (navigate = true) => {
     const uid = usePlayerStore.getState().profile?.userId;
     if (!uid) return;
+    const token = beginNavLoad();
     if (navigate) showView("social");
     set({ loading: true });
     try {
@@ -452,11 +487,13 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
         })),
         getFollowers(uid),
       ]);
+      if (isNavStale(token)) return;
       set({ events, myEvents, follows: mixed.users, followers });
     } catch {
+      if (isNavStale(token)) return;
       toastError("加载社交动态失败");
     } finally {
-      set({ loading: false });
+      if (!isNavStale(token)) set({ loading: false });
     }
   },
   toggleFollow: async (user) => {

@@ -11,11 +11,115 @@ if (!existsSync(anonymousTokenPath)) {
   writeFileSync(anonymousTokenPath, "", "utf8");
 }
 
-const { serveNcmApi } = require("NeteaseCloudMusicApi/server");
+const { serveNcmApi, getModulesDefinitions } = require("NeteaseCloudMusicApi/server");
+const path = require("node:path");
 
 const port = Number(process.env.PORT || 3939);
 const host = process.env.HOST || "127.0.0.1";
 const parentPid = Number(process.env.PARENT_PID || 0);
+// 每次由宿主应用随机生成的共享密钥；未设置时仅限本机开发调试。
+const authToken = process.env.REVERIE_AUTH_TOKEN || "";
+
+function timingSafeEqual(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  let diff = 0;
+  for (let i = 0; i < bufA.length; i++) diff |= bufA[i] ^ bufB[i];
+  return diff === 0;
+}
+
+/**
+ * HTTP 层包装：在 express 路由之前统一执行
+ * 1. /reverie/health 健康检查（宿主用于确认端口归属）；
+ * 2. 共享密钥校验，未携带正确 x-reverie-auth 的请求一律 403，
+ *    阻断浏览器中任意网页对 localhost API 的跨域调用；
+ * 3. 把前端放在 x-ncm-cookie 头里的会话凭证并入 Cookie 头，
+ *    避免凭证出现在 URL/日志/缓存键中。
+ */
+function wrapServer(server) {
+  const originalListeners = server.listeners("request").slice();
+  server.removeAllListeners("request");
+  server.on("request", (req, res) => {
+    const finishUnauthorized = () => {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ code: 403, msg: "unauthorized" }));
+    };
+
+    // 健康检查同样要求密钥：能通过即证明占用端口的是本实例的 sidecar。
+    if (req.url && req.url.startsWith("/reverie/health")) {
+      if (!authToken || !timingSafeEqual(req.headers["x-reverie-auth"] || "", authToken)) {
+        finishUnauthorized();
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (authToken && !timingSafeEqual(req.headers["x-reverie-auth"] || "", authToken)) {
+      finishUnauthorized();
+      return;
+    }
+
+    const headerCookie = req.headers["x-ncm-cookie"];
+    if (typeof headerCookie === "string" && headerCookie.trim()) {
+      req.headers.cookie = req.headers.cookie
+        ? `${req.headers.cookie}; ${headerCookie.trim()}`
+        : headerCookie.trim();
+    }
+    delete req.headers["x-ncm-cookie"];
+
+    for (const listener of originalListeners) listener.call(server, req, res);
+  });
+}
+
+// 与前端 generate-api-registry.mjs 的排除清单保持一致：认证保持二维码登录、
+// 不暴露凭证/资料修改类接口。该清单必须在服务端边界强制执行。
+const EXCLUDED_MODULES = new Set([
+  "activate_init_profile",
+  "avatar_upload",
+  "captcha_sent",
+  "captcha_verify",
+  "cellphone_existence_check",
+  "countries_code_list",
+  "login",
+  "login_cellphone",
+  "login_refresh",
+  "logout",
+  "nickname_check",
+  "rebind",
+  "register_anonimous",
+  "register_cellphone",
+  "user_bindingcellphone",
+  "user_replacephone",
+  "user_social_status_edit",
+  "user_update",
+  "verify_getQr",
+  "verify_qrcodestatus",
+]);
+
+async function loadModuleDefs() {
+  try {
+    const serverDir = path.dirname(require.resolve("NeteaseCloudMusicApi/server"));
+    const moduleDir = path.join(serverDir, "module");
+    const special = {
+      "daily_signin.js": "/daily_signin",
+      "fm_trash.js": "/fm_trash",
+      "personal_fm.js": "/personal_fm",
+    };
+    const defs = await getModulesDefinitions(moduleDir, special);
+    const filtered = defs.filter((def) => !EXCLUDED_MODULES.has(def.identifier));
+    console.log(
+      `[reverie] modules registered: ${filtered.length} (${defs.length - filtered.length} excluded)`,
+    );
+    return filtered;
+  } catch (error) {
+    console.warn("[reverie] failed to filter modules, using full registry:", error);
+    // 打包环境异常时退回上游默认注册表，保持服务可用。
+    return undefined;
+  }
+}
 
 function normalizeProvince(value) {
   return String(value || "")
@@ -92,7 +196,10 @@ if (Number.isInteger(parentPid) && parentPid > 0) {
   }, 1000);
 }
 
-serveNcmApi({ port, host, checkVersion: false })
+(async () => {
+  const moduleDefs = await loadModuleDefs();
+  return serveNcmApi({ port, host, checkVersion: false, moduleDefs });
+})()
   .then((app) => {
     // 浏览器直连公网 IP 定位服务会被 CORS 拦截，由 sidecar 服务端代理。
     // 主源返回城市级 JSON（province/city），备用 ipip 文本源仅省级。
@@ -170,10 +277,17 @@ serveNcmApi({ port, host, checkVersion: false })
     // listen 绑定失败（如 EADDRINUSE）在 promise resolve 之后异步抛出，
     // 不监听 error 事件会变成未捕获异常。
     if (app && app.server && typeof app.server.on === "function") {
+      // 在 express 之前包一层：共享密钥校验 + cookie 头转发 + /reverie/health。
+      wrapServer(app.server);
       app.server.on("error", (error) => {
         console.error("Failed to start NCM API:", error);
         process.exit(1);
       });
+    }
+    if (!authToken) {
+      console.warn(
+        "[reverie] REVERIE_AUTH_TOKEN is not set; the local API accepts unauthenticated requests (development only).",
+      );
     }
   })
   .catch((error) => {

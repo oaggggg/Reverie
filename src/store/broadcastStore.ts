@@ -13,6 +13,10 @@ import type {
   Song,
 } from "../api/types.ts";
 import { usePlayerStore } from "./playerStore.ts";
+
+let detailToken = 0;
+let sportToken = 0;
+
 interface BroadcastState {
   categories: BroadcastCategory[];
   channels: BroadcastChannel[];
@@ -56,10 +60,14 @@ export const useBroadcastStore = create<BroadcastState>((set, get) => ({
     });
   },
   setBpm: async (bpm) => {
+    const token = ++sportToken;
     set({ bpm, loading: true });
     try {
-      set({ sportSongs: await getSportRadio(bpm), loading: false });
+      const songs = await getSportRadio(bpm);
+      if (token !== sportToken) return;
+      set({ sportSongs: songs, loading: false });
     } catch {
+      if (token !== sportToken) return;
       set({ sportSongs: [], loading: false });
     }
   },
@@ -88,15 +96,20 @@ export const useBroadcastStore = create<BroadcastState>((set, get) => ({
       await usePlayerStore.getState().playSong(songs[0]!, songs);
   },
   openCurrentInfo: async (channel) => {
+    const token = ++detailToken;
     set({ activeChannel: channel, currentInfoLoading: true });
     try {
       const detail = await getBroadcastCurrentInfo(channel.id);
+      if (token !== detailToken) return;
       set({ activeChannel: detail ?? channel, currentInfoLoading: false });
     } catch {
+      if (token !== detailToken) return;
       set({ activeChannel: channel, currentInfoLoading: false });
       usePlayerStore.getState().toast("广播频道详情暂时不可用", "error");
     }
   },
-  closeCurrentInfo: () =>
-    set({ activeChannel: null, currentInfoLoading: false }),
+  closeCurrentInfo: () => {
+    ++detailToken;
+    set({ activeChannel: null, currentInfoLoading: false });
+  },
 }));

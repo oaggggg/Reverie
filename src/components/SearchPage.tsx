@@ -59,13 +59,9 @@ export default function SearchPage() {
   const loading = useSearchStore((state) => state.loading);
   const loadingMore = useSearchStore((state) => state.loadingMore);
   const defaultKeyword = useSearchStore((state) => state.defaultKeyword);
-  const mediaItem = useSearchStore((state) => state.mediaItem);
-  const mediaUrl = useSearchStore((state) => state.mediaUrl);
-  const mediaLoading = useSearchStore((state) => state.mediaLoading);
   const openSearch = useSearchStore((state) => state.openSearch);
   const setCategory = useSearchStore((state) => state.setCategory);
   const loadMore = useSearchStore((state) => state.loadMore);
-  const closeMedia = useSearchStore((state) => state.closeMedia);
   const openMediaDetail = useMediaStore((state) => state.open);
   const toggleFollow = useSearchStore((state) => state.toggleFollow);
   const openPlaylist = usePlayerStore((state) => state.openPlaylist);
@@ -311,30 +307,6 @@ export default function SearchPage() {
             <div ref={loadMoreRef} className="load-more-sentinel" />
           )}
         </section>
-      )}
-
-      {mediaItem && (
-        <div className="search-media-overlay" onClick={closeMedia}>
-          <div
-            className="search-media-dialog"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="search-media-heading">
-              <div>
-                <strong>{mediaItem.name}</strong>
-                <span>{mediaItem.creatorName}</span>
-              </div>
-              <button onClick={closeMedia} title="关闭">
-                <X size={18} />
-              </button>
-            </div>
-            {mediaLoading ? (
-              <LoadingState label="正在获取播放地址…" />
-            ) : mediaUrl ? (
-              <video src={mediaUrl} controls autoPlay playsInline />
-            ) : null}
-          </div>
-        </div>
       )}
     </Page>
   );

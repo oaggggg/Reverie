@@ -505,6 +505,13 @@ interface PlayerState {
   qualitySwitching: boolean;
   pendingSeek: number | null;
   loadingUrl: boolean;
+  /**
+   * Non-zero while playSong is optimistically committed but the new URL has
+   * not resolved yet. The audio "ended" path must ignore events fired by the
+   * outgoing track during this window, otherwise the freshly selected song is
+   * skipped entirely.
+   */
+  pendingPlayToken: number;
   playing: boolean;
   progress: number;
   duration: number;
@@ -824,6 +831,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   qualitySwitching: false,
   pendingSeek: null,
   loadingUrl: false,
+  pendingPlayToken: 0,
   playing: false,
   progress: 0,
   duration: restoredSession.currentSong?.duration ?? 0,
@@ -1183,7 +1191,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // Warm the following URL in the API cache as well. This keeps a rapid
     // second skip from waiting on another sequential URL lookup while the
     // single inactive decoder remains reserved for the immediate next song.
-    const warmSong = state.queue[state.index + 2];
+    // `queue`/`index` are post-commit values, so the warm target is one past
+    // the immediate next song.
+    const warmSong = queue[nextIndex + 1];
     if (warmSong && warmSong.id !== song.id && warmSong.id !== nextSong?.id) {
       void resolveUrl(warmSong, state.playbackQuality).catch(() => {});
     }
@@ -1768,6 +1778,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       qualitySwitching: false,
       pendingSeek: options?.startAt ?? null,
       loadingUrl: !promotedUrl,
+      pendingPlayToken: promotedUrl ? 0 : token,
       playing: autoplay,
       progress: 0,
       duration: song.duration || 0,
@@ -1807,7 +1818,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // instead of playing a song the user already moved on from.
     if (token !== playToken) return;
     if (!resolution.url) {
-      set({ loadingUrl: false, currentUrl: null, playing: false });
+      set({
+        loadingUrl: false,
+        currentUrl: null,
+        playing: false,
+        pendingPlayToken: 0,
+      });
       get().failCurrent(resolution.reason);
       return;
     }
@@ -1816,6 +1832,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       previewEnd: resolution.previewEnd ?? null,
       loadingUrl: false,
       playing: autoplay,
+      pendingPlayToken: 0,
     });
 
     // Prefetch the next track's URL while the current one plays; it lands in
@@ -2176,6 +2193,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       currentUrl: null,
       previewEnd: null,
       playing: false,
+      pendingPlayToken: 0,
       progress: 0,
       duration: 0,
       queue: [],
@@ -2216,6 +2234,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
                   [],
                 ),
                 likedSongs: [],
+                // 点赞时间戳按账号隔离，避免旧账号数据污染新账号排序。
+                likedAt: {},
                 vipInfo: readJson<VipInfo | null>(
                   vipCacheKey(profile.userId),
                   null,
@@ -2227,6 +2247,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
               }
             : {}),
         });
+        if (accountChanged) write(LIKED_AT_KEY, "{}");
         writeJson(PROFILE_CACHE_KEY, profile);
         void get().loadLiked();
         void get().loadVipInfo();

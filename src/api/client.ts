@@ -66,6 +66,13 @@ export interface RequestOptions {
   timeoutMs?: number;
   /** Enable retries for a request that is not a safe GET. */
   retry?: boolean;
+  /**
+   * Send `params` as a typed JSON body instead of query-string values.
+   * Needed when the upstream module embeds the params verbatim into an
+   * outgoing JSON payload (e.g. listen-together commands): URL round-trips
+   * would turn booleans and numbers into strings.
+   */
+  json?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -169,23 +176,96 @@ export function clearResponseCache(): void {
   responseCache.clear();
 }
 
+/**
+ * Drop cached GET entries whose path matches one of the given prefixes.
+ * Called after mutating operations so the next read observes fresh data
+ * instead of a stale TTL entry (e.g. playlist tracks right after an edit).
+ */
+export function invalidateResponseCache(paths: string[]): void {
+  for (const key of [...responseCache.keys()]) {
+    const normalized = key.slice(key.indexOf(":") + 1);
+    if (paths.some((p) => normalized.startsWith(p))) {
+      responseCache.delete(key);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Local sidecar auth                                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Per-launch shared secret between the Tauri shell and the local API
+ * sidecar. Any HTTP request without it is rejected by the sidecar, so
+ * random web pages cannot drive the user's NetEase account through
+ * localhost even though the server listens on 127.0.0.1.
+ */
+let apiAuthToken = "";
+/** 在首个请求发出前等待 token 注入完成（Tauri 环境）。 */
+let apiAuthTokenReady: Promise<void> = Promise.resolve();
+
+export function setApiAuthToken(token: string): void {
+  apiAuthToken = token;
+}
+
+/**
+ * 由 Tauri 壳层在启动时调用：从 Rust 侧取回本次运行的共享密钥。
+ * 所有后续请求都会携带该密钥，本地 sidecar 拒绝其余来源。
+ */
+export function initApiAuthToken(provider: () => Promise<string>): void {
+  apiAuthTokenReady = provider()
+    .then((token) => {
+      if (token) apiAuthToken = token;
+    })
+    .catch(() => {
+      /* 非 Tauri 或命令失败：退回无密钥模式（sidecar 未启用鉴权时仍可用） */
+    });
+}
+
+function authHeaders(base: HeadersInit | undefined): HeadersInit {
+  const headers: Record<string, string> = {};
+  if (base) Object.assign(headers, base as Record<string, string>);
+  // Cookie travels in a header instead of the URL so the long-lived
+  // MUSIC_U session never lands in logs or cache keys.
+  if (cookie) headers["x-ncm-cookie"] = cookie;
+  if (apiAuthToken) headers["x-reverie-auth"] = apiAuthToken;
+  return headers;
+}
+
 export async function request<T = unknown>(
   path: string,
   params: Record<string, string | number | boolean | null | undefined> = {},
   cacheBust = true,
   options: RequestOptions = {},
 ): Promise<T> {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+  await apiAuthTokenReady;
+  const headers = authHeaders(options.headers);
+  let url: string;
+  let method: "GET" | "POST";
+  let body: BodyInit | undefined;
+  if (options.json) {
+    // Typed JSON body keeps booleans/numbers intact for the upstream module.
+    url = `${API_BASE}${path}`;
+    method = "POST";
+    body = JSON.stringify({
+      ...params,
+      ...(cacheBust ? { timestamp: Date.now() } : {}),
+    });
+  } else {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+    }
+    // cookie 通过 x-ncm-cookie 请求头传递（见 authHeaders），
+    // 不再拼进 URL，避免会话凭证泄漏到日志与缓存键。
+    if (cacheBust) q.set("timestamp", String(Date.now()));
+    const query = q.toString();
+    url = `${API_BASE}${path}${query ? `?${query}` : ""}`;
+    method = options.method ?? "GET";
+    body = method === "GET" ? undefined : options.body;
   }
-  if (cookie) q.set("cookie", cookie);
-  if (cacheBust) q.set("timestamp", String(Date.now()));
-
-  const query = q.toString();
-  const url = `${API_BASE}${path}${query ? `?${query}` : ""}`;
-  const method = options.method ?? "GET";
-  const canRetry = method === "GET" || options.retry === true;
+  const canRetry =
+    (method === "GET" && !options.json) || options.retry === true;
   const attempts = canRetry ? MAX_GET_ATTEMPTS : 1;
   const timeoutMs = Math.max(
     1_000,
@@ -197,8 +277,8 @@ export async function request<T = unknown>(
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const fetchOptions: RequestInit = {
       method,
-      headers: options.headers,
-      body: method === "GET" ? undefined : options.body,
+      headers,
+      body,
       signal: controller.signal,
     };
     try {
@@ -440,6 +520,21 @@ export async function getSongDownloadUrl(
   };
 }
 
+/** Derive a file extension from the download URL (fallback .mp3). */
+function extensionFromUrl(url: string): string {
+  try {
+    const pathname = new URL(url).pathname;
+    const match = /\.([a-z0-9]{2,5})$/i.exec(pathname);
+    if (match) {
+      const ext = match[1]!.toLowerCase();
+      if (/^(mp3|flac|ape|wav|m4a|aac|ogg|wma)$/.test(ext)) return ext;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "mp3";
+}
+
 export async function downloadSongFile(song: Song): Promise<void> {
   let result = await getSongDownloadUrl(song.id).catch(() => ({
     url: null,
@@ -449,26 +544,37 @@ export async function downloadSongFile(song: Song): Promise<void> {
   if (!result.url) throw new Error("该歌曲暂时没有可下载地址");
   const configuredPath =
     localStorage.getItem("reverie_download_path") || "D:\\Reverie\\Downloads";
+  const ext = extensionFromUrl(result.url);
+  const safeName = `${song.name} - ${song.artists}.${ext}`.replace(
+    /[\\/:*?"<>|]/g,
+    "_",
+  );
   if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
     const { invoke } = await import("@tauri-apps/api/core");
     const response = await fetch(result.url);
-    if (!response.ok) throw new Error("歌曲下载失败");
-    const bytes = Array.from(new Uint8Array(await response.arrayBuffer()));
-    const fileName = (song.name + " - " + song.artists + ".mp3").replace(
-      /[\\/:*?"<>|]/g,
-      "_",
-    );
-    const path = configuredPath.replace(/[\\/]+$/, "") + "/" + fileName;
-    await invoke("save_download_file", { path, data: bytes });
+    if (!response.ok || !response.body) throw new Error("歌曲下载失败");
+    // 分块落盘，避免无损整曲一次性转成 number[] 造成数百 MB 内存峰值。
+    const reader = response.body.getReader();
+    let first = true;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value?.length) continue;
+      const bytes = Array.from(value);
+      await invoke("save_download_file", {
+        path: configuredPath.replace(/[\\/]+$/, "") + "/" + safeName,
+        data: bytes,
+        append: !first,
+      });
+      first = false;
+    }
+    if (first) throw new Error("歌曲下载失败：内容为空");
     return;
   }
   if (typeof document === "undefined") return;
   const anchor = document.createElement("a");
   anchor.href = result.url;
-  anchor.download = `${song.name} - ${song.artists}.mp3`.replace(
-    /[\\/:*?"<>|]/g,
-    "_",
-  );
+  anchor.download = safeName;
   anchor.target = "_blank";
   anchor.rel = "noreferrer";
   document.body.appendChild(anchor);
@@ -633,12 +739,21 @@ export async function fmTrash(id: number): Promise<void> {
 }
 
 export async function getUserPlaylists(uid: number): Promise<PlaylistInfo[]> {
-  const res = await cachedRequest<{ code?: number; playlist?: unknown[] }>(
-    "/user/playlist",
-    { uid, limit: 50 },
-    2 * 60 * 1000,
-  );
-  return (res.playlist ?? [])
+  // 分页拉全量：固定 limit 会静默截断多歌单用户。
+  const PAGE = 50;
+  const MAX_PAGES = 20; // 上限 1000 个歌单，防御异常死循环
+  const rows: unknown[] = [];
+  for (let offset = 0; offset < MAX_PAGES * PAGE; offset += PAGE) {
+    const res = await cachedRequest<{ code?: number; playlist?: unknown[]; more?: boolean }>(
+      "/user/playlist",
+      { uid, limit: PAGE, offset },
+      2 * 60 * 1000,
+    );
+    const page = res.playlist ?? [];
+    rows.push(...page);
+    if (page.length < PAGE || res.more === false) break;
+  }
+  return rows
     .map((p) => {
       const o = p as Record<string, unknown>;
       const creator = (o.creator ?? {}) as Record<string, unknown>;
@@ -715,6 +830,7 @@ export async function loginStatus(): Promise<UserProfile | null> {
 
 export async function likeSong(id: number, like: boolean): Promise<void> {
   await request("/like", { id, like: like ? "true" : "false" }, false);
+  invalidateResponseCache(["/likelist"]);
 }
 
 export async function getLikedIds(uid: number): Promise<number[]> {

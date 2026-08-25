@@ -10,6 +10,8 @@ import {
 import type { SatiResource, SatiTag } from "../api/types.ts";
 import { usePlayerStore } from "./playerStore.ts";
 
+let requestToken = 0;
+
 interface SatiState {
   tags: SatiTag[];
   selectedTag: string;
@@ -30,6 +32,7 @@ export const useSatiStore = create<SatiState>((set, get) => ({
   loading: false,
   error: "",
   load: async () => {
+    const token = ++requestToken;
     set({ loading: true, error: "" });
     const [tags, resources, subscribed, scene] = await Promise.allSettled([
       getSatiTags(),
@@ -37,6 +40,7 @@ export const useSatiStore = create<SatiState>((set, get) => ({
       getSubscribedSatiResources(),
       getSatiTimeSceneResources(),
     ]);
+    if (token !== requestToken) return;
     const fallback = scene.status === "fulfilled" ? scene.value : [];
     set({
       tags: tags.status === "fulfilled" ? tags.value : [],
@@ -50,10 +54,14 @@ export const useSatiStore = create<SatiState>((set, get) => ({
     });
   },
   selectTag: async (tag) => {
+    const token = ++requestToken;
     set({ selectedTag: tag, loading: true });
     try {
-      set({ resources: await getSatiResources(tag), loading: false });
+      const resources = await getSatiResources(tag);
+      if (token !== requestToken) return;
+      set({ resources, loading: false });
     } catch (error) {
+      if (token !== requestToken) return;
       set({
         loading: false,
         error: error instanceof Error ? error.message : "加载资源失败",

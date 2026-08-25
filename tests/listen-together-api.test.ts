@@ -65,9 +65,17 @@ test("listen together wrappers normalize room, status and playlist responses", a
 
 test("listen together mutations use expected routes, methods and parameters", async () => {
   const originalFetch = globalThis.fetch;
-  const calls: Array<{ url: string; method?: string }> = [];
+  const calls: Array<{
+    url: string;
+    method?: string;
+    body?: unknown;
+  }> = [];
   globalThis.fetch = async (input, init) => {
-    calls.push({ url: String(input), method: init?.method });
+    calls.push({
+      url: String(input),
+      method: init?.method,
+      body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+    });
     if (String(input).includes("room/check")) {
       return Response.json({
         data: { roomId: "r-2", ownerId: 7, memberCount: 1 },
@@ -100,15 +108,18 @@ test("listen together mutations use expected routes, methods and parameters", as
     assert.equal(new URL(calls[2]!.url).pathname, "/listentogether/accept");
     assert.equal(new URL(calls[2]!.url).searchParams.get("inviterId"), "7");
     assert.equal(calls[2]!.method, "POST");
+    // 心跳与播放指令必须走 JSON body：布尔/数字类型不能被 query 序列化破坏。
     assert.equal(new URL(calls[3]!.url).pathname, "/listentogether/heatbeat");
-    assert.equal(new URL(calls[3]!.url).searchParams.get("progress"), "400");
     assert.equal(calls[3]!.method, "POST");
+    assert.equal(calls[3]!.body?.progress, 400);
+    assert.equal(calls[3]!.body?.playStatus, true);
     assert.equal(
       new URL(calls[4]!.url).pathname,
       "/listentogether/play/command",
     );
-    assert.equal(new URL(calls[4]!.url).searchParams.get("clientSeq"), "3");
     assert.equal(calls[4]!.method, "POST");
+    assert.equal(calls[4]!.body?.clientSeq, 3);
+    assert.equal(calls[4]!.body?.playStatus, true);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -116,16 +127,14 @@ test("listen together mutations use expected routes, methods and parameters", as
 
 test("listen together playlist sync posts a replace command with both lists", async () => {
   const originalFetch = globalThis.fetch;
+  let payload: Record<string, unknown> | undefined;
   globalThis.fetch = async (input, init) => {
     assert.equal(
       new URL(String(input)).pathname,
       "/listentogether/sync/list/command",
     );
     assert.equal(init?.method, "POST");
-    const url = new URL(String(input));
-    assert.equal(url.searchParams.get("commandType"), "REPLACE");
-    assert.equal(url.searchParams.get("displayList"), "12,13");
-    assert.equal(url.searchParams.get("randomList"), "12,13");
+    payload = JSON.parse(String(init?.body));
     return Response.json({ code: 200 });
   };
   try {
@@ -135,6 +144,10 @@ test("listen together playlist sync posts a replace command with both lists", as
       version: 4,
       songIds: [12, 13],
     });
+    assert.equal(payload?.commandType, "REPLACE");
+    assert.equal(payload?.displayList, "12,13");
+    assert.equal(payload?.randomList, "12,13");
+    assert.equal(payload?.version, 4);
   } finally {
     globalThis.fetch = originalFetch;
   }

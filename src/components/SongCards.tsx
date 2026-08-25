@@ -51,11 +51,12 @@ export default function SongCards({
     if (!addedIds.length) return;
 
     setEntering((current) => [...new Set([...current, ...addedIds])]);
-    window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setEntering((current) =>
         current.filter((id) => !addedIds.includes(id)),
       );
     }, 320);
+    return () => window.clearTimeout(timer);
   }, [songs]);
 
   useEffect(() => {
@@ -77,12 +78,22 @@ export default function SongCards({
     };
   }, [contextMenu]);
 
+  const dismissTimers = useRef<number[]>([]);
+  useEffect(
+    () => () => {
+      for (const timer of dismissTimers.current) window.clearTimeout(timer);
+      dismissTimers.current = [];
+    },
+    [],
+  );
+
   const dismiss = (song: Song) => {
     if (dismissing.includes(song.id)) return;
     setContextMenu(null);
     setContextSongId(null);
     setDismissing((current) => [...current, song.id]);
-    window.setTimeout(() => onDislike?.(song), 220);
+    const timer = window.setTimeout(() => onDislike?.(song), 220);
+    dismissTimers.current.push(timer);
   };
 
   if (!songs.length && loading) return <LoadingState label="正在加载推荐…" />;

@@ -25,6 +25,8 @@ interface State {
   error: string;
   load: (period?: State["period"]) => Promise<void>;
 }
+let requestToken = 0;
+
 export const useListenReportsStore = create<State>((set) => ({
   period: "week",
   total: null,
@@ -36,6 +38,7 @@ export const useListenReportsStore = create<State>((set) => ({
   error: "",
   load: async (nextPeriod) => {
     const period = nextPeriod ?? useListenReportsStore.getState().period;
+    const token = ++requestToken;
     set({ period, loading: true, error: "" });
     const [total, report, today, annual, timeMachine] =
       await Promise.allSettled([
@@ -47,6 +50,7 @@ export const useListenReportsStore = create<State>((set) => ({
           : getAnnualSummary(new Date().getFullYear()),
         getListenTimeMachine(),
       ]);
+    if (token !== requestToken) return;
     set({
       period,
       total: total.status === "fulfilled" ? total.value : null,

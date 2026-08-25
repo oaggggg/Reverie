@@ -28,12 +28,12 @@ function normalizeMedia(raw: unknown, fallback: SearchMediaInfo): MediaDetail {
     duration: Number(value.duration ?? value.durationms ?? fallback.duration),
     playCount: Number(value.playCount ?? value.playTime ?? fallback.playCount),
     description: String(value.desc ?? value.description ?? ""),
-    publishTime: Number(value.publishTime ?? value.publishTime ?? 0),
+    publishTime: Number(value.publishTime ?? value.publishTimeMs ?? 0),
     tags,
     artistIds,
     commentCount: Number(value.commentCount ?? value.commentNum ?? 0),
     subCount: Number(
-      value.subCount ?? value.subCount ?? value.subscribeCount ?? 0,
+      value.subCount ?? value.subedCount ?? value.subscribeCount ?? 0,
     ),
   };
 }

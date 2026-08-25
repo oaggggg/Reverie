@@ -83,7 +83,12 @@ export default function AudioMatchDialog({
           </button>
           <button
             className="btn primary"
-            disabled={!audioFP.trim() || Number(duration) <= 0 || loading}
+            disabled={
+              !audioFP.trim() ||
+              !Number.isFinite(Number(duration)) ||
+              Number(duration) <= 0 ||
+              loading
+            }
             onClick={() => void submit()}
           >
             {loading ? "识别中…" : "开始识别"}

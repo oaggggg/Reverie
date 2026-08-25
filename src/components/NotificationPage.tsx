@@ -307,6 +307,8 @@ function PrivateMessages() {
                   placeholder="输入私信内容"
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
+                    // IME 组词期间的 Enter 是确认候选词，不能触发发送。
+                    if (event.nativeEvent.isComposing) return;
                     if (event.key === "Enter" && !event.shiftKey) {
                       event.preventDefault();
                       void submit();

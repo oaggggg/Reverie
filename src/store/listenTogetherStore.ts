@@ -14,6 +14,7 @@ import type { ListenTogetherRoom, Song } from "../api/types.ts";
 import { usePlayerStore } from "./playerStore.ts";
 
 let heartbeatTimer: number | undefined;
+let heartbeatFailures = 0;
 let requestToken = 0;
 
 function stopHeartbeat() {
@@ -21,6 +22,7 @@ function stopHeartbeat() {
     window.clearInterval(heartbeatTimer);
     heartbeatTimer = undefined;
   }
+  heartbeatFailures = 0;
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -48,6 +50,7 @@ interface ListenTogetherState {
   sendPlaybackCommand: (
     commandType: "play" | "pause" | "seek" | "goto" | "next" | "prev",
   ) => Promise<void>;
+  leaveRoom: () => void;
   endRoom: () => Promise<void>;
   clearError: () => void;
 }
@@ -61,9 +64,26 @@ function startHeartbeat(roomId: string) {
       songId: player.currentSong?.id ?? 0,
       playStatus: player.playing,
       progress: player.progress,
-    }).catch(() => {
-      // Heartbeats are best effort; the next refresh surfaces a real failure.
-    });
+    })
+      .then(() => {
+        heartbeatFailures = 0;
+      })
+      .catch(() => {
+        // 心跳尽力而为；连续失败视为房间已失效，自动退出避免永久空转。
+        heartbeatFailures += 1;
+        if (heartbeatFailures >= 3) {
+          stopHeartbeat();
+          useListenTogetherStore.setState((state) =>
+            state.room?.roomId === roomId
+              ? {
+                  room: null,
+                  playlist: [],
+                  error: "与一起听房间的连接已断开",
+                }
+              : state,
+          );
+        }
+      });
   };
   send();
   heartbeatTimer = window.setInterval(send, 10_000);
@@ -266,6 +286,12 @@ export const useListenTogetherStore = create<ListenTogetherState>(
       } catch (error) {
         set({ error: errorMessage(error, "发送播放同步指令失败") });
       }
+    },
+
+    leaveRoom: () => {
+      ++requestToken; // 作废在途的房间请求
+      stopHeartbeat();
+      set({ room: null, playlist: [], roomIdInput: "", loading: false });
     },
 
     endRoom: async () => {
