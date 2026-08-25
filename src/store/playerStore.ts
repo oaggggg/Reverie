@@ -148,7 +148,24 @@ function readAnimationSpeed(): AnimationSpeed {
 }
 
 /** Motion applied to the 3D particle album cover on the now-playing page. */
-export type ParticleEffect = "none" | "spin" | "wave" | "audio";
+export type ParticleEffect =
+  | "none"
+  | "spin"
+  | "wave"
+  | "audio"
+  | "orbit"
+  | "ripple"
+  | "shimmer";
+
+export type LyricTheme =
+  | "auto"
+  | "default"
+  | "neon"
+  | "fire"
+  | "aurora"
+  | "mint"
+  | "rose"
+  | "pure";
 
 /* ------------------------- persistence helpers ------------------------- */
 function readNum(key: string, def: number): number {
@@ -258,7 +275,16 @@ function shuffle<T>(items: T[]): T[] {
 /** Roaming pool: prefer free tracks, VIP ones cannot be streamed. */
 function readParticleEffect(): ParticleEffect {
   const v = readStr("reverie_particle", "spin");
-  return v === "none" || v === "wave" || v === "audio" ? v : "spin";
+  return ["none", "spin", "wave", "audio", "orbit", "ripple", "shimmer"].includes(v)
+    ? (v as ParticleEffect)
+    : "spin";
+}
+
+function readLyricTheme(): LyricTheme {
+  const value = readStr("reverie_lyrictheme", "auto");
+  return ["auto", "default", "neon", "fire", "aurora", "mint", "rose", "pure"].includes(value)
+    ? (value as LyricTheme)
+    : "auto";
 }
 
 function readPlayMode(): PlayMode {
@@ -517,7 +543,7 @@ interface PlayerState {
   glassContrast: GlassContrast;
   animationSpeed: AnimationSpeed;
   reducedMotion: boolean;
-  lyricTheme: string;
+  lyricTheme: LyricTheme;
   lyricFontSize: number;
   particleEffect: ParticleEffect;
   /** Cover render level; "image" disables the particle system entirely. */
@@ -598,9 +624,10 @@ interface PlayerState {
   setGlassContrast: (v: GlassContrast) => void;
   setAnimationSpeed: (v: AnimationSpeed) => void;
   setReducedMotion: (v: boolean) => void;
-  setLyricTheme: (t: string) => void;
+  setLyricTheme: (t: LyricTheme) => void;
   setLyricFontSize: (s: number) => void;
   setParticleEffect: (e: ParticleEffect) => void;
+  applyDiyPreset: (preset: "pure") => void;
   setCoverQuality: (q: CoverQuality, reason?: string) => void;
   /** Step one level down after sustained dropped frames. */
   degradeCoverQuality: () => void;
@@ -834,7 +861,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   glassContrast: readGlassContrast(),
   animationSpeed: readAnimationSpeed(),
   reducedMotion: readBool("reverie_reduced_motion", false),
-  lyricTheme: readStr("reverie_lyrictheme", "neon"),
+  lyricTheme: readLyricTheme(),
   lyricFontSize: readNum("reverie_lyricfont", 22),
   particleEffect: readParticleEffect(),
   coverQuality: readCoverQuality(),
@@ -1415,7 +1442,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({ reducedMotion: v });
     write("reverie_reduced_motion", v ? "1" : "0");
   },
-  setLyricTheme: (t) => {
+  setLyricTheme: (t: LyricTheme) => {
     set({ lyricTheme: t });
     write("reverie_lyrictheme", t);
   },
@@ -1426,6 +1453,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setParticleEffect: (e) => {
     set({ particleEffect: e });
     write("reverie_particle", e);
+  },
+  applyDiyPreset: (preset) => {
+    if (preset !== "pure") return;
+    set({ lyricTheme: "pure", particleEffect: "none", coverQuality: "image", coverQualityReason: "纯净预设" });
+    write("reverie_lyrictheme", "pure");
+    write("reverie_particle", "none");
+    write(COVER_QUALITY_KEY, "image");
+    write("reverie_cover_reason", "纯净预设");
   },
   setCoverQuality: (q, reason = "") => {
     set({ coverQuality: q, coverQualityReason: reason });
