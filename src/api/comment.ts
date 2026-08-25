@@ -137,10 +137,14 @@ export async function getResourceComments(
     );
   }
   const data = obj(response.data);
-  const legacyComments = arr(response.comments ?? data.comments ?? response.hotComments);
+  const legacyComments = arr(
+    response.comments ?? data.comments ?? response.hotComments,
+  );
   return {
     comments: legacyComments.map(normalizeResourceComment),
-    total: Number(data.totalCount ?? data.total ?? response.total ?? legacyComments.length),
+    total: Number(
+      data.totalCount ?? data.total ?? response.total ?? legacyComments.length,
+    ),
     hasMore: Boolean(data.hasMore ?? response.more),
     cursor: String(data.cursor ?? response.cursor ?? ""),
   };
@@ -160,8 +164,9 @@ export async function getHotResourceComments(
     }),
     "/comment/hot",
   );
-  return arr(response.hotComments ?? response.comments ?? obj(response.data).comments)
-    .map(normalizeResourceComment);
+  return arr(
+    response.hotComments ?? response.comments ?? obj(response.data).comments,
+  ).map(normalizeResourceComment);
 }
 
 export async function hugComment(
@@ -169,12 +174,16 @@ export async function hugComment(
   comment: CommentInfo,
 ): Promise<void> {
   ensureSuccess(
-    await request("/hug/comment", {
-      uid: comment.userId,
-      cid: comment.id,
-      sid: resource.id,
-      type: RESOURCE_TYPES[resource.type],
-    }, false),
+    await request(
+      "/hug/comment",
+      {
+        uid: comment.userId,
+        cid: comment.id,
+        sid: resource.id,
+        type: RESOURCE_TYPES[resource.type],
+      },
+      false,
+    ),
     "/hug/comment",
   );
 }
@@ -194,7 +203,9 @@ export async function getCommentHugList(
     }),
     "/comment/hug/list",
   );
-  return arr(response.data ?? response.list ?? response.users).map(normalizeResourceComment);
+  return arr(response.data ?? response.list ?? response.users).map(
+    normalizeResourceComment,
+  );
 }
 
 export async function getCommentReplies(

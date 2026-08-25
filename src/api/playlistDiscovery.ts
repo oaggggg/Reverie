@@ -42,7 +42,9 @@ function normalizePlaylist(raw: unknown): PlaylistInfo | null {
   const creator = obj(value.creator);
   const id = Number(value.id ?? 0);
   if (!Number.isSafeInteger(id) || id <= 0) return null;
-  const tags = arr(value.tags ?? value.tag).map(String).filter(Boolean);
+  const tags = arr(value.tags ?? value.tag)
+    .map(String)
+    .filter(Boolean);
   return {
     id,
     name: String(value.name ?? "歌单"),
@@ -107,7 +109,9 @@ export async function getHotPlaylistTags(): Promise<PlaylistCategory[]> {
   );
 }
 
-export async function getHighQualityPlaylistTags(): Promise<PlaylistCategory[]> {
+export async function getHighQualityPlaylistTags(): Promise<
+  PlaylistCategory[]
+> {
   const response = await request<Obj>("/playlist/highquality/tags", {}, false);
   return dedupeCategories(
     valuesFrom(response, "tags", "data", "list", "result")
@@ -121,16 +125,22 @@ export async function getHighQualityPlaylists(
   limit = 30,
   before?: number,
 ): Promise<{ playlists: PlaylistInfo[]; more: boolean; before?: number }> {
-  const response = await request<Obj>("/top/playlist/highquality", {
-    cat,
-    limit,
-    before,
-  }, false);
+  const response = await request<Obj>(
+    "/top/playlist/highquality",
+    {
+      cat,
+      limit,
+      before,
+    },
+    false,
+  );
   const playlists = valuesFrom(response, "playlists", "data", "result", "list")
     .map(normalizePlaylist)
     .filter((item): item is PlaylistInfo => item !== null);
   const last = obj(playlists.at(-1));
-  const nextBefore = Number(response.lasttime ?? response.lastTime ?? last.updateTime ?? 0);
+  const nextBefore = Number(
+    response.lasttime ?? response.lastTime ?? last.updateTime ?? 0,
+  );
   return {
     playlists,
     more: Boolean(response.more ?? obj(response.data).more),

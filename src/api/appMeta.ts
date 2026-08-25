@@ -29,4 +29,3 @@ export async function decryptEapi(
   );
   return result.data ?? result.result ?? result;
 }
-

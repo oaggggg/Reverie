@@ -142,7 +142,9 @@ export async function getPlaylistSubscribers(
     10 * 60 * 1000,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.subscribers ?? value.users ?? value.list ?? response.data ?? response)
+  return arr(
+    value.subscribers ?? value.users ?? value.list ?? response.data ?? response,
+  )
     .map((raw) => {
       const item = obj(raw);
       return {

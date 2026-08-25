@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { getChartSongs, getChartSummaries, getChartSummariesV2 } from "../api/charts.ts";
+import {
+  getChartSongs,
+  getChartSummaries,
+  getChartSummariesV2,
+} from "../api/charts.ts";
 import type { ChartSummary, Song } from "../api/types.ts";
 import { usePlayerStore } from "./playerStore.ts";
 
@@ -51,7 +55,13 @@ export const useChartStore = create<ChartState>()((set, get) => ({
         set({ loading: false });
         return;
       }
-      set({ charts, selectedId: 0, songs: [], songsLoading: false, loading: false });
+      set({
+        charts,
+        selectedId: 0,
+        songs: [],
+        songsLoading: false,
+        loading: false,
+      });
     } catch {
       if (token !== requestToken) {
         set({ loading: false });

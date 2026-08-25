@@ -79,7 +79,12 @@ export default function Lyrics3D({
   return (
     <div
       className={`lyrics-3d lyrics-theme-${theme}`}
-      style={{ "--lyric-accent": accent.color, "--lyric-accent-soft": accent.soft } as React.CSSProperties}
+      style={
+        {
+          "--lyric-accent": accent.color,
+          "--lyric-accent-soft": accent.soft,
+        } as React.CSSProperties
+      }
     >
       <CrossfadeLine
         text={currentLine}

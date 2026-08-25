@@ -21,8 +21,12 @@ function normalizeMlog(raw: unknown): SearchMediaInfo {
   return {
     id: String(value.id ?? value.mlogId ?? value.vid ?? ""),
     name: String(value.name ?? value.title ?? "动态视频"),
-    coverUrl: String(value.coverUrl ?? value.cover ?? value.picUrl ?? value.imgurl ?? ""),
-    creatorName: String(value.creatorName ?? creator.nickname ?? value.artistName ?? ""),
+    coverUrl: String(
+      value.coverUrl ?? value.cover ?? value.picUrl ?? value.imgurl ?? "",
+    ),
+    creatorName: String(
+      value.creatorName ?? creator.nickname ?? value.artistName ?? "",
+    ),
     duration: Number(value.duration ?? value.durationms ?? 0),
     playCount: Number(value.playCount ?? value.playTime ?? 0),
     kind: "video",
@@ -42,7 +46,9 @@ export async function getMusicMlogRecommendations(
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.resources ?? value.list ?? value.data ?? response.data ?? response)
+  return arr(
+    value.resources ?? value.list ?? value.data ?? response.data ?? response,
+  )
     .map(normalizeMlog)
     .filter((item) => item.id);
 }
@@ -52,7 +58,9 @@ export async function convertMlogToVideoId(mlogId: string): Promise<string> {
   if (!mlogId.trim()) return "";
   const response = await request<Obj>("/mlog/to/video", { id: mlogId }, false);
   const value = obj(response.data ?? response.result ?? response);
-  return String(value.videoId ?? value.vid ?? value.id ?? response.videoId ?? "");
+  return String(
+    value.videoId ?? value.vid ?? value.id ?? response.videoId ?? "",
+  );
 }
 
 /** Resolve the playable URL and media metadata for an mlog. */
@@ -78,4 +86,3 @@ export async function getMlogUrl(
     height: Number(value.height ?? 0),
   };
 }
-

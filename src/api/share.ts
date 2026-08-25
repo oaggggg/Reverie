@@ -1,6 +1,7 @@
 import { request } from "./client.ts";
 
-export type ShareResourceType = "song" | "playlist" | "mv" | "djprogram" | "djradio" | "noresource";
+export type ShareResourceType =
+  "song" | "playlist" | "mv" | "djprogram" | "djradio" | "noresource";
 
 export async function shareResource(
   type: ShareResourceType,

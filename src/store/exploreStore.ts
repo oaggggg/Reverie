@@ -260,7 +260,13 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
     const song = get().commentSong;
     if (!song || sort === get().commentSort) return;
     const token = beginNavLoad();
-    set({ loading: true, commentSort: sort, commentPage: 1, comments: [], commentHasMore: false });
+    set({
+      loading: true,
+      commentSort: sort,
+      commentPage: 1,
+      comments: [],
+      commentHasMore: false,
+    });
     try {
       const result = await getSongComments(song.id, 1, sort === "hot" ? 2 : 3);
       if (isNavStale(token)) return;
@@ -446,7 +452,9 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
     if (cached !== undefined) return cached;
     try {
       const mutual = await getMutualFollow(userId);
-      set((state) => ({ mutualFollow: { ...state.mutualFollow, [userId]: mutual } }));
+      set((state) => ({
+        mutualFollow: { ...state.mutualFollow, [userId]: mutual },
+      }));
       return mutual;
     } catch {
       toastError("查询互相关注失败");
@@ -576,7 +584,13 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
       return false;
     }
   },
-  updatePlaylist: async (playlist, name, description, tags = "", publishPrivate = false) => {
+  updatePlaylist: async (
+    playlist,
+    name,
+    description,
+    tags = "",
+    publishPrivate = false,
+  ) => {
     try {
       await apiUpdatePlaylistBatch(
         playlist.id,

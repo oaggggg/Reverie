@@ -152,8 +152,12 @@ export default function CommentPanel({
               onClick={() => {
                 if (!requireLogin() || !resource) return;
                 void hugComment(resource, comment)
-                  .then(() => usePlayerStore.getState().toast("已抱一抱评论", "success"))
-                  .catch(() => usePlayerStore.getState().toast("抱一抱失败", "error"));
+                  .then(() =>
+                    usePlayerStore.getState().toast("已抱一抱评论", "success"),
+                  )
+                  .catch(() =>
+                    usePlayerStore.getState().toast("抱一抱失败", "error"),
+                  );
               }}
             >
               <HandHeart size={14} /> 抱一抱

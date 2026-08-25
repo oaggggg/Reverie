@@ -21,7 +21,9 @@ export interface ArtistDynamic {
   fansCount: number;
 }
 
-export async function getArtistIntroduction(id: number): Promise<ArtistIntroduction> {
+export async function getArtistIntroduction(
+  id: number,
+): Promise<ArtistIntroduction> {
   const response = await request<Obj>("/artist/desc", { id }, false);
   const value = obj(response.data ?? response.result ?? response);
   const introduction = arr(value.introduction ?? value.intros ?? value.sections)
@@ -34,7 +36,9 @@ export async function getArtistIntroduction(id: number): Promise<ArtistIntroduct
     })
     .filter((item) => item.title || item.content);
   return {
-    briefDesc: String(value.briefDesc ?? value.briefDescription ?? value.desc ?? ""),
+    briefDesc: String(
+      value.briefDesc ?? value.briefDescription ?? value.desc ?? "",
+    ),
     introduction,
   };
 }
@@ -63,7 +67,11 @@ export async function getArtistNewMvs(
   limit = 20,
   before?: number,
 ): Promise<SearchMediaInfo[]> {
-  const response = await request<Obj>("/artist/new/mv", { limit, before }, false);
+  const response = await request<Obj>(
+    "/artist/new/mv",
+    { limit, before },
+    false,
+  );
   const value = obj(response.data ?? response.result ?? response);
   return arr(value.data ?? value.list ?? value.mvs ?? response.data ?? response)
     .map((raw) => {
@@ -72,7 +80,9 @@ export async function getArtistNewMvs(
       return {
         id: String(item.id ?? item.mvId ?? item.vid ?? ""),
         name: String(item.name ?? item.title ?? "MV"),
-        coverUrl: String(item.cover ?? item.coverUrl ?? item.imgurl ?? item.picUrl ?? ""),
+        coverUrl: String(
+          item.cover ?? item.coverUrl ?? item.imgurl ?? item.picUrl ?? "",
+        ),
         creatorName: String(item.artistName ?? artist.name ?? ""),
         duration: Number(item.duration ?? item.durationms ?? 0),
         playCount: Number(item.playCount ?? item.playTime ?? 0),
@@ -101,7 +111,9 @@ export async function getArtistMvs(
       return {
         id: String(item.id ?? item.mvId ?? item.vid ?? ""),
         name: String(item.name ?? item.title ?? "MV"),
-        coverUrl: String(item.cover ?? item.coverUrl ?? item.imgurl ?? item.picUrl ?? ""),
+        coverUrl: String(
+          item.cover ?? item.coverUrl ?? item.imgurl ?? item.picUrl ?? "",
+        ),
         creatorName: String(item.artistName ?? artist.name ?? ""),
         duration: Number(item.duration ?? item.durationms ?? 0),
         playCount: Number(item.playCount ?? item.playTime ?? 0),
@@ -121,7 +133,9 @@ export async function getArtistNewSongs(
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.data ?? value.songs ?? value.list ?? response.data ?? response)
+  return arr(
+    value.data ?? value.songs ?? value.list ?? response.data ?? response,
+  )
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
     .filter((song): song is Song => song !== null);
 }
@@ -139,7 +153,9 @@ export async function getArtistSongs(
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.songs ?? value.list ?? response.songs ?? response.data ?? response)
+  return arr(
+    value.songs ?? value.list ?? response.songs ?? response.data ?? response,
+  )
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
     .filter((song): song is Song => song !== null);
 }

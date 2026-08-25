@@ -64,8 +64,13 @@ export async function getSimilarUsers(
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.users ?? value.list ?? response.users ?? response.list ?? response.data)
+  return arr(
+    value.users ??
+      value.list ??
+      response.users ??
+      response.list ??
+      response.data,
+  )
     .map(normalizeUser)
     .filter((user) => user.userId > 0);
 }
-

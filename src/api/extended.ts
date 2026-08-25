@@ -342,7 +342,11 @@ export async function publishPlaylist(id: number): Promise<void> {
 
 export async function deletePlaylist(id: number): Promise<void> {
   await request("/playlist/delete", { id }, false);
-  invalidateResponseCache(["/playlist/detail", "/user/playlist", "/top/playlist"]);
+  invalidateResponseCache([
+    "/playlist/detail",
+    "/user/playlist",
+    "/top/playlist",
+  ]);
 }
 
 export async function subscribePlaylist(
@@ -430,7 +434,9 @@ export async function getFollows(uid: number): Promise<SocialUser[]> {
     data.follow ??
     data.users ??
     data.list;
-  return arr(rows).map(normalizeUser).filter((user) => user.userId > 0);
+  return arr(rows)
+    .map(normalizeUser)
+    .filter((user) => user.userId > 0);
 }
 
 export async function getFollowers(uid: number): Promise<SocialUser[]> {
@@ -443,7 +449,9 @@ export async function getFollowers(uid: number): Promise<SocialUser[]> {
     data.followeds ??
     data.users ??
     data.list;
-  return arr(rows).map(normalizeUser).filter((user) => user.userId > 0);
+  return arr(rows)
+    .map(normalizeUser)
+    .filter((user) => user.userId > 0);
 }
 
 export type FollowScene = 0 | 1 | 2;
@@ -476,7 +484,9 @@ export async function getMixedFollows(
     data.records ??
     [];
   return {
-    users: arr(rows).map(normalizeUser).filter((user) => user.userId > 0),
+    users: arr(rows)
+      .map(normalizeUser)
+      .filter((user) => user.userId > 0),
     cursor: Number(res.cursor ?? data.cursor ?? data.nextCursor ?? cursor),
     more: Boolean(res.more ?? data.more),
   };
@@ -485,11 +495,7 @@ export async function getMixedFollows(
 /** Check whether the signed-in account mutually follows a user. */
 export async function getMutualFollow(uid: number): Promise<boolean> {
   if (!uid) return false;
-  const res = await request<Obj>(
-    "/user/mutualfollow/get",
-    { uid },
-    true,
-  );
+  const res = await request<Obj>("/user/mutualfollow/get", { uid }, true);
   const data = obj(res.data ?? res.result);
   return Boolean(res.mutual ?? res.isMutual ?? data.mutual ?? data.isMutual);
 }
@@ -551,8 +557,7 @@ function normalizeSocialEvent(raw: unknown): SocialEvent {
     forwardCount: Number(event.forwardCount ?? 0),
     likedCount: Number(info.likedCount ?? event.likedCount ?? 0),
     liked: Boolean(info.liked ?? event.liked),
-    threadId:
-      String(event.threadId ?? info.threadId ?? "") || undefined,
+    threadId: String(event.threadId ?? info.threadId ?? "") || undefined,
     ...resource,
   };
 }
@@ -564,11 +569,7 @@ export async function getUserEvents(
   limit = 30,
 ): Promise<SocialEvent[]> {
   if (!uid) return [];
-  const res = await request<Obj>(
-    "/user/event",
-    { uid, lasttime, limit },
-    true,
-  );
+  const res = await request<Obj>("/user/event", { uid, lasttime, limit }, true);
   return arr(res.events ?? res.event ?? res.data).map(normalizeSocialEvent);
 }
 
@@ -608,7 +609,9 @@ export async function getUserSocialStatus(uid: number): Promise<string> {
   if (!uid) return "";
   const response = await request<Obj>("/user/social/status", { uid }, false);
   const value = obj(response.data ?? response.result ?? response);
-  return String(value.statusName ?? value.name ?? value.status ?? value.content ?? "");
+  return String(
+    value.statusName ?? value.name ?? value.status ?? value.content ?? "",
+  );
 }
 
 export async function getSocialStatusRecommendations(): Promise<string[]> {

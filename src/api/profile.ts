@@ -163,14 +163,18 @@ export async function getUserCreatedRadios(uid: number): Promise<RadioInfo[]> {
   if (!uid) return [];
   const response = await request<Obj>("/user/audio", { uid }, false);
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.djRadios ?? value.radios ?? value.list ?? response.data ?? response)
+  return arr(
+    value.djRadios ?? value.radios ?? value.list ?? response.data ?? response,
+  )
     .map((raw) => {
       const item = obj(raw);
       const dj = obj(item.dj);
       return {
         id: Number(item.id ?? item.rid ?? 0),
         name: String(item.name ?? "我的电台"),
-        picUrl: String(item.picUrl ?? item.intervenePicUrl ?? item.coverUrl ?? ""),
+        picUrl: String(
+          item.picUrl ?? item.intervenePicUrl ?? item.coverUrl ?? "",
+        ),
         description: String(item.desc ?? item.description ?? ""),
         programCount: Number(item.programCount ?? 0),
         subscriberCount: Number(item.subCount ?? item.subscriberCount ?? 0),

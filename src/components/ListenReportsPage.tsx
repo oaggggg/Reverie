@@ -23,7 +23,9 @@ function annualEntries(value: unknown): Array<[string, string]> {
       ? (value as Record<string, unknown>)
       : {};
   const nested =
-    source.data && typeof source.data === "object" && !Array.isArray(source.data)
+    source.data &&
+    typeof source.data === "object" &&
+    !Array.isArray(source.data)
       ? (source.data as Record<string, unknown>)
       : source;
   return Object.entries(nested)
@@ -55,7 +57,11 @@ export default function ListenReportsPage() {
         subtitle="今日、近期与年度听歌数据"
         actions={
           <div className="page-action-row">
-            <div className="segmented-control" role="tablist" aria-label="报告周期">
+            <div
+              className="segmented-control"
+              role="tablist"
+              aria-label="报告周期"
+            >
               {PERIODS.map((item) => (
                 <button
                   key={item.id}

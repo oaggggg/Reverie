@@ -66,7 +66,12 @@ function normalizeMedia(raw: unknown): SearchMediaInfo | null {
     id,
     name: String(value.name ?? value.title ?? "视频"),
     coverUrl: String(value.coverUrl ?? value.cover ?? value.imgurl ?? ""),
-    creatorName: String(value.creatorName ?? value.artistName ?? obj(value.creator).nickname ?? ""),
+    creatorName: String(
+      value.creatorName ??
+        value.artistName ??
+        obj(value.creator).nickname ??
+        "",
+    ),
     duration: Number(value.duration ?? value.durationms ?? 0),
     playCount: Number(value.playCount ?? 0),
     kind: "video",
@@ -85,12 +90,24 @@ function uniqueById<T extends { id: number | string }>(items: T[]): T[] {
 
 export async function getRelatedPlaylists(id: number): Promise<PlaylistInfo[]> {
   const [related, similar, detailRecommendations] = await Promise.all([
-    cachedRequest<Obj>("/related/playlist", { id }, 10 * 60 * 1000).catch(() => ({}) as Obj),
-    cachedRequest<Obj>("/simi/playlist", { id }, 10 * 60 * 1000).catch(() => ({}) as Obj),
-    cachedRequest<Obj>("/playlist/detail/rcmd/get", { id }, 10 * 60 * 1000).catch(() => ({}) as Obj),
+    cachedRequest<Obj>("/related/playlist", { id }, 10 * 60 * 1000).catch(
+      () => ({}) as Obj,
+    ),
+    cachedRequest<Obj>("/simi/playlist", { id }, 10 * 60 * 1000).catch(
+      () => ({}) as Obj,
+    ),
+    cachedRequest<Obj>(
+      "/playlist/detail/rcmd/get",
+      { id },
+      10 * 60 * 1000,
+    ).catch(() => ({}) as Obj),
   ]);
   return uniqueById(
-    [...list(related, "playlists"), ...list(similar, "playlists"), ...list(detailRecommendations, "playlists", "list")]
+    [
+      ...list(related, "playlists"),
+      ...list(similar, "playlists"),
+      ...list(detailRecommendations, "playlists", "list"),
+    ]
       .map(normalizePlaylist)
       .filter((item): item is PlaylistInfo => item !== null),
   );

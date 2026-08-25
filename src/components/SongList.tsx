@@ -217,7 +217,11 @@ export default function SongList({
                       <Trash2 size={15} />
                     </button>
                   )}
-                  <button className="icon-action" title="下一首播放" onClick={() => playNext(song)}>
+                  <button
+                    className="icon-action"
+                    title="下一首播放"
+                    onClick={() => playNext(song)}
+                  >
                     <ListEnd size={15} />
                   </button>
                   <button

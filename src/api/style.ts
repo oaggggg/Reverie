@@ -28,7 +28,11 @@ function normalizeTag(raw: unknown): StyleTag | null {
   const id = Number(value.id ?? value.tagId ?? 0);
   const name = String(value.name ?? value.tagName ?? "").trim();
   if (!Number.isSafeInteger(id) || id <= 0 || !name) return null;
-  return { id, name, parentId: Number(value.parentId ?? value.categoryId ?? 0) || undefined };
+  return {
+    id,
+    name,
+    parentId: Number(value.parentId ?? value.categoryId ?? 0) || undefined,
+  };
 }
 
 function normalizeArtist(raw: unknown): ArtistInfo | null {
@@ -58,8 +62,13 @@ function normalizeAlbum(raw: unknown): AlbumInfo | null {
     id,
     name: String(value.name ?? "未知专辑"),
     picUrl: String(value.picUrl ?? value.blurPicUrl ?? value.cover ?? ""),
-    artistNames: artistList.map((item) => String(item.name ?? "")).filter(Boolean).join(" / "),
-    artistIds: artistList.map((item) => Number(item.id ?? 0)).filter((item) => item > 0),
+    artistNames: artistList
+      .map((item) => String(item.name ?? ""))
+      .filter(Boolean)
+      .join(" / "),
+    artistIds: artistList
+      .map((item) => Number(item.id ?? 0))
+      .filter((item) => item > 0),
     description: String(value.description ?? value.desc ?? ""),
     publishTime: Number(value.publishTime ?? 0),
     size: Number(value.size ?? value.trackCount ?? 0),
@@ -90,7 +99,9 @@ function normalizePlaylist(raw: unknown): PlaylistInfo | null {
 
 function unique<T extends { id: number }>(items: T[]): T[] {
   const seen = new Set<number>();
-  return items.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
+  return items.filter((item) =>
+    seen.has(item.id) ? false : (seen.add(item.id), true),
+  );
 }
 
 export async function getStyleTags(): Promise<StyleTag[]> {
@@ -122,8 +133,16 @@ export async function getStyleDetail(tagId: number): Promise<StyleDetail> {
   };
 }
 
-export async function getStyleSongs(tagId: number, cursor = 0, size = 20): Promise<Song[]> {
-  const response = await request<Obj>("/style/song", { tagId, cursor, size, sort: 0 }, false);
+export async function getStyleSongs(
+  tagId: number,
+  cursor = 0,
+  size = 20,
+): Promise<Song[]> {
+  const response = await request<Obj>(
+    "/style/song",
+    { tagId, cursor, size, sort: 0 },
+    false,
+  );
   return unique(
     list(response, "songs", "data", "list")
       .map(normalizeSong)
@@ -131,8 +150,16 @@ export async function getStyleSongs(tagId: number, cursor = 0, size = 20): Promi
   );
 }
 
-export async function getStyleArtists(tagId: number, cursor = 0, size = 20): Promise<ArtistInfo[]> {
-  const response = await request<Obj>("/style/artist", { tagId, cursor, size }, false);
+export async function getStyleArtists(
+  tagId: number,
+  cursor = 0,
+  size = 20,
+): Promise<ArtistInfo[]> {
+  const response = await request<Obj>(
+    "/style/artist",
+    { tagId, cursor, size },
+    false,
+  );
   return unique(
     list(response, "artists", "data", "list")
       .map(normalizeArtist)
@@ -140,8 +167,16 @@ export async function getStyleArtists(tagId: number, cursor = 0, size = 20): Pro
   );
 }
 
-export async function getStyleAlbums(tagId: number, cursor = 0, size = 20): Promise<AlbumInfo[]> {
-  const response = await request<Obj>("/style/album", { tagId, cursor, size, sort: 0 }, false);
+export async function getStyleAlbums(
+  tagId: number,
+  cursor = 0,
+  size = 20,
+): Promise<AlbumInfo[]> {
+  const response = await request<Obj>(
+    "/style/album",
+    { tagId, cursor, size, sort: 0 },
+    false,
+  );
   return unique(
     list(response, "albums", "data", "list")
       .map(normalizeAlbum)
@@ -149,8 +184,16 @@ export async function getStyleAlbums(tagId: number, cursor = 0, size = 20): Prom
   );
 }
 
-export async function getStylePlaylists(tagId: number, cursor = 0, size = 20): Promise<PlaylistInfo[]> {
-  const response = await request<Obj>("/style/playlist", { tagId, cursor, size }, false);
+export async function getStylePlaylists(
+  tagId: number,
+  cursor = 0,
+  size = 20,
+): Promise<PlaylistInfo[]> {
+  const response = await request<Obj>(
+    "/style/playlist",
+    { tagId, cursor, size },
+    false,
+  );
   return unique(
     list(response, "playlists", "data", "list")
       .map(normalizePlaylist)

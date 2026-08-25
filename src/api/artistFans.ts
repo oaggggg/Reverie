@@ -6,8 +6,7 @@ const obj = (value: unknown): Obj =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Obj)
     : {};
-const arr = (value: unknown): unknown[] =>
-  Array.isArray(value) ? value : [];
+const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 function normalizeFan(raw: unknown): ArtistFan | null {
   const value = obj(raw);
@@ -34,12 +33,20 @@ export async function getArtistFans(
     ),
   ]);
   const value = obj(listResponse.data ?? listResponse.result ?? listResponse);
-  const fans = arr(value.list ?? value.fans ?? listResponse.fans ?? listResponse.data)
+  const fans = arr(
+    value.list ?? value.fans ?? listResponse.fans ?? listResponse.data,
+  )
     .map(normalizeFan)
     .filter((item): item is ArtistFan => item !== null);
-  const countValue = obj(countResponse.data ?? countResponse.result ?? countResponse);
+  const countValue = obj(
+    countResponse.data ?? countResponse.result ?? countResponse,
+  );
   const total = Number(
-    countValue.count ?? countValue.fansCount ?? value.total ?? value.count ?? fans.length,
+    countValue.count ??
+      countValue.fansCount ??
+      value.total ??
+      value.count ??
+      fans.length,
   );
   return {
     fans,

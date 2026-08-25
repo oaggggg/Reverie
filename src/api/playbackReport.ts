@@ -8,7 +8,9 @@ export interface PlaybackReportInput {
 }
 
 /** Notify NetEase that a track has started playing. */
-export async function reportScrobble(input: PlaybackReportInput): Promise<void> {
+export async function reportScrobble(
+  input: PlaybackReportInput,
+): Promise<void> {
   if (!Number.isSafeInteger(input.id) || input.id <= 0) return;
   await request(
     "/scrobble",
@@ -43,4 +45,3 @@ export async function reportWeblog(
   };
   await request("/weblog", { data: JSON.stringify(event) }, false);
 }
-

@@ -31,7 +31,9 @@ export async function getAccountOverview(): Promise<AccountOverview> {
   const profile = obj(detail.profile ?? detail.data ?? detail);
   const accountData = obj(account.account ?? account.data ?? account);
   const bindings = obj(binding.bindings ?? binding.data ?? binding);
-  const phone = String(bindings.phone ?? bindings.mobile ?? accountData.mobile ?? "");
+  const phone = String(
+    bindings.phone ?? bindings.mobile ?? accountData.mobile ?? "",
+  );
   const email = String(bindings.email ?? accountData.email ?? "");
   return {
     userId: Number(accountData.id ?? accountData.userId ?? profile.userId ?? 0),
@@ -42,7 +44,11 @@ export async function getAccountOverview(): Promise<AccountOverview> {
     email,
     phone: phone ? maskPhone(phone) : "",
     bindings: Object.entries(bindings)
-      .filter(([key, value]) => Boolean(value) && ["phone", "mobile", "email", "qq", "weibo", "weixin"].includes(key))
+      .filter(
+        ([key, value]) =>
+          Boolean(value) &&
+          ["phone", "mobile", "email", "qq", "weibo", "weixin"].includes(key),
+      )
       .map(([key]) => key),
     detail: String(profile.signature ?? profile.description ?? ""),
   };

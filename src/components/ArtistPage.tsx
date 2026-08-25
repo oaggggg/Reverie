@@ -35,7 +35,9 @@ export default function ArtistPage() {
   const [fans, setFans] = useState<ArtistFan[]>([]);
   const [fansTotal, setFansTotal] = useState(0);
   const [fansLoading, setFansLoading] = useState(false);
-  const [introduction, setIntroduction] = useState<ArtistIntroduction | null>(null);
+  const [introduction, setIntroduction] = useState<ArtistIntroduction | null>(
+    null,
+  );
   const [dynamic, setDynamic] = useState<ArtistDynamic | null>(null);
   const [topSongs, setTopSongs] = useState<typeof songs>([]);
   const [newMvs, setNewMvs] = useState<typeof videos>([]);
@@ -81,16 +83,36 @@ export default function ArtistPage() {
       getArtistMvs(artist.id),
       getArtistNewSongs(),
       getArtistSongs(artist.id),
-    ]).then(([description, stats, songsResult, mvsResult, artistMvsResult, newSongsResult, allSongsResult]) => {
-      if (!alive) return;
-      setIntroduction(description.status === "fulfilled" ? description.value : null);
-      setDynamic(stats.status === "fulfilled" ? stats.value : null);
-      setTopSongs(songsResult.status === "fulfilled" ? songsResult.value : []);
-      setNewMvs(mvsResult.status === "fulfilled" ? mvsResult.value : []);
-      setArtistMvs(artistMvsResult.status === "fulfilled" ? artistMvsResult.value : []);
-      setNewSongs(newSongsResult.status === "fulfilled" ? newSongsResult.value : []);
-      setAllSongs(allSongsResult.status === "fulfilled" ? allSongsResult.value : []);
-    });
+    ]).then(
+      ([
+        description,
+        stats,
+        songsResult,
+        mvsResult,
+        artistMvsResult,
+        newSongsResult,
+        allSongsResult,
+      ]) => {
+        if (!alive) return;
+        setIntroduction(
+          description.status === "fulfilled" ? description.value : null,
+        );
+        setDynamic(stats.status === "fulfilled" ? stats.value : null);
+        setTopSongs(
+          songsResult.status === "fulfilled" ? songsResult.value : [],
+        );
+        setNewMvs(mvsResult.status === "fulfilled" ? mvsResult.value : []);
+        setArtistMvs(
+          artistMvsResult.status === "fulfilled" ? artistMvsResult.value : [],
+        );
+        setNewSongs(
+          newSongsResult.status === "fulfilled" ? newSongsResult.value : [],
+        );
+        setAllSongs(
+          allSongsResult.status === "fulfilled" ? allSongsResult.value : [],
+        );
+      },
+    );
     return () => {
       alive = false;
     };
@@ -146,11 +168,21 @@ export default function ArtistPage() {
               {artist.alias.length > 0 && (
                 <div className="detail-alias">{artist.alias.join(" / ")}</div>
               )}
-              <p>{introduction?.briefDesc || artist.briefDesc || "暂无歌手介绍"}</p>
+              <p>
+                {introduction?.briefDesc || artist.briefDesc || "暂无歌手介绍"}
+              </p>
               <div className="detail-meta">
-                <span>{dynamic?.musicSize || artist.musicSize || songs.length} 首歌曲</span>
-                <span>{dynamic?.albumSize || artist.albumSize || albums.length} 张专辑</span>
-                {(dynamic?.mvSize ?? 0) > 0 && <span>{dynamic?.mvSize} 个 MV</span>}
+                <span>
+                  {dynamic?.musicSize || artist.musicSize || songs.length}{" "}
+                  首歌曲
+                </span>
+                <span>
+                  {dynamic?.albumSize || artist.albumSize || albums.length}{" "}
+                  张专辑
+                </span>
+                {(dynamic?.mvSize ?? 0) > 0 && (
+                  <span>{dynamic?.mvSize} 个 MV</span>
+                )}
               </div>
               <div className="detail-actions">
                 <button
@@ -169,7 +201,9 @@ export default function ArtistPage() {
           {(fansLoading || fans.length > 0 || fansTotal > 0) && (
             <section className="artist-fans-section">
               <div className="list-header">
-                <h3><Users size={16} /> 粉丝</h3>
+                <h3>
+                  <Users size={16} /> 粉丝
+                </h3>
                 <span className="count">{fansTotal || fans.length} 位</span>
               </div>
               {fansLoading ? (
@@ -179,9 +213,15 @@ export default function ArtistPage() {
                   {fans.map((fan) => (
                     <div className="artist-fan" key={fan.userId}>
                       {fan.avatarUrl ? (
-                        <img src={sizedImage(fan.avatarUrl, 120)} alt="" loading="lazy" />
+                        <img
+                          src={sizedImage(fan.avatarUrl, 120)}
+                          alt=""
+                          loading="lazy"
+                        />
                       ) : (
-                        <span className="artist-fan-placeholder"><Users size={16} /></span>
+                        <span className="artist-fan-placeholder">
+                          <Users size={16} />
+                        </span>
                       )}
                       <div>
                         <strong>{fan.nickname}</strong>
@@ -196,7 +236,11 @@ export default function ArtistPage() {
           )}
           {introduction?.introduction.length ? (
             <section className="artist-introduction">
-              <div className="list-header"><h3><BookOpen size={16} /> 歌手介绍</h3></div>
+              <div className="list-header">
+                <h3>
+                  <BookOpen size={16} /> 歌手介绍
+                </h3>
+              </div>
               {introduction.introduction.map((item, index) => (
                 <article key={`${item.title}-${index}`}>
                   {item.title && <strong>{item.title}</strong>}
@@ -205,9 +249,16 @@ export default function ArtistPage() {
               ))}
             </section>
           ) : null}
-          <SongList songs={topSongs.length ? topSongs : songs} title="热门歌曲" />
-          {newSongs.length > 0 && <SongList songs={newSongs} title="网易云最新作品" />}
-          {allSongs.length > 0 && <SongList songs={allSongs} title="全部歌曲" />}
+          <SongList
+            songs={topSongs.length ? topSongs : songs}
+            title="热门歌曲"
+          />
+          {newSongs.length > 0 && (
+            <SongList songs={newSongs} title="网易云最新作品" />
+          )}
+          {allSongs.length > 0 && (
+            <SongList songs={allSongs} title="全部歌曲" />
+          )}
           <div className="list-header">
             <h3>专辑</h3>
             <span className="count">{albums.length} 张</span>
@@ -220,8 +271,18 @@ export default function ArtistPage() {
               </div>
               <div className="media-grid compact">
                 {newMvs.map((video) => (
-                  <button className="media-card" key={video.id} onClick={() => void openMedia(video)}>
-                    <div className="card-cover"><img src={sizedImage(video.coverUrl, 320)} alt="" loading="lazy" /></div>
+                  <button
+                    className="media-card"
+                    key={video.id}
+                    onClick={() => void openMedia(video)}
+                  >
+                    <div className="card-cover">
+                      <img
+                        src={sizedImage(video.coverUrl, 320)}
+                        alt=""
+                        loading="lazy"
+                      />
+                    </div>
                     <strong>{video.name}</strong>
                     <span>{video.creatorName || "MV"}</span>
                   </button>
@@ -237,8 +298,18 @@ export default function ArtistPage() {
               </div>
               <div className="media-grid compact">
                 {artistMvs.map((video) => (
-                  <button className="media-card" key={video.id} onClick={() => void openMedia(video)}>
-                    <div className="card-cover"><img src={sizedImage(video.coverUrl, 320)} alt="" loading="lazy" /></div>
+                  <button
+                    className="media-card"
+                    key={video.id}
+                    onClick={() => void openMedia(video)}
+                  >
+                    <div className="card-cover">
+                      <img
+                        src={sizedImage(video.coverUrl, 320)}
+                        alt=""
+                        loading="lazy"
+                      />
+                    </div>
                     <strong>{video.name}</strong>
                     <span>{video.creatorName || artist.name}</span>
                   </button>
@@ -306,10 +377,16 @@ export default function ArtistPage() {
                     onClick={() => void openArtist(item.id)}
                   >
                     <div className="card-cover">
-                      <img src={sizedImage(item.picUrl, 320)} alt="" loading="lazy" />
+                      <img
+                        src={sizedImage(item.picUrl, 320)}
+                        alt=""
+                        loading="lazy"
+                      />
                     </div>
                     <strong>{item.name}</strong>
-                    <span>{item.musicSize ? `${item.musicSize} 首歌曲` : "歌手"}</span>
+                    <span>
+                      {item.musicSize ? `${item.musicSize} 首歌曲` : "歌手"}
+                    </span>
                   </button>
                 ))}
               </div>

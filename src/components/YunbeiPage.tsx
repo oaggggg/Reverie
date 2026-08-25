@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Check, Coins, Gift, RefreshCw, Send, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  Check,
+  Coins,
+  Gift,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { getHappySignInfo, getSigninProgress } from "../api/yunbei.ts";
 import { useYunbeiStore } from "../store/yunbeiStore.ts";
 import type { HappySignInfo, SigninProgress } from "../api/types.ts";
@@ -130,7 +138,12 @@ export default function YunbeiPage() {
         <section className="yunbei-progress-section">
           <div className="list-header">
             <h3>签到进度</h3>
-            {progress && <span className="count">{progress.current}{progress.total ? ` / ${progress.total}` : " 天"}</span>}
+            {progress && (
+              <span className="count">
+                {progress.current}
+                {progress.total ? ` / ${progress.total}` : " 天"}
+              </span>
+            )}
           </div>
           {progressLoading ? (
             <LoadingState label="正在读取签到进度…" />
@@ -138,11 +151,20 @@ export default function YunbeiPage() {
             <div className="yunbei-progress">
               <div className="yunbei-progress-copy">
                 <strong>{progress.title}</strong>
-                <span>{progress.description || (progress.completed ? "本阶段已完成" : "持续签到可领取奖励")}</span>
+                <span>
+                  {progress.description ||
+                    (progress.completed
+                      ? "本阶段已完成"
+                      : "持续签到可领取奖励")}
+                </span>
                 {progress.reward && <small>奖励：{progress.reward}</small>}
               </div>
               <div className="yunbei-progress-track" aria-label="签到进度">
-                <i style={{ width: `${progress.total ? Math.min(100, Math.max(0, (progress.current / progress.total) * 100)) : progress.completed ? 100 : 0}%` }} />
+                <i
+                  style={{
+                    width: `${progress.total ? Math.min(100, Math.max(0, (progress.current / progress.total) * 100)) : progress.completed ? 100 : 0}%`,
+                  }}
+                />
               </div>
             </div>
           ) : null}
@@ -150,13 +172,17 @@ export default function YunbeiPage() {
       )}
       {(happySignLoading || happySign) && (
         <section className="yunbei-happy-sign">
-          <div className="yunbei-happy-sign-icon"><Sparkles size={18} /></div>
+          <div className="yunbei-happy-sign-icon">
+            <Sparkles size={18} />
+          </div>
           <div>
             <strong>{happySign?.content || "正在加载乐签…"}</strong>
             {happySign?.author && <span>{happySign.author}</span>}
             {happySign?.date && <small>{happySign.date}</small>}
           </div>
-          {happySign?.imageUrl && <img src={happySign.imageUrl} alt="" loading="lazy" />}
+          {happySign?.imageUrl && (
+            <img src={happySign.imageUrl} alt="" loading="lazy" />
+          )}
         </section>
       )}
       <section className="yunbei-section">

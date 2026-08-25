@@ -86,7 +86,9 @@ export async function getPodcastToplist(
       return {
         id: Number(item.id ?? item.rid ?? 0),
         name: String(item.name ?? item.radioName ?? "播客电台"),
-        picUrl: String(item.picUrl ?? item.intervenePicUrl ?? item.coverUrl ?? ""),
+        picUrl: String(
+          item.picUrl ?? item.intervenePicUrl ?? item.coverUrl ?? "",
+        ),
         description: String(item.desc ?? item.description ?? ""),
         programCount: Number(item.programCount ?? 0),
         subscriberCount: Number(item.subCount ?? item.subscriberCount ?? 0),
@@ -107,7 +109,9 @@ function normalizeRadioList(response: Obj): RadioInfo[] {
       return {
         id: Number(item.id ?? item.rid ?? 0),
         name: String(item.name ?? item.radioName ?? "播客电台"),
-        picUrl: String(item.picUrl ?? item.intervenePicUrl ?? item.coverUrl ?? ""),
+        picUrl: String(
+          item.picUrl ?? item.intervenePicUrl ?? item.coverUrl ?? "",
+        ),
         description: String(item.desc ?? item.description ?? ""),
         programCount: Number(item.programCount ?? 0),
         subscriberCount: Number(item.subCount ?? item.subscriberCount ?? 0),
@@ -122,41 +126,76 @@ function normalizeRadioList(response: Obj): RadioInfo[] {
 export async function getPodcastCategories(): Promise<BroadcastCategory[]> {
   const response = await request<Obj>("/dj/catelist", {}, false);
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.categories ?? value.list ?? response.categories ?? response.data)
+  return arr(
+    value.categories ?? value.list ?? response.categories ?? response.data,
+  )
     .map((raw) => {
       const item = obj(raw);
-      return { id: Number(item.id ?? item.categoryId ?? 0), name: String(item.name ?? item.categoryName ?? "") };
+      return {
+        id: Number(item.id ?? item.categoryId ?? 0),
+        name: String(item.name ?? item.categoryName ?? ""),
+      };
     })
     .filter((item) => item.id > 0 && item.name);
 }
 
-export async function getPodcastExcludeHotCategories(): Promise<BroadcastCategory[]> {
+export async function getPodcastExcludeHotCategories(): Promise<
+  BroadcastCategory[]
+> {
   const response = await request<Obj>("/dj/category/excludehot", {}, false);
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.categories ?? value.list ?? response.categories ?? response.data)
+  return arr(
+    value.categories ?? value.list ?? response.categories ?? response.data,
+  )
     .map((raw) => {
       const item = obj(raw);
-      return { id: Number(item.id ?? item.categoryId ?? 0), name: String(item.name ?? item.categoryName ?? "") };
+      return {
+        id: Number(item.id ?? item.categoryId ?? 0),
+        name: String(item.name ?? item.categoryName ?? ""),
+      };
     })
     .filter((item) => item.id > 0 && item.name);
 }
 
-export async function getPodcastHomeCategoryRecommendations(): Promise<RadioInfo[]> {
-  return normalizeRadioList(await request<Obj>("/dj/category/recommend", {}, false));
+export async function getPodcastHomeCategoryRecommendations(): Promise<
+  RadioInfo[]
+> {
+  return normalizeRadioList(
+    await request<Obj>("/dj/category/recommend", {}, false),
+  );
 }
 
-export async function getPodcastCategoryRecommendations(categoryId: number): Promise<RadioInfo[]> {
-  const response = await request<Obj>("/dj/recommend/type", { type: categoryId }, false);
+export async function getPodcastCategoryRecommendations(
+  categoryId: number,
+): Promise<RadioInfo[]> {
+  const response = await request<Obj>(
+    "/dj/recommend/type",
+    { type: categoryId },
+    false,
+  );
   return normalizeRadioList(response);
 }
 
-export async function getPodcastHotRadios(categoryId?: number, limit = 30, offset = 0): Promise<RadioInfo[]> {
-  const response = await request<Obj>("/dj/radio/hot", { cateId: categoryId, limit, offset }, false);
+export async function getPodcastHotRadios(
+  categoryId?: number,
+  limit = 30,
+  offset = 0,
+): Promise<RadioInfo[]> {
+  const response = await request<Obj>(
+    "/dj/radio/hot",
+    { cateId: categoryId, limit, offset },
+    false,
+  );
   return normalizeRadioList(response);
 }
 
-export async function getPodcastLegacyHotRadios(limit = 30, offset = 0): Promise<RadioInfo[]> {
-  return normalizeRadioList(await request<Obj>("/dj/hot", { limit, offset }, false));
+export async function getPodcastLegacyHotRadios(
+  limit = 30,
+  offset = 0,
+): Promise<RadioInfo[]> {
+  return normalizeRadioList(
+    await request<Obj>("/dj/hot", { limit, offset }, false),
+  );
 }
 
 export async function getDjRadioTop(
@@ -164,20 +203,30 @@ export async function getDjRadioTop(
   sortIndex = 1,
   dataGapDays = 7,
 ): Promise<RadioInfo[]> {
-  return normalizeRadioList(await request<Obj>("/djRadio/top", { djRadioId, sortIndex, dataGapDays, dataType: 3 }, false));
+  return normalizeRadioList(
+    await request<Obj>(
+      "/djRadio/top",
+      { djRadioId, sortIndex, dataGapDays, dataType: 3 },
+      false,
+    ),
+  );
 }
 
-export async function getPodcastBanners(): Promise<Array<{ imageUrl: string; title: string; url: string }>> {
+export async function getPodcastBanners(): Promise<
+  Array<{ imageUrl: string; title: string; url: string }>
+> {
   const response = await request<Obj>("/dj/banner", {}, false);
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.banners ?? value.list ?? response.data ?? response).map((raw) => {
-    const item = obj(raw);
-    return {
-      imageUrl: String(item.pic ?? item.picUrl ?? item.imageUrl ?? ""),
-      title: String(item.typeTitle ?? item.title ?? "播客"),
-      url: String(item.url ?? item.targetUrl ?? ""),
-    };
-  }).filter((item) => item.imageUrl);
+  return arr(value.banners ?? value.list ?? response.data ?? response)
+    .map((raw) => {
+      const item = obj(raw);
+      return {
+        imageUrl: String(item.pic ?? item.picUrl ?? item.imageUrl ?? ""),
+        title: String(item.typeTitle ?? item.title ?? "播客"),
+        url: String(item.url ?? item.targetUrl ?? ""),
+      };
+    })
+    .filter((item) => item.imageUrl);
 }
 
 export type PodcastAdvancedRank = "hours" | "popular" | "newcomer" | "pay";
@@ -211,7 +260,9 @@ export async function getPodcastProgramDetail(
     coverUrl: String(value.coverUrl ?? value.picUrl ?? value.cover ?? ""),
     radioName: String(value.radioName ?? radio.name ?? ""),
     djName: String(value.djName ?? dj.nickname ?? ""),
-    publishTime: Number(value.createTime ?? value.publishTime ?? value.pubTime ?? 0),
+    publishTime: Number(
+      value.createTime ?? value.publishTime ?? value.pubTime ?? 0,
+    ),
     duration: Number(value.duration ?? value.durationms ?? 0),
     commentCount: Number(value.commentCount ?? value.commentCountAll ?? 0),
     song: normalizeSong(value.mainSong ?? value.song),
@@ -223,14 +274,24 @@ function normalizeProgramRank(raw: unknown): PodcastProgramRank | null {
   const program = obj(value.program ?? value.djProgram);
   const radio = obj(value.radio ?? program.radio);
   const dj = obj(value.dj ?? program.dj);
-  const song = normalizeSong(value.mainSong ?? value.song ?? program.mainSong ?? program.song);
-  const id = Number(value.id ?? value.programId ?? program.id ?? song?.programId ?? 0);
+  const song = normalizeSong(
+    value.mainSong ?? value.song ?? program.mainSong ?? program.song,
+  );
+  const id = Number(
+    value.id ?? value.programId ?? program.id ?? song?.programId ?? 0,
+  );
   if (!id) return null;
   return {
     id,
-    name: String(value.name ?? value.title ?? program.name ?? song?.name ?? "播客节目"),
-    description: String(value.description ?? value.desc ?? program.description ?? ""),
-    coverUrl: String(value.coverUrl ?? value.picUrl ?? program.coverUrl ?? song?.picUrl ?? ""),
+    name: String(
+      value.name ?? value.title ?? program.name ?? song?.name ?? "播客节目",
+    ),
+    description: String(
+      value.description ?? value.desc ?? program.description ?? "",
+    ),
+    coverUrl: String(
+      value.coverUrl ?? value.picUrl ?? program.coverUrl ?? song?.picUrl ?? "",
+    ),
     radioName: String(value.radioName ?? radio.name ?? ""),
     djName: String(value.djName ?? dj.nickname ?? ""),
     score: Number(value.score ?? value.hotScore ?? value.playCount ?? 0),
@@ -240,7 +301,9 @@ function normalizeProgramRank(raw: unknown): PodcastProgramRank | null {
 
 function normalizeProgramList(response: Obj): PodcastProgramRank[] {
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.list ?? value.programs ?? value.data ?? response.data ?? response)
+  return arr(
+    value.list ?? value.programs ?? value.data ?? response.data ?? response,
+  )
     .map(normalizeProgramRank)
     .filter((item): item is PodcastProgramRank => item !== null);
 }
@@ -271,18 +334,16 @@ export async function getPodcastProgramHoursToplist(
 export async function getPodcastTodayPreferred(
   page = 0,
 ): Promise<PodcastProgramRank[]> {
-  const response = await request<Obj>(
-    "/dj/today/perfered",
-    { page },
-    false,
-  );
+  const response = await request<Obj>("/dj/today/perfered", { page }, false);
   return normalizeProgramList(response);
 }
 
 function normalizeSubscriber(raw: unknown): PodcastSubscriber | null {
   const value = obj(raw);
   const user = obj(value.user ?? value.profile);
-  const userId = Number(value.userId ?? value.uid ?? user.userId ?? user.id ?? 0);
+  const userId = Number(
+    value.userId ?? value.uid ?? user.userId ?? user.id ?? 0,
+  );
   if (!userId) return null;
   return {
     userId,
@@ -297,19 +358,33 @@ export async function getPodcastSubscribers(
   radioId: number,
   time = -1,
   limit = 20,
-): Promise<{ subscribers: PodcastSubscriber[]; total: number; hasMore: boolean; nextTime: number }> {
+): Promise<{
+  subscribers: PodcastSubscriber[];
+  total: number;
+  hasMore: boolean;
+  nextTime: number;
+}> {
   const response = await request<Obj>(
     "/dj/subscriber",
     { id: radioId, time, limit },
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  const subscribers = arr(value.list ?? value.subscribers ?? value.data ?? response.data ?? response)
+  const subscribers = arr(
+    value.list ?? value.subscribers ?? value.data ?? response.data ?? response,
+  )
     .map(normalizeSubscriber)
     .filter((item): item is PodcastSubscriber => item !== null);
-  const nextTime = Number(value.time ?? value.lastTime ?? subscribers.at(-1)?.time ?? time);
+  const nextTime = Number(
+    value.time ?? value.lastTime ?? subscribers.at(-1)?.time ?? time,
+  );
   const total = Number(value.total ?? value.totalCount ?? subscribers.length);
-  return { subscribers, total, hasMore: Boolean(value.more ?? value.hasMore), nextTime };
+  return {
+    subscribers,
+    total,
+    hasMore: Boolean(value.more ?? value.hasMore),
+    nextTime,
+  };
 }
 
 export async function getPodcastPaidRadios(
@@ -320,8 +395,12 @@ export async function getPodcastPaidRadios(
   return normalizeRadioList(response);
 }
 
-export async function getPersonalizedDjPrograms(): Promise<PodcastProgramRank[]> {
-  return normalizeProgramList(await request<Obj>("/personalized/djprogram", {}, false));
+export async function getPersonalizedDjPrograms(): Promise<
+  PodcastProgramRank[]
+> {
+  return normalizeProgramList(
+    await request<Obj>("/personalized/djprogram", {}, false),
+  );
 }
 
 export async function getProgramRecommendations(
@@ -329,10 +408,19 @@ export async function getProgramRecommendations(
   limit = 10,
   offset = 0,
 ): Promise<PodcastProgramRank[]> {
-  return normalizeProgramList(await request<Obj>("/program/recommend", { type: categoryId, limit, offset }, false));
+  return normalizeProgramList(
+    await request<Obj>(
+      "/program/recommend",
+      { type: categoryId, limit, offset },
+      false,
+    ),
+  );
 }
 
-function normalizeDifmChannel(raw: unknown, source: number): DifmChannel | null {
+function normalizeDifmChannel(
+  raw: unknown,
+  source: number,
+): DifmChannel | null {
   const value = obj(raw);
   const id = Number(value.id ?? value.channelId ?? 0);
   if (!id) return null;
@@ -348,7 +436,9 @@ function normalizeDifmChannel(raw: unknown, source: number): DifmChannel | null 
 
 function difmList(response: Obj): unknown[] {
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.list ?? value.channels ?? value.data ?? response.data ?? response);
+  return arr(
+    value.list ?? value.channels ?? value.data ?? response.data ?? response,
+  );
 }
 
 export async function getDifmChannels(source = 0): Promise<DifmChannel[]> {
@@ -362,7 +452,9 @@ export async function getDifmChannels(source = 0): Promise<DifmChannel[]> {
     .filter((item): item is DifmChannel => item !== null);
 }
 
-export async function getDifmSubscribedChannels(source = 0): Promise<DifmChannel[]> {
+export async function getDifmSubscribedChannels(
+  source = 0,
+): Promise<DifmChannel[]> {
   const response = await request<Obj>(
     "/dj/difm/subscribe/channels/get",
     { sources: JSON.stringify([source]) },
@@ -397,7 +489,9 @@ export async function getDifmTracks(
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.list ?? value.tracks ?? value.data ?? response.data ?? response)
+  return arr(
+    value.list ?? value.tracks ?? value.data ?? response.data ?? response,
+  )
     .map((item) => normalizeSong(obj(item).song ?? item))
     .filter((item): item is Song => item !== null);
 }

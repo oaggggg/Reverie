@@ -207,7 +207,9 @@ export async function getDefaultSearchKeyword(): Promise<string> {
   return String(value.showKeyword ?? value.realkeyword ?? value.keyword ?? "");
 }
 
-export async function getSearchSuggestions(keyword: string): Promise<SearchSuggestion[]> {
+export async function getSearchSuggestions(
+  keyword: string,
+): Promise<SearchSuggestion[]> {
   const value = keyword.trim();
   if (!value) return [];
   const [suggestions, multimatch] = await Promise.allSettled([
@@ -216,7 +218,13 @@ export async function getSearchSuggestions(keyword: string): Promise<SearchSugge
   ]);
   const response = suggestions.status === "fulfilled" ? suggestions.value : {};
   const data = obj(response.result ?? response.data ?? response);
-  const base = arr(data.allMatch ?? data.songs ?? data.playlists ?? response.result ?? response.data)
+  const base = arr(
+    data.allMatch ??
+      data.songs ??
+      data.playlists ??
+      response.result ??
+      response.data,
+  )
     .map((raw) => {
       const item = obj(raw);
       return {
@@ -228,7 +236,10 @@ export async function getSearchSuggestions(keyword: string): Promise<SearchSugge
     .filter((item) => item.keyword);
   const extra = multimatch.status === "fulfilled" ? multimatch.value : [];
   return [...base, ...extra].filter(
-    (item, index, items) => items.findIndex((entry) => entry.keyword === item.keyword && entry.type === item.type) === index,
+    (item, index, items) =>
+      items.findIndex(
+        (entry) => entry.keyword === item.keyword && entry.type === item.type,
+      ) === index,
   );
 }
 
@@ -243,11 +254,20 @@ export async function getSearchMultimatch(
     false,
   );
   const value = obj(response.result ?? response.data ?? response);
-  return arr(value.allMatch ?? value.songs ?? value.artists ?? value.albums ?? response.data ?? response)
+  return arr(
+    value.allMatch ??
+      value.songs ??
+      value.artists ??
+      value.albums ??
+      response.data ??
+      response,
+  )
     .map((raw) => {
       const item = obj(raw);
       return {
-        keyword: String(item.keyword ?? item.name ?? item.artistName ?? item.albumName ?? ""),
+        keyword: String(
+          item.keyword ?? item.name ?? item.artistName ?? item.albumName ?? "",
+        ),
         type: String(item.type ?? item.resourceType ?? "匹配"),
         source: String(item.source ?? item.artistName ?? item.albumName ?? ""),
       } satisfies SearchSuggestion;

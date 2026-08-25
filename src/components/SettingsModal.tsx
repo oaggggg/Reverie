@@ -132,8 +132,7 @@ export default function SettingsModal() {
   const [feedbackOpening, setFeedbackOpening] = useState(false);
   const [downloadPath, setDownloadPath] = useState(
     () =>
-      localStorage.getItem("reverie_download_path") ||
-      "D:\\Reverie\\Downloads",
+      localStorage.getItem("reverie_download_path") || "D:\\Reverie\\Downloads",
   );
   const showSettings = usePlayerStore((s) => s.showSettings);
   const setShowSettings = usePlayerStore((s) => s.setShowSettings);
@@ -225,9 +224,13 @@ export default function SettingsModal() {
         currentSong: usePlayerStore.getState().currentSong?.name,
       });
       await openGitHubIssue(buildGitHubIssueUrl(issue));
-      usePlayerStore.getState().toast("已生成反馈报告，请在 GitHub 页面确认提交", "success");
+      usePlayerStore
+        .getState()
+        .toast("已生成反馈报告，请在 GitHub 页面确认提交", "success");
     } catch {
-      usePlayerStore.getState().toast("打开 GitHub 反馈页面失败，请检查网络", "error");
+      usePlayerStore
+        .getState()
+        .toast("打开 GitHub 反馈页面失败，请检查网络", "error");
     } finally {
       setFeedbackOpening(false);
     }

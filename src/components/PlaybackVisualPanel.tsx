@@ -58,7 +58,10 @@ export default function PlaybackVisualPanel({
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
 
   return (
-    <aside ref={surfaceRef} className={`np-visual-panel ${transitionClassName}`}>
+    <aside
+      ref={surfaceRef}
+      className={`np-visual-panel ${transitionClassName}`}
+    >
       <header>
         <div>
           <Sparkles size={17} />
@@ -107,7 +110,10 @@ export default function PlaybackVisualPanel({
             />
           </div>
           <div className="np-visual-row diy-note">
-            <span><WandSparkles size={13} /> 自动取色会根据当前专辑封面选择高对比歌词颜色</span>
+            <span>
+              <WandSparkles size={13} />{" "}
+              自动取色会根据当前专辑封面选择高对比歌词颜色
+            </span>
           </div>
           <div className="np-visual-row">
             <span>显示翻译</span>
@@ -169,7 +175,10 @@ export default function PlaybackVisualPanel({
           >
             {coverBenchmarking ? "检测中…" : "自动检测性能"}
           </button>
-          <button className="btn np-pure-btn" onClick={() => applyDiyPreset("pure")}>
+          <button
+            className="btn np-pure-btn"
+            onClick={() => applyDiyPreset("pure")}
+          >
             <Sparkles size={14} /> 使用纯净预设
           </button>
         </section>

@@ -20,7 +20,10 @@ import Lyrics3D from "./Lyrics3D";
 import { sizedImage } from "../utils/image";
 import { extractCoverAccent, type CoverAccent } from "../utils/coverAccent";
 import { readCoverOrigin } from "../utils/sharedCoverTransition";
-import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
+import {
+  captureInteractionOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
 import PlaybackVisualPanel from "./PlaybackVisualPanel";
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -44,7 +47,11 @@ export default function NowPlayingView() {
     "opening" | "idle" | "closing"
   >("opening");
   const [visualOpen, setVisualOpen] = useState(false);
-  const visualTransition = useOriginTransition<HTMLElement>(visualOpen, "np-visual", 220);
+  const visualTransition = useOriginTransition<HTMLElement>(
+    visualOpen,
+    "np-visual",
+    220,
+  );
   const [currentLyricLine, setCurrentLyricLine] = useState("");
   const [nextLyricLine, setNextLyricLine] = useState("");
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
@@ -139,7 +146,9 @@ export default function NowPlayingView() {
         ],
         { duration: 520, easing: EASE, fill: "forwards" },
       );
-      void animation.finished.then(() => setTransitionPhase("idle")).catch(() => {});
+      void animation.finished
+        .then(() => setTransitionPhase("idle"))
+        .catch(() => {});
       return () => animation.cancel();
     }
 
