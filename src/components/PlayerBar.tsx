@@ -301,19 +301,21 @@ export default function PlayerBar() {
               title="打开播放页"
               style={{ cursor: "pointer" }}
             >
-              {/* 渐显渐隐封面：rotor 统一旋转，front 层加载完成后淡入、
-                  旧封面垫底淡出；占位唱片垫在最底层，首载时也无缝衔接。 */}
+              {/* 渐显渐隐封面：rotor 统一旋转；渲染顺序反转让旧封面
+                  （back）先入 DOM 垫底、新封面（front）最后入 DOM 叠在
+                  上层，加载完成后淡入盖过旧图；.on 只由就绪状态驱动，
+                  旧层在被清理前始终保持可见，切换过程不再出现空窗。 */}
               <div className="pb-cover-rotor">
                 {!coverLayers.some((layer) => layer.ready) && (
                   <div className="pb-cover-ph">
                     <Turntable size={21} />
                   </div>
                 )}
-                {coverLayers.map((layer, index) => (
+                {[...coverLayers].reverse().map((layer) => (
                   <img
                     key={layer.url}
                     ref={(el) => attachCoverRef(layer.url, el)}
-                    className={`pb-cover-layer${index === 0 && layer.ready ? " on" : ""}`}
+                    className={`pb-cover-layer${layer.ready ? " on" : ""}`}
                     src={sizedImage(layer.url, 120)}
                     alt=""
                     decoding="async"
