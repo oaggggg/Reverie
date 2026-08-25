@@ -1253,6 +1253,22 @@ textarea {
   margin-left: 5px;
   flex: none;
 }
+.song-card .vip-badge {
+  display: inline-block;
+  vertical-align: 1px;
+}
+.preview-badge {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 58%, transparent);
+  border-radius: 4px;
+  color: var(--accent-2);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.45;
+  vertical-align: 1px;
+}
 .song-item .dur {
   font-size: 11px;
   color: var(--text-faint);

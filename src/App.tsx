@@ -132,6 +132,7 @@ export default function App() {
   const preloadedSongId = usePlayerStore((s) => s.preloadedSongId);
   const activeAudio = usePlayerStore((s) => s.activeAudio);
   const pendingSeek = usePlayerStore((s) => s.pendingSeek);
+  const previewEnd = usePlayerStore((s) => s.previewEnd);
   const playing = usePlayerStore((s) => s.playing);
   const volume = usePlayerStore((s) => s.volume);
   const muted = usePlayerStore((s) => s.muted);
@@ -617,18 +618,35 @@ export default function App() {
           ? Math.floor(audio.duration * 1000)
           : 0;
         const state = usePlayerStore.getState();
+        if (state.previewEnd !== null && progress >= state.previewEnd) {
+          const previewPosition = state.previewEnd;
+          audio.pause();
+          state.toast("试听已结束，开通网易云音乐会员后可继续播放", "info");
+          usePlayerStore.setState({
+            currentUrl: null,
+            loadingUrl: false,
+            playing: false,
+            previewEnd: null,
+            progress: previewPosition,
+          });
+          return;
+        }
+        const visibleDuration =
+          state.previewEnd === null
+            ? duration
+            : Math.min(duration || state.previewEnd, state.previewEnd);
         if (
           Math.abs(state.progress - progress) >= 16 ||
-          state.duration !== duration
+          state.duration !== visibleDuration
         ) {
-          usePlayerStore.setState({ progress, duration });
+          usePlayerStore.setState({ progress, duration: visibleDuration });
         }
       }
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
-  }, [activeAudio, playing, currentUrl]);
+  }, [activeAudio, playing, currentUrl, previewEnd]);
 
   const handleEnded = (event: SyntheticEvent<HTMLAudioElement>) => {
     const active =
@@ -702,7 +720,14 @@ export default function App() {
       });
     }
     if (Number.isFinite(el.duration)) {
-      usePlayerStore.setState({ duration: Math.floor(el.duration * 1000) });
+      const state = usePlayerStore.getState();
+      const duration = Math.floor(el.duration * 1000);
+      usePlayerStore.setState({
+        duration:
+          state.previewEnd === null
+            ? duration
+            : Math.min(duration, state.previewEnd),
+      });
     }
   };
 
