@@ -782,12 +782,9 @@ async function resolveUrl(
         return {
           url: result.url,
           reason: "",
-          previewEnd: previewOnly
-            ? Math.min(
-                result.previewEnd ?? PREVIEW_DURATION_MS,
-                PREVIEW_DURATION_MS,
-              )
-            : undefined,
+          // 试听总时长固定 60s：不跟随接口 freeTrialInfo 的窗口
+          // （个别曲目会返回 30s 或中段摘录），统一从开头起播。
+          previewEnd: previewOnly ? PREVIEW_DURATION_MS : undefined,
         };
       }
       const reason = reasonFromApi(result.code ?? 0, result.message ?? "");
@@ -802,12 +799,7 @@ async function resolveUrl(
       return {
         url: result.url,
         reason: "",
-        previewEnd: previewOnly
-          ? Math.min(
-              result.previewEnd ?? PREVIEW_DURATION_MS,
-              PREVIEW_DURATION_MS,
-            )
-          : undefined,
+        previewEnd: previewOnly ? PREVIEW_DURATION_MS : undefined,
       };
     }
     const reason = reasonFromApi(result.code ?? 0, result.message ?? "");
@@ -1796,6 +1788,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         ? 1
         : 0
       : st.activeAudio;
+    // 试听歌曲固定从歌曲开头起播：忽略续播位置（最近播放的 startAt）。
+    const trialEnd = previewDurationForSong(song);
 
     set({
       queue: targetQueue,
@@ -1803,14 +1797,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       queueSource: source ?? (queue ? "list" : st.queueSource),
       currentSong: song,
       currentUrl: promotedUrl,
-      previewEnd: promotedUrl ? previewDurationForSong(song) : null,
+      previewEnd: promotedUrl ? trialEnd : null,
       preloadedSongId: null,
       preloadedUrl: null,
       qualitySwitchUrl: null,
       qualitySwitchQuality: null,
       qualitySwitchPrevious: null,
       qualitySwitching: false,
-      pendingSeek: options?.startAt ?? null,
+      pendingSeek: trialEnd !== null ? null : (options?.startAt ?? null),
       loadingUrl: !promotedUrl,
       pendingPlayToken: promotedUrl ? 0 : token,
       playing: autoplay,
