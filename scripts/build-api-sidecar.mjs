@@ -1,5 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, renameSync, rmSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 
 const targets = {
@@ -59,12 +66,19 @@ if (!existsSync(apiPackage)) {
   throw new Error("NeteaseCloudMusicApi is missing; run npm install first");
 }
 
+// sidecar 目录下的全部本地模块（api-server.cjs、prefecture.cjs、china-divisions.json 等）
+// 都会被 pkg 静态打包进二进制，任何一个更新都需要重新打包。
+const sidecarDir = join(root, "sidecar");
+const sidecarInputs = readdirSync(sidecarDir)
+  .filter((name) => /\.(?:cjs|json)$/.test(name))
+  .map((name) => join(sidecarDir, name));
+
 const newestInput = Math.max(
   statSync(import.meta.filename).mtimeMs,
-  statSync(input).mtimeMs,
   statSync(config).mtimeMs,
   statSync(lockfile).mtimeMs,
   statSync(apiPackage).mtimeMs,
+  ...sidecarInputs.map((file) => statSync(file).mtimeMs),
 );
 
 mkdirSync(outputDir, { recursive: true });

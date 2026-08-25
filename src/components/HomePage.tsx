@@ -14,8 +14,9 @@ import { hasProvinceAndCity, normalizeRegion } from "../utils/location";
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
-const LOCATION_CACHE_KEY = "reverie_home_location";
-const LOCATION_CACHE_AT_KEY = "reverie_home_location_at";
+// v2：旧缓存的市级文本未经过地级名录校验，可能包含“平潮市”一类错误地名，直接弃用。
+const LOCATION_CACHE_KEY = "reverie_home_location_v2";
+const LOCATION_CACHE_AT_KEY = "reverie_home_location_at_v2";
 const LOCATION_CACHE_TTL = 2 * 60 * 60 * 1000;
 
 function readCachedLocation(): string {
