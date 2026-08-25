@@ -2710,6 +2710,8 @@ textarea {
 }
 .pb-cover-rotor {
   position: relative;
+  /* 圆形裁剪：交叉淡化的两层图都是方形位图，不裁剪会露出方角 */
+  overflow: hidden;
   box-shadow: 0 4px 14px var(--shadow);
   animation: pb-cover-rotation var(--motion-cover-spin) linear infinite;
 }
@@ -2724,11 +2726,16 @@ textarea {
   inset: 0;
   display: block;
   object-fit: cover;
+  border-radius: 50%;
   opacity: 0;
-  transition: opacity 0.38s ease;
+  transform: scale(1.06);
+  transition:
+    opacity 0.45s cubic-bezier(0.33, 0, 0.2, 1),
+    transform 0.45s cubic-bezier(0.33, 0, 0.2, 1);
 }
 .pb-cover-layer.on {
   opacity: 1;
+  transform: scale(1);
 }
 .pb-cover-ph {
   background: color-mix(in srgb, var(--bg-3) 45%, transparent);
