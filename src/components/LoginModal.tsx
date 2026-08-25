@@ -143,30 +143,38 @@ export default function LoginModal() {
       >
         <h2 style={{ textAlign: "center", marginBottom: 20 }}>扫码登录</h2>
         <div className="qr-box">
-          {qrimg ? (
-            <img
-              src={qrimg}
-              alt="登录二维码"
-              style={{
-                opacity: status === "expired" || status === "error" ? 0.4 : 1,
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 220,
-                height: 220,
-                borderRadius: 12,
-                background: "var(--bg-3)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-faint)",
-              }}
-            >
-              {status === "error" ? "二维码加载失败" : "加载中…"}
-            </div>
-          )}
+          <div className="qr-img-wrap">
+            {qrimg ? (
+              <img
+                src={qrimg}
+                alt="登录二维码"
+                className={status === "expired" ? "qr-blurred" : ""}
+                style={{ opacity: status === "error" ? 0.4 : 1 }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 220,
+                  height: 220,
+                  borderRadius: 12,
+                  background: "var(--bg-3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--text-faint)",
+                }}
+              >
+                {status === "error" ? "二维码加载失败" : "加载中…"}
+              </div>
+            )}
+            {status === "expired" && (
+              <div className="qr-expired-tip">
+                二维码已失效
+                <br />
+                正在刷新…
+              </div>
+            )}
+          </div>
           <div className={`qr-status ${status === "success" ? "ok" : ""}`}>
             {statusText[status]}
           </div>

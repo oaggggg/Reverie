@@ -97,7 +97,8 @@ export default function PlayerBar() {
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
   }, []);
-  const currentSong = usePlayerStore((s) => s.currentSong);
+  // 未登录时不展示任何歌曲：本地会话恢复的 currentSong 只属于已登录会话。
+  const currentSong = usePlayerStore((s) => (s.loggedIn ? s.currentSong : null));
   const previewEnd = usePlayerStore((s) => s.previewEnd);
   const playing = usePlayerStore((s) => s.playing);
   const loadingUrl = usePlayerStore((s) => s.loadingUrl);

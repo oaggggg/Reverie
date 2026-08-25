@@ -8,6 +8,7 @@ import {
 } from "../api/discovery.ts";
 import type { PlaylistInfo, SearchMediaInfo, Song } from "../api/types.ts";
 import { getStarpickCommentsSummary } from "../api/starpick.ts";
+import { usePlayerStore } from "./playerStore";
 
 interface DiscoveryState {
   newSongs: Song[];
@@ -27,6 +28,18 @@ export const useDiscoveryStore = create<DiscoveryState>()((set) => ({
   starpickComments: [],
   loading: false,
   load: async () => {
+    // 未登录：清空并跳过所有发现页内容。
+    if (!usePlayerStore.getState().loggedIn) {
+      set({
+        newSongs: [],
+        mvs: [],
+        privateContent: [],
+        recommendResources: [],
+        starpickComments: [],
+        loading: false,
+      });
+      return;
+    }
     set({ loading: true });
     const [
       newSongs,
