@@ -21,6 +21,33 @@ test("GET retries transient upstream failures", async () => {
   }
 });
 
+test("GET timeout remains retryable", async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (_input, init) =>
+    new Promise((resolve, reject) => {
+      calls += 1;
+      const signal = init?.signal;
+      if (signal?.aborted) {
+        reject(new DOMException("aborted", "AbortError"));
+        return;
+      }
+      signal?.addEventListener("abort", () => {
+        if (calls === 1) reject(new DOMException("aborted", "AbortError"));
+        else resolve(Response.json({ ok: true }));
+      }, { once: true });
+    });
+  try {
+    assert.deepEqual(
+      await request<{ ok: boolean }>("/stability/timeout", {}, false, { timeoutMs: 1000 }),
+      { ok: true },
+    );
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("POST does not retry unless explicitly enabled", async () => {
   const originalFetch = globalThis.fetch;
   let calls = 0;
