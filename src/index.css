@@ -2758,6 +2758,11 @@ textarea {
   flex: none;
   line-height: 0;
   border-radius: 50%;
+  /* 圆形裁剪放在这个「不旋转」的外层容器上：overflow+圆角作用在
+     带旋转动画的合成层时，Chromium 会丢失圆角裁剪导致方角溢出。
+     阴影也移到外层——内层投影会被这里的 overflow 裁掉。 */
+  overflow: hidden;
+  box-shadow: 0 4px 14px var(--shadow);
   will-change: transform;
   transition: transform var(--motion-player) cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -2775,9 +2780,6 @@ textarea {
 }
 .pb-cover-rotor {
   position: relative;
-  /* 圆形裁剪：交叉淡化的两层图都是方形位图，不裁剪会露出方角 */
-  overflow: hidden;
-  box-shadow: 0 4px 14px var(--shadow);
   animation: pb-cover-rotation var(--motion-cover-spin) linear infinite;
 }
 .pb-cover.spinning .pb-cover-rotor {
@@ -2789,6 +2791,8 @@ textarea {
 .pb-cover-layer {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
   object-fit: cover;
   border-radius: 50%;
