@@ -32,14 +32,42 @@ export function getCookie(): string {
   return cookie;
 }
 
+/** 只保留身份相关的 Cookie 键，丢弃 Set-Cookie 属性噪声。 */
+const IDENTITY_COOKIE_RE =
+  /^(MUSIC_U|MUSIC_A|__csrf_token|NMTID|os|osver|appver|channel|deviceId)=/i;
+
+/**
+ * 清洗扫码接口返回的会话凭证：上游把多条 Set-Cookie 原始串直接
+ * join(';')，里面混着 Path=/、Max-Age、带逗号的 GMT 时间等属性，
+ * 整串存入 Cookie 头会污染服务端解析。只保留身份键值对；
+ * 一个都认不出来时按原样返回兜底。
+ */
+export function sanitizeNcmCookie(raw: string): string {
+  const text = String(raw ?? "");
+  const pairs = text
+    .split(/;\s*|\s*,\s*/)
+    .map((piece) => piece.trim())
+    .filter((piece) => IDENTITY_COOKIE_RE.test(piece));
+  return pairs.length ? pairs.join("; ") : text.trim();
+}
+
+/** 会话凭证最近一次写入的时间戳：用于登录后的宽限期判断。 */
+let cookieSetAt = 0;
+
+export function isCookieFreshlySet(windowMs = 60_000): boolean {
+  return cookieSetAt > 0 && Date.now() - cookieSetAt < windowMs;
+}
+
 export function setCookie(c: string): void {
-  if (cookie !== c) {
+  const value = sanitizeNcmCookie(c);
+  if (cookie !== value) {
     authGeneration += 1;
     clearResponseCache();
   }
-  cookie = c;
+  cookie = value;
+  cookieSetAt = Date.now();
   try {
-    localStorage.setItem(COOKIE_KEY, c);
+    localStorage.setItem(COOKIE_KEY, value);
   } catch {
     /* ignore */
   }
