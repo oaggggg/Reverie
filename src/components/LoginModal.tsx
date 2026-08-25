@@ -3,6 +3,7 @@ import { qrCheck, qrCreate, qrKey } from "../api/client";
 import { usePlayerStore } from "../store/playerStore";
 import { RefreshCw } from "lucide-react";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 type QrState =
   "loading" | "waiting" | "scanned" | "expired" | "success" | "error";
@@ -22,7 +23,12 @@ export default function LoginModal() {
   const aliveRef = useRef(true);
   const pollRef = useRef<() => void>(() => {});
   const startQrGenRef = useRef(0);
-  const transition = useOriginTransition<HTMLDivElement>(showLogin, "login", 220);
+  const transition = useOriginTransition<HTMLDivElement>(
+    showLogin,
+    "login",
+    220,
+  );
+  useModalBehavior(showLogin, transition.surfaceRef, () => setShowLogin(false));
 
   const stopPolling = () => {
     if (timerRef.current) {
@@ -123,8 +129,18 @@ export default function LoginModal() {
   };
 
   return (
-    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={() => setShowLogin(false)}>
-      <div ref={transition.surfaceRef} className={`modal ${transition.surfaceClassName}`} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={`modal-backdrop ${transition.backdropClassName}`}
+      onClick={() => setShowLogin(false)}
+    >
+      <div
+        ref={transition.surfaceRef}
+        className={`modal ${transition.surfaceClassName}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="扫码登录"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2>扫码登录</h2>
         <p className="sub">
           使用「网易云音乐」手机 App

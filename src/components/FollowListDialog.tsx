@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { UserMinus, UserPlus, Users, X } from "lucide-react";
 import { useExploreStore } from "../store/exploreStore";
 import { sizedImage } from "../utils/image";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 type FollowListType = "follows" | "followers";
 
@@ -19,6 +20,8 @@ export default function FollowListDialog({
   const loading = useExploreStore((state) => state.loading);
   const loadSocial = useExploreStore((state) => state.loadSocial);
   const toggleFollow = useExploreStore((state) => state.toggleFollow);
+  const surfaceRef = useRef<HTMLElement>(null);
+  useModalBehavior(true, surfaceRef, onClose);
 
   useEffect(() => {
     void loadSocial(false);
@@ -27,6 +30,7 @@ export default function FollowListDialog({
   return createPortal(
     <div className="modal-backdrop follow-list-backdrop" onMouseDown={onClose}>
       <section
+        ref={surfaceRef}
         className="modal follow-list-modal"
         role="dialog"
         aria-modal="true"

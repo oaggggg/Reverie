@@ -17,6 +17,7 @@ import {
   captureInteractionOrigin,
   useOriginTransition,
 } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const CONTROLS_HIDE_DELAY = 3000;
@@ -73,6 +74,7 @@ export default function MediaDetailDialog() {
     "media-quality",
     180,
   );
+  useModalBehavior(visible, dialogTransition.surfaceRef, close);
   // Live flags for the hide timer; state values would be stale in the
   // window.setTimeout closure after rapid interactions.
   const playingRef = useRef(false);
@@ -280,8 +282,7 @@ export default function MediaDetailDialog() {
 
   const toggleFullscreen = () => setFullscreen((value) => !value);
 
-  const VolumeIcon =
-    volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div
@@ -311,74 +312,74 @@ export default function MediaDetailDialog() {
               {[activeUrl, pendingUrl]
                 .filter((src): src is string => Boolean(src))
                 .map((src, i) => (
-                <video
-                  key={src}
-                  ref={i === 0 ? videoRef : undefined}
-                  className={i === 0 ? undefined : "media-video-preload"}
-                  src={src}
-                  autoPlay={i === 0}
-                  preload={i === 0 ? undefined : "auto"}
-                  playsInline
-                  onClick={i === 0 ? togglePlay : undefined}
-                  onPlay={i === 0 ? () => setPlaying(true) : undefined}
-                  onPause={i === 0 ? () => setPlaying(false) : undefined}
-                  onTimeUpdate={
-                    i === 0
-                      ? (e) => setCurrentTime(e.currentTarget.currentTime)
-                      : undefined
-                  }
-                  onDurationChange={
-                    i === 0
-                      ? (e) =>
-                          setDuration(
-                            Number.isFinite(e.currentTarget.duration)
-                              ? e.currentTarget.duration
-                              : 0,
-                          )
-                      : undefined
-                  }
-                  onCanPlay={
-                    i === 1
-                      ? (e) => {
-                          // First frame decoded. Seek the hidden video to the
-                          // current position first; promote on seeked (with
-                          // enough buffer) so the reveal never shows a blank
-                          // frame or stutters.
-                          const el = e.currentTarget;
-                          if (pendingPromotedRef.current) return;
-                          el.playbackRate = rate;
-                          el.volume = volume;
-                          el.muted = volume === 0;
-                          const t = videoRef.current?.currentTime ?? 0;
-                          if (Math.abs(el.currentTime - t) < 0.05) {
+                  <video
+                    key={src}
+                    ref={i === 0 ? videoRef : undefined}
+                    className={i === 0 ? undefined : "media-video-preload"}
+                    src={src}
+                    autoPlay={i === 0}
+                    preload={i === 0 ? undefined : "auto"}
+                    playsInline
+                    onClick={i === 0 ? togglePlay : undefined}
+                    onPlay={i === 0 ? () => setPlaying(true) : undefined}
+                    onPause={i === 0 ? () => setPlaying(false) : undefined}
+                    onTimeUpdate={
+                      i === 0
+                        ? (e) => setCurrentTime(e.currentTarget.currentTime)
+                        : undefined
+                    }
+                    onDurationChange={
+                      i === 0
+                        ? (e) =>
+                            setDuration(
+                              Number.isFinite(e.currentTarget.duration)
+                                ? e.currentTarget.duration
+                                : 0,
+                            )
+                        : undefined
+                    }
+                    onCanPlay={
+                      i === 1
+                        ? (e) => {
+                            // First frame decoded. Seek the hidden video to the
+                            // current position first; promote on seeked (with
+                            // enough buffer) so the reveal never shows a blank
+                            // frame or stutters.
+                            const el = e.currentTarget;
+                            if (pendingPromotedRef.current) return;
+                            el.playbackRate = rate;
+                            el.volume = volume;
+                            el.muted = volume === 0;
+                            const t = videoRef.current?.currentTime ?? 0;
+                            if (Math.abs(el.currentTime - t) < 0.05) {
+                              tryPromote(el, src);
+                              return;
+                            }
+                            el.currentTime = t;
+                            // Safety net: promote regardless after 4s (slow
+                            // network) in case `seeked`/buffer never settles.
+                            window.setTimeout(
+                              () => promotePending(el, src),
+                              4000,
+                            );
+                          }
+                        : undefined
+                    }
+                    onSeeked={
+                      i === 1
+                        ? (e) => {
+                            const el = e.currentTarget;
+                            if (el.dataset.finalizing) {
+                              delete el.dataset.finalizing;
+                              promotePending(el, src);
+                              return;
+                            }
                             tryPromote(el, src);
-                            return;
                           }
-                          el.currentTime = t;
-                          // Safety net: promote regardless after 4s (slow
-                          // network) in case `seeked`/buffer never settles.
-                          window.setTimeout(
-                            () => promotePending(el, src),
-                            4000,
-                          );
-                        }
-                      : undefined
-                  }
-                  onSeeked={
-                    i === 1
-                      ? (e) => {
-                          const el = e.currentTarget;
-                          if (el.dataset.finalizing) {
-                            delete el.dataset.finalizing;
-                            promotePending(el, src);
-                            return;
-                          }
-                          tryPromote(el, src);
-                        }
-                      : undefined
-                  }
-                />
-              ))}
+                        : undefined
+                    }
+                  />
+                ))}
               {pendingUrl && (
                 <span className="media-video-switch-hint">
                   切换至 {resolution}P…
@@ -452,8 +453,7 @@ export default function MediaDetailDialog() {
                         }}
                         onPointerMove={(e) => {
                           if (e.buttons !== 1) return;
-                          const rect =
-                            e.currentTarget.getBoundingClientRect();
+                          const rect = e.currentTarget.getBoundingClientRect();
                           applyVolume(1 - (e.clientY - rect.top) / rect.height);
                         }}
                         onPointerUp={() => {
@@ -575,11 +575,7 @@ export default function MediaDetailDialog() {
                   title={fullscreen ? "退出全屏" : "全屏"}
                   onClick={toggleFullscreen}
                 >
-                  {fullscreen ? (
-                    <Minimize size={16} />
-                  ) : (
-                    <Maximize size={16} />
-                  )}
+                  {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
                 </button>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { PlaylistInfo } from "../api/types";
 import { useExploreStore } from "../store/exploreStore";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 export default function PlaylistEditorModal({
   playlist,
@@ -19,7 +20,12 @@ export default function PlaylistEditorModal({
   const [privateList, setPrivateList] = useState(false);
   const [tags, setTags] = useState("");
   const [saving, setSaving] = useState(false);
-  const transition = useOriginTransition<HTMLDivElement>(open, "playlist-editor", 220);
+  const transition = useOriginTransition<HTMLDivElement>(
+    open,
+    "playlist-editor",
+    220,
+  );
+  useModalBehavior(open, transition.surfaceRef, onClose);
 
   useEffect(() => {
     if (!open) return;
@@ -48,8 +54,18 @@ export default function PlaylistEditorModal({
   };
 
   return (
-    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
-      <div ref={transition.surfaceRef} className={`modal entity-editor ${transition.surfaceClassName}`} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={`modal-backdrop ${transition.backdropClassName}`}
+      onClick={onClose}
+    >
+      <div
+        ref={transition.surfaceRef}
+        className={`modal entity-editor ${transition.surfaceClassName}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={playlist ? "编辑歌单" : "创建歌单"}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2>{playlist ? "编辑歌单" : "创建歌单"}</h2>
         <label className="field-label">
           名称

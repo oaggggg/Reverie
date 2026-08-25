@@ -5,6 +5,7 @@ import type { Song, SongSheet } from "../api/types";
 import { sizedImage } from "../utils/image";
 import { LoadingState } from "./Page";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 export default function SongSheetDialog({
   song,
@@ -19,6 +20,7 @@ export default function SongSheetDialog({
   const [preview, setPreview] = useState<SongSheet | null>(null);
   const [loading, setLoading] = useState(false);
   const transition = useOriginTransition<HTMLElement>(open, "song-sheet", 220);
+  useModalBehavior(open, transition.surfaceRef, onClose);
 
   useEffect(() => {
     let alive = true;
@@ -49,7 +51,10 @@ export default function SongSheetDialog({
   if (!transition.rendered || !song) return null;
   const selected = preview ?? sheets[0];
   return (
-    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
+    <div
+      className={`modal-backdrop ${transition.backdropClassName}`}
+      onClick={onClose}
+    >
       <section
         ref={transition.surfaceRef}
         className={`modal song-sheet-dialog ${transition.surfaceClassName}`}
@@ -60,7 +65,9 @@ export default function SongSheetDialog({
         <header className="modal-head">
           <div>
             <h2>歌曲乐谱</h2>
-            <p>{song.name} · {song.artists}</p>
+            <p>
+              {song.name} · {song.artists}
+            </p>
           </div>
           <button className="icon-btn" onClick={onClose} title="关闭">
             <X size={18} />
@@ -80,14 +87,20 @@ export default function SongSheetDialog({
                   onClick={() => setPreview(sheet)}
                 >
                   <Music2 size={15} />
-                  <span><strong>{sheet.name}</strong><small>{sheet.type}</small></span>
+                  <span>
+                    <strong>{sheet.name}</strong>
+                    <small>{sheet.type}</small>
+                  </span>
                 </button>
               ))}
             </div>
             {selected && (
               <div className="song-sheet-preview">
                 {selected.previewUrl ? (
-                  <img src={sizedImage(selected.previewUrl, 1200)} alt={`${selected.name}预览`} />
+                  <img
+                    src={sizedImage(selected.previewUrl, 1200)}
+                    alt={`${selected.name}预览`}
+                  />
                 ) : (
                   <div className="song-sheet-placeholder">
                     <Music2 size={34} />

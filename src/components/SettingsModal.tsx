@@ -21,7 +21,11 @@ import type {
 import { getAccountOverview } from "../api/account";
 import type { AccountOverview } from "../api/account";
 import { getNeteaseApiVersion, getNeteaseSettings } from "../api/appMeta";
-import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
+import {
+  captureInteractionOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 const APP_THEMES: Array<{ id: ThemePreference; name: string }> = [
   { id: "system", name: "跟随系统" },
@@ -118,7 +122,10 @@ function SettingRow({
 export default function SettingsModal() {
   const [category, setCategory] = useState<Category>("general");
   const [panel, setPanel] = useState<Panel>(null);
-  const [downloadPath, setDownloadPath] = useState(() => localStorage.getItem("reverie_download_path") || "D:\Reverie\Downloads");
+  const [downloadPath, setDownloadPath] = useState(
+    () =>
+      localStorage.getItem("reverie_download_path") || "D:\Reverie\Downloads",
+  );
   const showSettings = usePlayerStore((s) => s.showSettings);
   const setShowSettings = usePlayerStore((s) => s.setShowSettings);
   const theme = usePlayerStore((s) => s.theme);
@@ -142,11 +149,22 @@ export default function SettingsModal() {
   const logout = usePlayerStore((s) => s.logout);
   const checkUpdate = usePlayerStore((s) => s.checkUpdate);
   const updatePhase = usePlayerStore((s) => s.updatePhase);
-  const [accountOverview, setAccountOverview] = useState<AccountOverview | null>(null);
+  const [accountOverview, setAccountOverview] =
+    useState<AccountOverview | null>(null);
   const [accountLoading, setAccountLoading] = useState(false);
   const [neteaseVersion, setNeteaseVersion] = useState("");
-  const [neteaseSettings, setNeteaseSettings] = useState<Record<string, unknown> | null>(null);
-  const transition = useOriginTransition<HTMLDivElement>(showSettings, "settings", 240);
+  const [neteaseSettings, setNeteaseSettings] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const transition = useOriginTransition<HTMLDivElement>(
+    showSettings,
+    "settings",
+    240,
+  );
+  useModalBehavior(showSettings, transition.surfaceRef, () =>
+    setShowSettings(false),
+  );
 
   useEffect(() => {
     if (!showSettings || category !== "account" || !loggedIn) return;
@@ -170,13 +188,14 @@ export default function SettingsModal() {
   useEffect(() => {
     if (!showSettings || category !== "about") return;
     let alive = true;
-    void Promise.allSettled([getNeteaseApiVersion(), getNeteaseSettings()]).then(
-      ([version, settings]) => {
-        if (!alive) return;
-        if (version.status === "fulfilled") setNeteaseVersion(version.value);
-        if (settings.status === "fulfilled") setNeteaseSettings(settings.value);
-      },
-    );
+    void Promise.allSettled([
+      getNeteaseApiVersion(),
+      getNeteaseSettings(),
+    ]).then(([version, settings]) => {
+      if (!alive) return;
+      if (version.status === "fulfilled") setNeteaseVersion(version.value);
+      if (settings.status === "fulfilled") setNeteaseSettings(settings.value);
+    });
     return () => {
       alive = false;
     };
@@ -188,7 +207,10 @@ export default function SettingsModal() {
   const checking = updatePhase === "checking";
 
   return (
-    <div className={`modal-backdrop settings-backdrop ${transition.backdropClassName}`} onClick={close}>
+    <div
+      className={`modal-backdrop settings-backdrop ${transition.backdropClassName}`}
+      onClick={close}
+    >
       <div
         ref={transition.surfaceRef}
         className={`settings-modal ${transition.surfaceClassName}`}
@@ -259,7 +281,10 @@ export default function SettingsModal() {
                       ))}
                     </div>
                   </SettingRow>
-                  <SettingRow title="背景模糊" hint="调整透明表面对背后内容的柔化程度">
+                  <SettingRow
+                    title="背景模糊"
+                    hint="调整透明表面对背后内容的柔化程度"
+                  >
                     <div className="opt-group">
                       {(
                         [
@@ -278,7 +303,10 @@ export default function SettingsModal() {
                       ))}
                     </div>
                   </SettingRow>
-                  <SettingRow title="文字对比度" hint="增强透明背景上的文字可读性">
+                  <SettingRow
+                    title="文字对比度"
+                    hint="增强透明背景上的文字可读性"
+                  >
                     <div className="opt-group">
                       {(
                         [
@@ -333,7 +361,10 @@ export default function SettingsModal() {
                       ))}
                     </div>
                   </SettingRow>
-                  <SettingRow title="动画速度" hint="调节播放器内过渡、弹窗、卡片和播放控件的动画节奏">
+                  <SettingRow
+                    title="动画速度"
+                    hint="调节播放器内过渡、弹窗、卡片和播放控件的动画节奏"
+                  >
                     <div className="opt-group">
                       {ANIMATION_SPEEDS.map((item) => (
                         <button
@@ -364,8 +395,22 @@ export default function SettingsModal() {
                 </div>
                 <div className="settings-section">
                   <h3>播放</h3>
-                  <SettingRow title="歌曲下载路径" hint="浏览器环境无法直接选择系统目录，将使用该路径作为首选设置">
-                    <input className="settings-input" value={downloadPath} onChange={(event) => { setDownloadPath(event.target.value); localStorage.setItem("reverie_download_path", event.target.value); }} placeholder="例如 D:\Music\Downloads" />
+                  <SettingRow
+                    title="歌曲下载路径"
+                    hint="浏览器环境无法直接选择系统目录，将使用该路径作为首选设置"
+                  >
+                    <input
+                      className="settings-input"
+                      value={downloadPath}
+                      onChange={(event) => {
+                        setDownloadPath(event.target.value);
+                        localStorage.setItem(
+                          "reverie_download_path",
+                          event.target.value,
+                        );
+                      }}
+                      placeholder="例如 D:\Music\Downloads"
+                    />
                   </SettingRow>
                   <SettingRow title="歌词翻译" hint="在歌词页同时显示译文">
                     <div className="opt-group">
@@ -400,9 +445,22 @@ export default function SettingsModal() {
                 <div className="settings-section">
                   <h3>快捷键</h3>
                   <div className="shortcut-list" aria-label="键盘快捷键">
-                    <div><span>播放 / 暂停</span><kbd>Space</kbd></div>
-                    <div><span>快进 / 快退 5 秒</span><span><kbd>→</kbd> <kbd>←</kbd></span></div>
-                    <div><span>音量增减</span><span><kbd>↑</kbd> <kbd>↓</kbd></span></div>
+                    <div>
+                      <span>播放 / 暂停</span>
+                      <kbd>Space</kbd>
+                    </div>
+                    <div>
+                      <span>快进 / 快退 5 秒</span>
+                      <span>
+                        <kbd>→</kbd> <kbd>←</kbd>
+                      </span>
+                    </div>
+                    <div>
+                      <span>音量增减</span>
+                      <span>
+                        <kbd>↑</kbd> <kbd>↓</kbd>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </>
@@ -429,16 +487,48 @@ export default function SettingsModal() {
                       <span className="setting-status">正在读取账号信息…</span>
                     ) : accountOverview ? (
                       <>
-                        <div><span>账号 ID</span><strong>{accountOverview.userId || "—"}</strong></div>
-                        <div><span>等级</span><strong>Lv.{accountOverview.level || 0}</strong></div>
-                        <div><span>会员</span><strong>{accountOverview.vipType > 0 ? "已开通" : "普通账号"}</strong></div>
-                        <div><span>绑定方式</span><strong>{accountOverview.bindings.length ? accountOverview.bindings.join("、") : "未读取到"}</strong></div>
-                        {accountOverview.phone && <div><span>手机号</span><strong>{accountOverview.phone}</strong></div>}
-                        {accountOverview.email && <div><span>邮箱</span><strong>{accountOverview.email}</strong></div>}
+                        <div>
+                          <span>账号 ID</span>
+                          <strong>{accountOverview.userId || "—"}</strong>
+                        </div>
+                        <div>
+                          <span>等级</span>
+                          <strong>Lv.{accountOverview.level || 0}</strong>
+                        </div>
+                        <div>
+                          <span>会员</span>
+                          <strong>
+                            {accountOverview.vipType > 0
+                              ? "已开通"
+                              : "普通账号"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>绑定方式</span>
+                          <strong>
+                            {accountOverview.bindings.length
+                              ? accountOverview.bindings.join("、")
+                              : "未读取到"}
+                          </strong>
+                        </div>
+                        {accountOverview.phone && (
+                          <div>
+                            <span>手机号</span>
+                            <strong>{accountOverview.phone}</strong>
+                          </div>
+                        )}
+                        {accountOverview.email && (
+                          <div>
+                            <span>邮箱</span>
+                            <strong>{accountOverview.email}</strong>
+                          </div>
+                        )}
                         <p>账号安全操作请在网易云音乐官方客户端完成。</p>
                       </>
                     ) : (
-                      <span className="setting-status">账号扩展信息暂不可用</span>
+                      <span className="setting-status">
+                        账号扩展信息暂不可用
+                      </span>
                     )}
                   </div>
                 )}
@@ -474,22 +564,65 @@ export default function SettingsModal() {
                     <strong>接口服务</strong>
                     <span>NeteaseCloudMusicApi</span>
                   </div>
-                  <b>{neteaseVersion ? "v" + neteaseVersion : neteaseSettings ? "可用" : "读取中…"}</b>
+                  <b>
+                    {neteaseVersion
+                      ? "v" + neteaseVersion
+                      : neteaseSettings
+                        ? "可用"
+                        : "读取中…"}
+                  </b>
                 </div>
                 <h3>说明与政策</h3>
                 <div className="about-link-list">
-                  <button className={"about-link " + (panel === "privacy" ? "active" : "")} onClick={() => setPanel(panel === "privacy" ? null : "privacy")}>
-                    <span><strong>隐私说明</strong><small>数据处理、账号凭证与第三方服务</small></span><ChevronRight size={16} />
+                  <button
+                    className={
+                      "about-link " + (panel === "privacy" ? "active" : "")
+                    }
+                    onClick={() =>
+                      setPanel(panel === "privacy" ? null : "privacy")
+                    }
+                  >
+                    <span>
+                      <strong>隐私说明</strong>
+                      <small>数据处理、账号凭证与第三方服务</small>
+                    </span>
+                    <ChevronRight size={16} />
                   </button>
-                  {panel === "privacy" && <article className="about-panel">{PRIVACY_TEXT}</article>}
-                  <button className={"about-link " + (panel === "usage" ? "active" : "")} onClick={() => setPanel(panel === "usage" ? null : "usage")}>
-                    <span><strong>使用说明</strong><small>播放、下载、设置与故障排查</small></span><ChevronRight size={16} />
+                  {panel === "privacy" && (
+                    <article className="about-panel">{PRIVACY_TEXT}</article>
+                  )}
+                  <button
+                    className={
+                      "about-link " + (panel === "usage" ? "active" : "")
+                    }
+                    onClick={() => setPanel(panel === "usage" ? null : "usage")}
+                  >
+                    <span>
+                      <strong>使用说明</strong>
+                      <small>播放、下载、设置与故障排查</small>
+                    </span>
+                    <ChevronRight size={16} />
                   </button>
-                  {panel === "usage" && <article className="about-panel">{USAGE_TEXT}</article>}
-                  <button className={"about-link " + (panel === "disclaimer" ? "active" : "")} onClick={() => setPanel(panel === "disclaimer" ? null : "disclaimer")}>
-                    <span><strong>免责声明</strong><small>版权归属、服务边界与责任范围</small></span><ChevronRight size={16} />
+                  {panel === "usage" && (
+                    <article className="about-panel">{USAGE_TEXT}</article>
+                  )}
+                  <button
+                    className={
+                      "about-link " + (panel === "disclaimer" ? "active" : "")
+                    }
+                    onClick={() =>
+                      setPanel(panel === "disclaimer" ? null : "disclaimer")
+                    }
+                  >
+                    <span>
+                      <strong>免责声明</strong>
+                      <small>版权归属、服务边界与责任范围</small>
+                    </span>
+                    <ChevronRight size={16} />
                   </button>
-                  {panel === "disclaimer" && <article className="about-panel">{DISCLAIMER_TEXT}</article>}
+                  {panel === "disclaimer" && (
+                    <article className="about-panel">{DISCLAIMER_TEXT}</article>
+                  )}
                 </div>
               </div>
             )}
