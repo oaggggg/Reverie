@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import type { LyricTheme } from "../store/playerStore";
+import type { CoverAccent } from "../utils/coverAccent";
 
 interface Lyrics3DProps {
   currentLine: string;
   nextLine: string;
   rotation: { x: number; y: number };
+  theme: LyricTheme;
+  accent: CoverAccent;
 }
 
 /** Cross-fade duration in ms. Keep in sync with the CSS animations. */
@@ -65,13 +69,18 @@ export default function Lyrics3D({
   currentLine,
   nextLine,
   rotation,
+  theme,
+  accent,
 }: Lyrics3DProps) {
   // The wrapper owns the 3D rotation so the swap animation, which drives the
   // children's own transform, cannot fight with it.
   const transform = `perspective(1000px) rotateX(${rotation.x * 20}rad) rotateY(${rotation.y * 20}rad)`;
 
   return (
-    <div className="lyrics-3d">
+    <div
+      className={`lyrics-3d lyrics-theme-${theme}`}
+      style={{ "--lyric-accent": accent.color, "--lyric-accent-soft": accent.soft } as React.CSSProperties}
+    >
       <CrossfadeLine
         text={currentLine}
         className="lyrics-3d-current"

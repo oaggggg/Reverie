@@ -4170,7 +4170,7 @@ textarea {
 .lyrics-3d-current {
   font-size: clamp(22px, 2.3vw, 30px);
   font-weight: 650;
-  color: #ffffff;
+  color: var(--lyric-accent, #ffffff);
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95);
   transition: transform 0.3s ease;
   transform-style: preserve-3d;
@@ -4187,6 +4187,28 @@ textarea {
   line-height: 1.5;
   max-width: 90%;
 }
+
+.lyrics-theme-pure .lyrics-3d-current,
+.lyrics-theme-pure .lyrics-3d-next {
+  color: #fff;
+  text-shadow: none;
+}
+.lyrics-theme-default .lyrics-3d-current {
+  color: var(--accent-2);
+}
+.lyrics-theme-neon .lyrics-3d-current,
+.lyrics-theme-auto .lyrics-3d-current {
+  text-shadow: 0 0 16px var(--lyric-accent-soft), 0 2px 16px rgba(0, 0, 0, 0.95);
+}
+.lyrics-theme-fire .lyrics-3d-current { color: #ffd166; }
+.lyrics-theme-aurora .lyrics-3d-current {
+  background: linear-gradient(90deg, #22d3ee, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.lyrics-theme-mint .lyrics-3d-current { color: #6ee7b7; }
+.lyrics-theme-rose .lyrics-3d-current { color: #fb7185; }
 
 /* Lyric swap: the incoming and outgoing lines share one grid cell so they
    cross-fade in place instead of the text changing in a single frame. */
@@ -5505,6 +5527,25 @@ textarea {
 .np-detect-btn {
   width: 100%;
   margin-top: 6px;
+}
+
+.np-pure-btn {
+  width: 100%;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.np-visual-row.diy-note {
+  min-height: 0;
+  padding-top: 2px;
+  color: var(--glass-readable-faint);
+  font-size: 11px;
+}
+
+.np-visual-row.diy-note span {
+  align-items: flex-start;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .page-scroll {

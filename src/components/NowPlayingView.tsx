@@ -18,6 +18,7 @@ import CoverErrorBoundary from "./CoverErrorBoundary";
 import { QUALITY_GRID } from "../utils/gpuBenchmark";
 import Lyrics3D from "./Lyrics3D";
 import { sizedImage } from "../utils/image";
+import { extractCoverAccent, type CoverAccent } from "../utils/coverAccent";
 import { readCoverOrigin } from "../utils/sharedCoverTransition";
 import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
 import PlaybackVisualPanel from "./PlaybackVisualPanel";
@@ -34,6 +35,7 @@ export default function NowPlayingView() {
   const setPage = usePlayerStore((s) => s.setPage);
   const ensureLyrics = usePlayerStore((s) => s.ensureLyrics);
   const particleEffect = usePlayerStore((s) => s.particleEffect);
+  const lyricTheme = usePlayerStore((s) => s.lyricTheme);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const transitionCoverRef = useRef<HTMLImageElement>(null);
   const [fadedIn, setFadedIn] = useState(false);
@@ -46,6 +48,20 @@ export default function NowPlayingView() {
   const [currentLyricLine, setCurrentLyricLine] = useState("");
   const [nextLyricLine, setNextLyricLine] = useState("");
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [coverAccent, setCoverAccent] = useState<CoverAccent>({
+    color: "#7df9ff",
+    soft: "rgba(125, 249, 255, 0.32)",
+  });
+
+  useEffect(() => {
+    let disposed = false;
+    void extractCoverAccent(currentSong?.picUrl ?? "").then((accent) => {
+      if (!disposed) setCoverAccent(accent);
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [currentSong?.picUrl]);
 
   // A session restored on startup never went through playSong, so its lyrics
   // were never fetched. This view is the only lyric surface, so it has to ask.
@@ -190,7 +206,7 @@ export default function NowPlayingView() {
           captureInteractionOrigin("np-visual", event.currentTarget);
           setVisualOpen(true);
         }}
-        title="歌词与封面"
+        title="DIY"
       >
         <SlidersHorizontal size={18} />
       </button>
@@ -252,6 +268,8 @@ export default function NowPlayingView() {
             currentLine={currentLyricLine}
             nextLine={nextLyricLine}
             rotation={rotation}
+            theme={lyricTheme}
+            accent={coverAccent}
           />
         </div>
       </div>

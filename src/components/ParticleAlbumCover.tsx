@@ -33,6 +33,9 @@ const EFFECT_TARGETS: Record<
   spin: { amp: 0.05, freq: 0.9, speed: 0.12 },
   wave: { amp: 0.2, freq: 0.8, speed: 0.3 },
   audio: { amp: 0.3, freq: 1.0, speed: 0.3 },
+  orbit: { amp: 0.12, freq: 1.2, speed: 0.46 },
+  ripple: { amp: 0.28, freq: 1.8, speed: 0.36 },
+  shimmer: { amp: 0.08, freq: 2.6, speed: 0.72 },
 };
 
 /** sRGB -> linear, so OutputPass converts back to the album's true colours. */
@@ -327,6 +330,7 @@ export default function ParticleAlbumCover({
       if (useBloom) bloom.strength = 0.14 + pulse * 0.16;
 
       if (eff === "spin") spin += 0.0022;
+      if (eff === "orbit") spin += 0.0048;
       rotation.x += (target.x - rotation.x) * 0.1;
       rotation.y += (target.y - rotation.y) * 0.1;
       particles.rotation.x = rotation.x;
