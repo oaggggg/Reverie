@@ -1022,7 +1022,7 @@ textarea {
   margin: 0;
 }
 .hero-quote p {
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.75;
   color: var(--text);
   font-style: italic;
@@ -1034,7 +1034,7 @@ textarea {
 .hero-quote cite {
   display: block;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-faint);
   font-style: normal;
   white-space: nowrap;
