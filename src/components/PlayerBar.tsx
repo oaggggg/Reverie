@@ -95,7 +95,6 @@ export default function PlayerBar() {
   const toast = usePlayerStore((s) => s.toast);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const setPlaybackQuality = usePlayerStore((s) => s.setPlaybackQuality);
-  const loadPlaybackQualities = usePlayerStore((s) => s.loadPlaybackQualities);
 
   useEffect(() => {
     let alive = true;
@@ -112,10 +111,6 @@ export default function PlayerBar() {
     }
     return () => { alive = false; };
   }, [currentSong?.id, loggedIn]);
-
-  useEffect(() => {
-    if (currentSong) void loadPlaybackQualities(currentSong);
-  }, [currentSong, loadPlaybackQualities]);
 
   useEffect(() => {
     if (!qualityOpen && !queueOpen) return;
