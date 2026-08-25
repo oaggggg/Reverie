@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 interface Props {
   open: boolean;
@@ -22,19 +23,17 @@ export default function ConfirmModal({
   const [busy, setBusy] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const transition = useOriginTransition<HTMLDivElement>(open, "confirm", 220);
-
+  useModalBehavior(
+    open,
+    transition.surfaceRef,
+    () => {
+      if (!busy) onClose();
+    },
+    cancelRef,
+  );
   useEffect(() => {
-    if (!open) {
-      setBusy(false);
-      return;
-    }
-    cancelRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, busy, onClose]);
+    if (!open) setBusy(false);
+  }, [open]);
 
   if (!transition.rendered) return null;
 

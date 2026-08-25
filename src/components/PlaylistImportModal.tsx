@@ -14,6 +14,7 @@ import {
 } from "../api/playlistImport.ts";
 import type { PlaylistImportTaskStatus } from "../api/types.ts";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 type Mode = "text" | "links" | "local";
 
@@ -33,7 +34,12 @@ export default function PlaylistImportModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const timer = useRef<number | undefined>(undefined);
-  const transition = useOriginTransition<HTMLElement>(open, "playlist-import", 220);
+  const transition = useOriginTransition<HTMLElement>(
+    open,
+    "playlist-import",
+    220,
+  );
+  useModalBehavior(open, transition.surfaceRef, onClose);
 
   useEffect(
     () => () => {

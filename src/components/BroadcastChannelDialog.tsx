@@ -5,6 +5,7 @@ import { usePlayerStore } from "../store/playerStore.ts";
 import { sizedImage } from "../utils/image";
 import { LoadingState } from "./Page";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 interface Props {
   open: boolean;
@@ -27,6 +28,7 @@ export default function BroadcastChannelDialog({
     "broadcast-detail",
     220,
   );
+  useModalBehavior(open, transition.surfaceRef, onClose);
   const currentChannel = cachedChannel.current;
   if (!transition.rendered || !currentChannel) return null;
   return (
@@ -54,7 +56,9 @@ export default function BroadcastChannelDialog({
             </span>
             <h2>{currentChannel.name}</h2>
             <small>
-              {currentChannel.categoryName || currentChannel.regionName || "广播频道"}
+              {currentChannel.categoryName ||
+                currentChannel.regionName ||
+                "广播频道"}
             </small>
           </div>
           <button className="modal-close" title="关闭" onClick={onClose}>
@@ -75,7 +79,9 @@ export default function BroadcastChannelDialog({
                 <button
                   className="primary-button"
                   onClick={() =>
-                    void playSong(currentChannel.currentSong!, [currentChannel.currentSong!])
+                    void playSong(currentChannel.currentSong!, [
+                      currentChannel.currentSong!,
+                    ])
                   }
                 >
                   <Play size={14} fill="currentColor" /> 播放

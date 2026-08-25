@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
-import { Heart, ListPlus, MessageCircle, Pencil, Play, RefreshCw, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Heart,
+  ListPlus,
+  MessageCircle,
+  Pencil,
+  Play,
+  RefreshCw,
+  Trash2,
+  X,
+} from "lucide-react";
 import type { PlaylistInfo } from "../api/types";
 import type { Song } from "../api/types";
 import { getPlaylistDetail } from "../api/client";
@@ -24,6 +33,7 @@ import ConfirmModal from "./ConfirmModal";
 import PlaylistTrackPicker from "./PlaylistTrackPicker";
 import PlaylistGrid from "./PlaylistGrid";
 import CommentPanel from "./CommentPanel";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 export default function PlaylistPage() {
   const playlistSongs = usePlayerStore((s) => s.playlistSongs);
@@ -46,7 +56,13 @@ export default function PlaylistPage() {
   const [mutating, setMutating] = useState(false);
   const [fullLoading, setFullLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [dynamicStats, setDynamicStats] = useState<PlaylistDynamicStats | null>(null);
+  const commentsSurfaceRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(commentsOpen, commentsSurfaceRef, () =>
+    setCommentsOpen(false),
+  );
+  const [dynamicStats, setDynamicStats] = useState<PlaylistDynamicStats | null>(
+    null,
+  );
   const [relatedPlaylists, setRelatedPlaylists] = useState<PlaylistInfo[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [subscribers, setSubscribers] = useState<SocialUser[]>([]);
@@ -129,7 +145,9 @@ export default function PlaylistPage() {
         return;
       }
       usePlayerStore.setState({ playlistSongs: songs });
-      usePlayerStore.getState().toast(`已加载完整歌曲列表（${songs.length} 首）`, "success");
+      usePlayerStore
+        .getState()
+        .toast(`已加载完整歌曲列表（${songs.length} 首）`, "success");
     } catch {
       usePlayerStore.getState().toast("加载完整歌曲列表失败", "error");
     } finally {
@@ -205,73 +223,81 @@ export default function PlaylistPage() {
     subscribed: playlistSubscribed,
   };
   const owned = playlistCreatorId > 0 && playlistCreatorId === uid;
-  const playlistActions = !playlistLoading && playlistId > 0 ? (
-    <div className="page-action-row">
-      <button
-        className="btn primary"
-        onClick={() => {
-          if (playlistSongs.length) {
-            void usePlayerStore.getState().playSong(playlistSongs[0], playlistSongs);
-          }
-        }}
-        disabled={!playlistSongs.length}
-        title="播放歌单中的全部歌曲"
-      >
-        <Play size={14} fill="currentColor" /> 播放全部
-      </button>
-      <button className="btn" onClick={() => void loadFullSongs()} disabled={fullLoading} title="从网易云加载歌单全部歌曲">
-        <RefreshCw size={14} className={fullLoading ? "spin" : ""} /> 完整列表
-      </button>
-      <button
-        className="btn"
-        onClick={() => {
-          setCommentsOpen(true);
-          void openComments(
-            {
-              type: "playlist",
-              id: String(playlistId),
-              title: playlistName || "歌单",
-              subtitle: `${playlistSongs.length} 首歌曲`,
-            },
-            false,
-          );
-        }}
-      >
-        <MessageCircle size={14} /> 评论
-      </button>
-      {owned ? (
-        <>
-          <button
-            className="btn primary"
-            onClick={() => setPickerOpen(true)}
-            disabled={mutating}
-          >
-            <ListPlus size={14} /> 添加歌曲
-          </button>
-          <button className="btn" onClick={() => setEditing(true)}>
-            <Pencil size={14} /> 编辑
-          </button>
-          <button
-            className="btn danger"
-            onClick={() => setConfirmingDelete(true)}
-          >
-            <Trash2 size={14} /> 删除
-          </button>
-        </>
-      ) : (
+  const playlistActions =
+    !playlistLoading && playlistId > 0 ? (
+      <div className="page-action-row">
         <button
-          className={`btn ${playlistSubscribed ? "active" : "primary"}`}
-          onClick={() => void toggleSubscription(playlist)}
+          className="btn primary"
+          onClick={() => {
+            if (playlistSongs.length) {
+              void usePlayerStore
+                .getState()
+                .playSong(playlistSongs[0], playlistSongs);
+            }
+          }}
+          disabled={!playlistSongs.length}
+          title="播放歌单中的全部歌曲"
         >
-          <Heart
-            size={14}
-            fill={playlistSubscribed ? "currentColor" : "none"}
-          />
-          {playlistSubscribed ? "已收藏" : "收藏歌单"}
+          <Play size={14} fill="currentColor" /> 播放全部
         </button>
-      )}
-    </div>
-  ) : null;
+        <button
+          className="btn"
+          onClick={() => void loadFullSongs()}
+          disabled={fullLoading}
+          title="从网易云加载歌单全部歌曲"
+        >
+          <RefreshCw size={14} className={fullLoading ? "spin" : ""} /> 完整列表
+        </button>
+        <button
+          className="btn"
+          onClick={() => {
+            setCommentsOpen(true);
+            void openComments(
+              {
+                type: "playlist",
+                id: String(playlistId),
+                title: playlistName || "歌单",
+                subtitle: `${playlistSongs.length} 首歌曲`,
+              },
+              false,
+            );
+          }}
+        >
+          <MessageCircle size={14} /> 评论
+        </button>
+        {owned ? (
+          <>
+            <button
+              className="btn primary"
+              onClick={() => setPickerOpen(true)}
+              disabled={mutating}
+            >
+              <ListPlus size={14} /> 添加歌曲
+            </button>
+            <button className="btn" onClick={() => setEditing(true)}>
+              <Pencil size={14} /> 编辑
+            </button>
+            <button
+              className="btn danger"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              <Trash2 size={14} /> 删除
+            </button>
+          </>
+        ) : (
+          <button
+            className={`btn ${playlistSubscribed ? "active" : "primary"}`}
+            onClick={() => void toggleSubscription(playlist)}
+          >
+            <Heart
+              size={14}
+              fill={playlistSubscribed ? "currentColor" : "none"}
+            />
+            {playlistSubscribed ? "已收藏" : "收藏歌单"}
+          </button>
+        )}
+      </div>
+    ) : null;
 
   return (
     <Page>
@@ -284,7 +310,9 @@ export default function PlaylistPage() {
       {dynamicStats && (
         <div className="playlist-dynamic-stats" aria-label="歌单动态统计">
           <span>播放 {dynamicStats.playCount.toLocaleString("zh-CN")}</span>
-          <span>收藏 {dynamicStats.subscribedCount.toLocaleString("zh-CN")}</span>
+          <span>
+            收藏 {dynamicStats.subscribedCount.toLocaleString("zh-CN")}
+          </span>
           <span>评论 {dynamicStats.commentCount.toLocaleString("zh-CN")}</span>
           <span>分享 {dynamicStats.shareCount.toLocaleString("zh-CN")}</span>
         </div>
@@ -293,12 +321,26 @@ export default function PlaylistPage() {
         <section className="playlist-subscribers">
           <div className="list-header">
             <h3>收藏者</h3>
-            <span className="count">{subscribersLoading ? "加载中…" : `${subscribers.length} 人`}</span>
+            <span className="count">
+              {subscribersLoading ? "加载中…" : `${subscribers.length} 人`}
+            </span>
           </div>
           <div className="playlist-subscriber-list">
             {subscribers.map((user) => (
-              <div className="playlist-subscriber" key={user.userId} title={user.signature || user.nickname}>
-                {user.avatarUrl ? <img src={sizedImage(user.avatarUrl, 80)} alt="" loading="lazy" /> : <span>{user.nickname.slice(0, 1)}</span>}
+              <div
+                className="playlist-subscriber"
+                key={user.userId}
+                title={user.signature || user.nickname}
+              >
+                {user.avatarUrl ? (
+                  <img
+                    src={sizedImage(user.avatarUrl, 80)}
+                    alt=""
+                    loading="lazy"
+                  />
+                ) : (
+                  <span>{user.nickname.slice(0, 1)}</span>
+                )}
                 <strong>{user.nickname}</strong>
               </div>
             ))}
@@ -344,9 +386,12 @@ export default function PlaylistPage() {
       {commentsOpen && (
         <div
           className="modal-backdrop"
-          onMouseDown={(event) => event.target === event.currentTarget && setCommentsOpen(false)}
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setCommentsOpen(false)
+          }
         >
           <div
+            ref={commentsSurfaceRef}
             className="modal playlist-comments-dialog"
             role="dialog"
             aria-modal="true"
@@ -358,7 +403,11 @@ export default function PlaylistPage() {
                 <h2 id="playlist-comments-title">歌单评论</h2>
                 <p>{playlistName || "歌单"}</p>
               </div>
-              <button className="modal-close" title="关闭" onClick={() => setCommentsOpen(false)}>
+              <button
+                className="modal-close"
+                title="关闭"
+                onClick={() => setCommentsOpen(false)}
+              >
                 <X size={18} />
               </button>
             </div>

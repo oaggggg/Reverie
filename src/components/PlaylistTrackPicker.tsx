@@ -3,6 +3,7 @@ import { Check, Disc3, LoaderCircle, Search, X } from "lucide-react";
 import { searchSongs } from "../api/client.ts";
 import type { Song } from "../api/types.ts";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 import { sizedImage } from "../utils/image";
 
 interface Props {
@@ -23,7 +24,12 @@ export default function PlaylistTrackPicker({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const transition = useOriginTransition<HTMLDivElement>(open, "playlist-picker", 220);
+  const transition = useOriginTransition<HTMLDivElement>(
+    open,
+    "playlist-picker",
+    220,
+  );
+  useModalBehavior(open, transition.surfaceRef, onClose);
 
   useEffect(() => {
     if (!open) {
@@ -104,8 +110,12 @@ export default function PlaylistTrackPicker({
           </button>
         </form>
         <div className="playlist-picker-summary">
-          <span>{songs.length ? `找到 ${songs.length} 首歌曲` : "搜索结果"}</span>
-          <strong>{selected.size ? `已选 ${selected.size} 首` : "请选择歌曲"}</strong>
+          <span>
+            {songs.length ? `找到 ${songs.length} 首歌曲` : "搜索结果"}
+          </span>
+          <strong>
+            {selected.size ? `已选 ${selected.size} 首` : "请选择歌曲"}
+          </strong>
         </div>
         <div className="playlist-picker-results">
           {songs.map((song) => {
@@ -130,9 +140,15 @@ export default function PlaylistTrackPicker({
                   {exists ? "已在歌单" : checked ? <Check size={15} /> : null}
                 </span>
                 {song.picUrl ? (
-                  <img className="playlist-picker-cover" src={sizedImage(song.picUrl, 80)} alt="" />
+                  <img
+                    className="playlist-picker-cover"
+                    src={sizedImage(song.picUrl, 80)}
+                    alt=""
+                  />
                 ) : (
-                  <span className="playlist-picker-cover placeholder"><Disc3 size={17} /></span>
+                  <span className="playlist-picker-cover placeholder">
+                    <Disc3 size={17} />
+                  </span>
                 )}
                 <span className="playlist-picker-meta">
                   <strong>{song.name}</strong>

@@ -5,6 +5,7 @@ import { sizedImage } from "../utils/image";
 import { formatTime } from "../utils/lyrics";
 import { LoadingState } from "./Page";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 interface Props {
   open: boolean;
@@ -23,7 +24,12 @@ export default function VoiceDetailDialog({
 }: Props) {
   const cachedVoice = useRef<VoiceItem | null>(voice);
   if (voice) cachedVoice.current = voice;
-  const transition = useOriginTransition<HTMLElement>(open, "voice-detail", 220);
+  const transition = useOriginTransition<HTMLElement>(
+    open,
+    "voice-detail",
+    220,
+  );
+  useModalBehavior(open, transition.surfaceRef, onClose);
   const currentVoice = cachedVoice.current;
   if (!transition.rendered || !currentVoice) return null;
   return (
@@ -31,7 +37,12 @@ export default function VoiceDetailDialog({
       className={`modal-backdrop voice-detail-backdrop ${transition.backdropClassName}`}
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
-      <section ref={transition.surfaceRef} className={`voice-detail-dialog ${transition.surfaceClassName}`} role="dialog" aria-modal="true">
+      <section
+        ref={transition.surfaceRef}
+        className={`voice-detail-dialog ${transition.surfaceClassName}`}
+        role="dialog"
+        aria-modal="true"
+      >
         <header className="voice-detail-head">
           {currentVoice.coverUrl ? (
             <img src={sizedImage(currentVoice.coverUrl, 120)} alt="" />
@@ -43,7 +54,8 @@ export default function VoiceDetailDialog({
           <div>
             <h2>{currentVoice.name}</h2>
             <small>
-              {currentVoice.voiceListName || "声音"} · {formatTime(currentVoice.duration)} ·{" "}
+              {currentVoice.voiceListName || "声音"} ·{" "}
+              {formatTime(currentVoice.duration)} ·{" "}
               {currentVoice.playCount.toLocaleString("zh-CN")} 次播放
             </small>
           </div>

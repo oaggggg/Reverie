@@ -17,6 +17,7 @@ import ConfirmModal from "./ConfirmModal";
 import { LoadingState, Page, PageHeader } from "./Page";
 import { sizedImage } from "../utils/image";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 function formatBytes(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "大小未知";
@@ -169,25 +170,66 @@ function CloudDetailDialog({
     "cloud-detail",
     220,
   );
+  useModalBehavior(Boolean(song), transition.surfaceRef, onClose);
   const currentSong = cachedSong.current;
   if (!transition.rendered || !currentSong) return null;
   return (
-    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
-      <div ref={transition.surfaceRef} className={`modal entity-editor ${transition.surfaceClassName}`} onClick={(event) => event.stopPropagation()}>
+    <div
+      className={`modal-backdrop ${transition.backdropClassName}`}
+      onClick={onClose}
+    >
+      <div
+        ref={transition.surfaceRef}
+        className={`modal entity-editor ${transition.surfaceClassName}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="云盘歌曲详情"
+        onClick={(event) => event.stopPropagation()}
+      >
         <h2>{currentSong.name}</h2>
         <p className="sub">{loading ? "正在加载云盘详情…" : "云盘歌曲详情"}</p>
         <div className="cloud-detail-list">
-          <div><span>歌手</span><strong>{currentSong.artists || "未知歌手"}</strong></div>
-          <div><span>专辑</span><strong>{currentSong.album || "未知专辑"}</strong></div>
-          <div><span>歌曲 ID</span><strong>{currentSong.id || "-"}</strong></div>
-          <div><span>云盘 ID</span><strong>{currentSong.cloudId || "-"}</strong></div>
-          <div><span>文件名</span><strong>{currentSong.fileName || "-"}</strong></div>
-          <div><span>文件大小</span><strong>{formatBytes(currentSong.fileSize)}</strong></div>
-          <div><span>比特率</span><strong>{currentSong.bitrate ? `${Math.round(currentSong.bitrate / 1000)} kbps` : "未知"}</strong></div>
-          <div><span>匹配歌曲</span><strong>{currentSong.matchedSongId || "未匹配"}</strong></div>
+          <div>
+            <span>歌手</span>
+            <strong>{currentSong.artists || "未知歌手"}</strong>
+          </div>
+          <div>
+            <span>专辑</span>
+            <strong>{currentSong.album || "未知专辑"}</strong>
+          </div>
+          <div>
+            <span>歌曲 ID</span>
+            <strong>{currentSong.id || "-"}</strong>
+          </div>
+          <div>
+            <span>云盘 ID</span>
+            <strong>{currentSong.cloudId || "-"}</strong>
+          </div>
+          <div>
+            <span>文件名</span>
+            <strong>{currentSong.fileName || "-"}</strong>
+          </div>
+          <div>
+            <span>文件大小</span>
+            <strong>{formatBytes(currentSong.fileSize)}</strong>
+          </div>
+          <div>
+            <span>比特率</span>
+            <strong>
+              {currentSong.bitrate
+                ? `${Math.round(currentSong.bitrate / 1000)} kbps`
+                : "未知"}
+            </strong>
+          </div>
+          <div>
+            <span>匹配歌曲</span>
+            <strong>{currentSong.matchedSongId || "未匹配"}</strong>
+          </div>
         </div>
         <div className="modal-actions">
-          <button className="btn" onClick={onClose}>关闭</button>
+          <button className="btn" onClick={onClose}>
+            关闭
+          </button>
         </div>
       </div>
     </div>
@@ -228,7 +270,12 @@ function CloudImportDialog({
   onSubmit: (input: ImportValues) => Promise<boolean>;
 }) {
   const [values, setValues] = useState<ImportValues>(emptyImport);
-  const transition = useOriginTransition<HTMLDivElement>(open, "cloud-import", 220);
+  const transition = useOriginTransition<HTMLDivElement>(
+    open,
+    "cloud-import",
+    220,
+  );
+  useModalBehavior(open, transition.surfaceRef, onClose);
   useEffect(() => {
     if (open) setValues(emptyImport);
   }, [open]);
@@ -236,51 +283,108 @@ function CloudImportDialog({
   const update = (key: keyof ImportValues, value: string) =>
     setValues((current) => ({ ...current, [key]: value }));
   const submit = async () => {
-    if (!values.md5.trim() || !values.song.trim() || !values.artist.trim()) return;
+    if (!values.md5.trim() || !values.song.trim() || !values.artist.trim())
+      return;
     if (await onSubmit(values)) onClose();
   };
   return (
-    <div className={`modal-backdrop ${transition.backdropClassName}`} onClick={onClose}>
-      <div ref={transition.surfaceRef} className={`modal entity-editor ${transition.surfaceClassName}`} onClick={(event) => event.stopPropagation()}>
+    <div
+      className={`modal-backdrop ${transition.backdropClassName}`}
+      onClick={onClose}
+    >
+      <div
+        ref={transition.surfaceRef}
+        className={`modal entity-editor ${transition.surfaceClassName}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="导入已有歌曲"
+        onClick={(event) => event.stopPropagation()}
+      >
         <h2>导入已有歌曲</h2>
-        <p className="sub">使用歌曲文件的 MD5 和元数据，将已存在的资源加入云盘。</p>
+        <p className="sub">
+          使用歌曲文件的 MD5 和元数据，将已存在的资源加入云盘。
+        </p>
         <label className="field-label">
           MD5（必填）
-          <input value={values.md5} onChange={(event) => update("md5", event.target.value.trim())} />
+          <input
+            value={values.md5}
+            onChange={(event) => update("md5", event.target.value.trim())}
+          />
         </label>
         <label className="field-label">
           歌曲 ID（可选）
-          <input inputMode="numeric" value={values.id} onChange={(event) => update("id", event.target.value.replace(/\D/g, ""))} />
+          <input
+            inputMode="numeric"
+            value={values.id}
+            onChange={(event) =>
+              update("id", event.target.value.replace(/\D/g, ""))
+            }
+          />
         </label>
         <label className="field-label">
           歌曲名
-          <input value={values.song} onChange={(event) => update("song", event.target.value)} />
+          <input
+            value={values.song}
+            onChange={(event) => update("song", event.target.value)}
+          />
         </label>
         <label className="field-label">
           歌手
-          <input value={values.artist} onChange={(event) => update("artist", event.target.value)} />
+          <input
+            value={values.artist}
+            onChange={(event) => update("artist", event.target.value)}
+          />
         </label>
         <label className="field-label">
           专辑
-          <input value={values.album} onChange={(event) => update("album", event.target.value)} />
+          <input
+            value={values.album}
+            onChange={(event) => update("album", event.target.value)}
+          />
         </label>
         <div className="cloud-import-grid">
           <label className="field-label">
             比特率
-            <input inputMode="numeric" value={values.bitrate} onChange={(event) => update("bitrate", event.target.value.replace(/\D/g, ""))} />
+            <input
+              inputMode="numeric"
+              value={values.bitrate}
+              onChange={(event) =>
+                update("bitrate", event.target.value.replace(/\D/g, ""))
+              }
+            />
           </label>
           <label className="field-label">
             文件大小
-            <input inputMode="numeric" value={values.fileSize} onChange={(event) => update("fileSize", event.target.value.replace(/\D/g, ""))} />
+            <input
+              inputMode="numeric"
+              value={values.fileSize}
+              onChange={(event) =>
+                update("fileSize", event.target.value.replace(/\D/g, ""))
+              }
+            />
           </label>
           <label className="field-label">
             文件类型
-            <input value={values.fileType} onChange={(event) => update("fileType", event.target.value)} />
+            <input
+              value={values.fileType}
+              onChange={(event) => update("fileType", event.target.value)}
+            />
           </label>
         </div>
         <div className="modal-actions">
-          <button className="btn" onClick={onClose} disabled={importing}>取消</button>
-          <button className="btn primary" onClick={() => void submit()} disabled={importing || !values.md5.trim() || !values.song.trim() || !values.artist.trim()}>
+          <button className="btn" onClick={onClose} disabled={importing}>
+            取消
+          </button>
+          <button
+            className="btn primary"
+            onClick={() => void submit()}
+            disabled={
+              importing ||
+              !values.md5.trim() ||
+              !values.song.trim() ||
+              !values.artist.trim()
+            }
+          >
             {importing ? "导入中…" : "导入云盘"}
           </button>
         </div>
@@ -345,7 +449,12 @@ export default function CloudPage() {
                 }}
               />
             </label>
-            <button className="btn" data-origin-key="cloud-import" title="导入已有歌曲" onClick={() => setImportOpen(true)}>
+            <button
+              className="btn"
+              data-origin-key="cloud-import"
+              title="导入已有歌曲"
+              onClick={() => setImportOpen(true)}
+            >
               <Download size={15} /> 导入已有歌曲
             </button>
           </div>

@@ -5,6 +5,7 @@ import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import CommentPanel from "./CommentPanel";
 import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
 
 export default function PlayerCommentsDrawer() {
   const currentSong = usePlayerStore((state) => state.currentSong);
@@ -13,10 +14,16 @@ export default function PlayerCommentsDrawer() {
   const openSongComments = useCommentStore((state) => state.openSongComments);
   const loadedSongId = useRef(0);
   const open = usePlayerStore((state) => state.showPlayerComments);
-  const transition = useOriginTransition<HTMLElement>(open, "player-comments", 260);
+  const transition = useOriginTransition<HTMLElement>(
+    open,
+    "player-comments",
+    260,
+  );
+  useModalBehavior(open, transition.surfaceRef, () => setOpen(false));
 
   useEffect(() => {
-    if (!open || !currentSong || loadedSongId.current === currentSong.id) return;
+    if (!open || !currentSong || loadedSongId.current === currentSong.id)
+      return;
     loadedSongId.current = currentSong.id;
     void openSongComments(currentSong);
   }, [currentSong, open, openSongComments]);
@@ -29,7 +36,13 @@ export default function PlayerCommentsDrawer() {
         onClick={() => setOpen(false)}
         aria-label="关闭评论"
       />
-      <section ref={transition.surfaceRef} className={`player-comments-drawer ${transition.surfaceClassName}`} aria-label="歌曲评论">
+      <section
+        ref={transition.surfaceRef}
+        className={`player-comments-drawer ${transition.surfaceClassName}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="歌曲评论"
+      >
         <header className="player-comments-header">
           <div className="player-comments-title">
             {currentSong.picUrl ? (
