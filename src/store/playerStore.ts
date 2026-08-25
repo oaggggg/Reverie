@@ -1501,8 +1501,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
   },
   setShowLogin: (v) => set({ showLogin: v }),
-  setShowSettings: (v) => set({ showSettings: v }),
-  setShowPlayerComments: (v) => set({ showPlayerComments: v }),
+  setShowSettings: (v) =>
+    set({ showSettings: v, ...(v ? { showPlayerComments: false } : {}) }),
+  setShowPlayerComments: (v) =>
+    set({ showPlayerComments: v, ...(v ? { showSettings: false } : {}) }),
   setActiveView: (v) => set({ activeView: v }),
   setPage: (p) => set({ currentPage: p }),
   setSearchOpen: (v) => {
