@@ -856,7 +856,12 @@ export default function App() {
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (event.currentTarget !== active) return;
     const el = event.currentTarget;
-    if (pendingSeek !== null && Number.isFinite(el.duration)) {
+    // 试听歌曲固定从歌曲开头播放，不应用续播位置。
+    if (
+      pendingSeek !== null &&
+      usePlayerStore.getState().previewEnd === null &&
+      Number.isFinite(el.duration)
+    ) {
       el.currentTime = Math.min(el.duration, Math.max(0, pendingSeek / 1000));
       usePlayerStore.setState({
         pendingSeek: null,
