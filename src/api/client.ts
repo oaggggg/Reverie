@@ -62,6 +62,10 @@ export interface RequestOptions {
   method?: "GET" | "POST";
   body?: BodyInit;
   headers?: HeadersInit;
+  /** Override the per-attempt timeout for unusually slow endpoints. */
+  timeoutMs?: number;
+  /** Enable retries for a request that is not a safe GET. */
+  retry?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -76,6 +80,39 @@ interface CacheEntry {
 const responseCache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<unknown>>();
 const MAX_CACHE_ENTRIES = 120;
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
+const MAX_GET_ATTEMPTS = 4;
+const MAX_STALE_CACHE_AGE_MS = 6 * 60 * 60 * 1000;
+
+class ApiRequestError extends Error {
+  readonly status: number;
+  readonly path: string;
+
+  constructor(message: string, status: number, path: string) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.path = path;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelay(attempt: number): number {
+  const backoff = Math.min(250 * 2 ** attempt, 2_000);
+  return backoff + Math.floor(Math.random() * 120);
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof ApiRequestError) return isRetryableStatus(error.status);
+  return error instanceof TypeError || error instanceof SyntaxError;
+}
 
 function cacheKey(path: string, params: Record<string, unknown>): string {
   const q = new URLSearchParams();
@@ -97,7 +134,9 @@ export async function cachedRequest<T>(
 ): Promise<T> {
   const key = cacheKey(path, params);
   const hit = responseCache.get(key);
-  if (hit && Date.now() - hit.at < ttlMs) return hit.data as T;
+  if (hit && Date.now() - hit.at < ttlMs) {
+    return hit.data as T;
+  }
   const running = inFlight.get(key);
   if (running) return running as Promise<T>;
   const run = request<T>(path, params)
@@ -109,6 +148,14 @@ export async function cachedRequest<T>(
         responseCache.delete(oldest);
       }
       return data;
+    })
+    .catch((error) => {
+      // Read-only data can remain useful during a short upstream outage. Never
+      // use a stale entry beyond the bounded grace period or across auth scope.
+      if (hit && Date.now() - hit.at < MAX_STALE_CACHE_AGE_MS) {
+        return hit.data as T;
+      }
+      throw error;
     })
     .finally(() => {
       if (inFlight.get(key) === run) inFlight.delete(key);
@@ -138,32 +185,47 @@ export async function request<T = unknown>(
   const query = q.toString();
   const url = `${API_BASE}${path}${query ? `?${query}` : ""}`;
   const method = options.method ?? "GET";
-  const fetchOptions: RequestInit = {
-    method,
-    headers: options.headers,
-    body: options.body,
-    signal: AbortSignal.timeout(15000),
-  };
-  if (method === "GET") delete fetchOptions.body;
-  let res: Response | null = null;
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 8; attempt++) {
+  const canRetry = method === "GET" || options.retry === true;
+  const attempts = canRetry ? MAX_GET_ATTEMPTS : 1;
+  const timeoutMs = Math.max(
+    1_000,
+    Math.min(options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS, 120_000),
+  );
+  let lastError: unknown = new Error(`请求 ${path} 失败`);
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const fetchOptions: RequestInit = {
+      method,
+      headers: options.headers,
+      body: method === "GET" ? undefined : options.body,
+      signal: controller.signal,
+    };
     try {
-      res = await fetch(url, fetchOptions);
-      break;
+      const res = await fetch(url, fetchOptions);
+      if (!res.ok) {
+        const detail = (await res.text().catch(() => "")).trim();
+        const suffix = detail ? `: ${detail.slice(0, 240)}` : "";
+        throw new ApiRequestError(
+          `HTTP ${res.status} for ${path}${suffix}`,
+          res.status,
+          path,
+        );
+      }
+      if (res.status === 204) return {} as T;
+      return (await res.json()) as T;
     } catch (error) {
-      lastError = error;
-      if (attempt === 7) throw error;
-      // The desktop sidecar is spawned just before the WebView loads. On a
-      // cold start it can need a moment before the local port begins listening.
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(120 + attempt * 90, 600)),
-      );
+      lastError = controller.signal.aborted
+        ? new Error(`请求 ${path} 超时`)
+        : error;
+      if (attempt + 1 >= attempts || !isRetryableError(lastError))
+        throw lastError;
+      await sleep(retryDelay(attempt));
+    } finally {
+      clearTimeout(timeout);
     }
   }
-  if (!res) throw lastError;
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
-  return (await res.json()) as T;
+  throw lastError;
 }
 
 /* ------------------------------------------------------------------ */
@@ -385,13 +447,17 @@ export async function downloadSongFile(song: Song): Promise<void> {
   }));
   if (!result.url) result = await getLegacySongUrl(song.id);
   if (!result.url) throw new Error("该歌曲暂时没有可下载地址");
-  const configuredPath = localStorage.getItem("reverie_download_path") || "D:\\Reverie\\Downloads";
+  const configuredPath =
+    localStorage.getItem("reverie_download_path") || "D:\\Reverie\\Downloads";
   if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
     const { invoke } = await import("@tauri-apps/api/core");
     const response = await fetch(result.url);
     if (!response.ok) throw new Error("歌曲下载失败");
     const bytes = Array.from(new Uint8Array(await response.arrayBuffer()));
-    const fileName = (song.name + " - " + song.artists + ".mp3").replace(/[\\/:*?"<>|]/g, "_");
+    const fileName = (song.name + " - " + song.artists + ".mp3").replace(
+      /[\\/:*?"<>|]/g,
+      "_",
+    );
     const path = configuredPath.replace(/[\\/]+$/, "") + "/" + fileName;
     await invoke("save_download_file", { path, data: bytes });
     return;
@@ -410,9 +476,7 @@ export async function downloadSongFile(song: Song): Promise<void> {
   anchor.remove();
 }
 
-export async function getLegacySongUrl(
-  id: number,
-): Promise<{
+export async function getLegacySongUrl(id: number): Promise<{
   url: string | null;
   br: number;
   code?: number;
