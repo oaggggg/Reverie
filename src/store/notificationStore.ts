@@ -47,15 +47,10 @@ interface NotificationState {
   ) => Promise<boolean>;
 }
 
-function showView() {
-  const player = usePlayerStore.getState();
-  const previous = player.activeView;
-  player.setPage("browse");
-  player.setSearchOpen(false);
-  usePlayerStore.setState({
-    activeView: "notifications",
-    prevView: previous === "notifications" ? player.prevView : previous,
-  });
+/** 消息中心以弹窗呈现：只负责收起搜索下拉并打开弹窗，不切换页面视图。 */
+function showModal() {
+  usePlayerStore.getState().setSearchOpen(false);
+  usePlayerStore.setState({ showNotifications: true });
 }
 
 function currentUid() {
@@ -88,7 +83,7 @@ export const useNotificationStore = create<NotificationState>()((set, get) => ({
     void getNotificationCounts()
       .then((counts) => set({ unreadTotal: counts.total }))
       .catch(() => {});
-    showView();
+    showModal();
     set({
       category,
       loading: true,

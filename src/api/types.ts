@@ -240,7 +240,6 @@ export type View =
   | "search"
   | "profile"
   | "collection"
-  | "notifications"
   | "chart"
   | "fm"
   | "userlist"

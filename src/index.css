@@ -2067,6 +2067,55 @@ textarea {
   border-radius: 8px;
   background: var(--bg-3);
 }
+/* 消息中心弹窗：宽幅双栏布局，内部各自滚动 */
+.modal.notification-modal {
+  width: min(860px, 94vw);
+  height: min(620px, 84vh);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 16px;
+}
+.notification-modal-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.notification-modal-head h2 {
+  margin: 0;
+}
+.notification-modal-sub {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.notification-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  align-self: center;
+}
+.notification-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.notification-modal-body .notification-tabs {
+  margin-top: 0;
+}
+/* 弹窗内复用原页面布局：高度撑满弹窗体，去掉页脚留白 */
+.message-layout.in-modal {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 0;
+}
+.notification-feed.in-modal {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 .notification-tabs button {
   display: inline-flex;
   min-width: 88px;
