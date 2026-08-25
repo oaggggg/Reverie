@@ -56,11 +56,14 @@ export default function PlayerBar() {
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
   const [qualityOpen, setQualityOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [volumeOpen, setVolumeOpen] = useState(false);
   const queue = usePlayerStore((s) => s.queue);
   const queueIndex = usePlayerStore((s) => s.index);
   const playQueueAt = usePlayerStore((s) => s.playQueueAt);
   const menuRef = useRef<HTMLDivElement>(null);
   const qualityTransition = useOriginTransition<HTMLDivElement>(qualityOpen, "player-quality", 160);
+  const queueTransition = useOriginTransition<HTMLDivElement>(queueOpen, "player-queue", 180);
+  const volumeTransition = useOriginTransition<HTMLDivElement>(volumeOpen, "player-volume", 180);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const previewEnd = usePlayerStore((s) => s.previewEnd);
   const playing = usePlayerStore((s) => s.playing);
@@ -262,7 +265,8 @@ export default function PlayerBar() {
 
         <div className="pb-right" ref={menuRef}>
           <div className="pb-queue-wrap">
-            <button className={`icon-btn ${queueOpen ? "active" : ""}`} title="播放列表" aria-expanded={queueOpen} onClick={() => {
+            <button className={`icon-btn ${queueOpen ? "active" : ""}`} title="播放列表" aria-expanded={queueOpen} onClick={(event) => {
+              captureInteractionOrigin("player-queue", event.currentTarget);
               setQueueOpen((open) => !open);
               setQualityOpen(false);
               setShareOpen(false);
@@ -270,7 +274,7 @@ export default function PlayerBar() {
             }}>
               <ListMusic size={17} />
             </button>
-            {queueOpen && <div className="pb-queue-menu" role="dialog" aria-label="播放列表">
+            {queueTransition.rendered && <div ref={queueTransition.surfaceRef} className={`pb-queue-menu ${queueTransition.surfaceClassName}`} role="dialog" aria-label="播放列表">
               <div className="pb-queue-head"><strong>播放列表</strong><span>{queue.length} 首</span></div>
               <div className="pb-queue-list">
                 {queue.length ? queue.map((song, index) => <button key={`${song.id}-${index}`} className={index === queueIndex ? "active" : ""} onClick={() => { void playQueueAt(index); setQueueOpen(false); }}><span>{index + 1}</span><span>{song.name}</span><small>{song.artists}</small></button>) : <div className="empty">暂无播放歌曲</div>}
@@ -368,6 +372,18 @@ export default function PlayerBar() {
           </button>
           <div
             className="vol-wrap"
+            onPointerEnter={(event) => {
+              captureInteractionOrigin("player-volume", event.currentTarget.querySelector("button") ?? event.currentTarget);
+              setVolumeOpen(true);
+            }}
+            onFocus={(event) => {
+              captureInteractionOrigin("player-volume", event.currentTarget.querySelector("button") ?? event.currentTarget);
+              setVolumeOpen(true);
+            }}
+            onPointerLeave={() => setVolumeOpen(false)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setVolumeOpen(false);
+            }}
             onWheel={(e) => {
               e.preventDefault();
               const current = muted ? 0 : volume;
@@ -381,7 +397,7 @@ export default function PlayerBar() {
                 <Volume2 size={18} />
               )}
             </button>
-            <div className="volume-popover" aria-label="音量调节">
+            {volumeTransition.rendered && <div ref={volumeTransition.surfaceRef} className={`volume-popover ${volumeTransition.surfaceClassName}`} aria-label="音量调节">
               <span className="volume-value">
                 {Math.round((muted ? 0 : volume) * 100)}
               </span>
@@ -396,7 +412,7 @@ export default function PlayerBar() {
                 }}
                 onChange={(e) => setVolume(Number(e.target.value) / 100)}
               />
-            </div>
+            </div>}
           </div>
         </div>
       </div>

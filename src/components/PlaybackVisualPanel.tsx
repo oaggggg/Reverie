@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import { BookOpen, Gauge, Sparkles, Type, X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
 import { useSongMetadataStore } from "../store/songMetadataStore.ts";
@@ -31,10 +31,12 @@ const PARTICLE_EFFECTS: Array<{ id: ParticleEffect; name: string }> = [
 ];
 
 export default function PlaybackVisualPanel({
-  closing,
+  surfaceRef,
+  transitionClassName,
   onClose,
 }: {
-  closing: boolean;
+  surfaceRef: RefObject<HTMLElement | null>;
+  transitionClassName: string;
   onClose: () => void;
 }) {
   const currentSong = usePlayerStore((s) => s.currentSong);
@@ -59,7 +61,7 @@ export default function PlaybackVisualPanel({
   }, [currentSong?.id, loadSongMetadata]);
 
   return (
-    <aside className={`np-visual-panel ${closing ? "is-closing" : ""}`}>
+    <aside ref={surfaceRef} className={`np-visual-panel ${transitionClassName}`}>
       <header>
         <div>
           <Sparkles size={17} />

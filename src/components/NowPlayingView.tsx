@@ -19,6 +19,7 @@ import { QUALITY_GRID } from "../utils/gpuBenchmark";
 import Lyrics3D from "./Lyrics3D";
 import { sizedImage } from "../utils/image";
 import { readCoverOrigin } from "../utils/sharedCoverTransition";
+import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
 import PlaybackVisualPanel from "./PlaybackVisualPanel";
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -41,7 +42,7 @@ export default function NowPlayingView() {
     "opening" | "idle" | "closing"
   >("opening");
   const [visualOpen, setVisualOpen] = useState(false);
-  const [visualClosing, setVisualClosing] = useState(false);
+  const visualTransition = useOriginTransition<HTMLElement>(visualOpen, "np-visual", 220);
   const [currentLyricLine, setCurrentLyricLine] = useState("");
   const [nextLyricLine, setNextLyricLine] = useState("");
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
@@ -153,15 +154,6 @@ export default function NowPlayingView() {
     }
   };
 
-  const closeVisualPanel = () => {
-    if (visualClosing) return;
-    setVisualClosing(true);
-    window.setTimeout(() => {
-      setVisualOpen(false);
-      setVisualClosing(false);
-    }, 180);
-  };
-
   // Must keep a stable identity: this view re-renders on every playback tick,
   // and ParticleAlbumCover rebuilds its scene whenever this callback changes.
   const handleDoubleClick = useCallback(() => {
@@ -194,16 +186,20 @@ export default function NowPlayingView() {
 
       <button
         className={`np-btn np-visual-trigger ${fadedIn ? "np-fade-in" : ""}`}
-        onClick={() => setVisualOpen(true)}
+        onClick={(event) => {
+          captureInteractionOrigin("np-visual", event.currentTarget);
+          setVisualOpen(true);
+        }}
         title="歌词与封面"
       >
         <SlidersHorizontal size={18} />
       </button>
 
-      {visualOpen && (
+      {visualTransition.rendered && (
         <PlaybackVisualPanel
-          closing={visualClosing}
-          onClose={closeVisualPanel}
+          surfaceRef={visualTransition.surfaceRef}
+          transitionClassName={visualTransition.surfaceClassName}
+          onClose={() => setVisualOpen(false)}
         />
       )}
 
