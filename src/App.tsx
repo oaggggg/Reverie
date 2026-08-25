@@ -34,6 +34,9 @@ const FALLBACK_IMAGE =
 const AUDIO_FADE_IN_MS = 180;
 const AUDIO_FADE_OUT_MS = 140;
 const SEAMLESS_CROSSFADE_MS = 260;
+// 静音看门狗判定窗口：系统通知音、蓝牙切换等会让 AudioContext 短暂
+// 离开 running 态并在一两秒内自行恢复，属于正常现象，不应提示。
+const SILENT_RECOVERY_MS = 2500;
 
 const ChartPage = lazy(() => import("./components/ChartPage"));
 const SearchPage = lazy(() => import("./components/SearchPage"));
@@ -92,10 +95,9 @@ export default function App() {
   const skipNextFadeInRef = useRef(false);
   const handledEndedUrlRef = useRef<string | null>(null);
   // 静音看门狗：AudioContext 被系统挂起或音量被竞态留在 0 时，
-  // 媒体元素照常走表（播放栏正常）却没有声音。连续多帧异常才触发自愈，
-  // 避免把正常的淡入淡出误判为故障；toast 只提示一次，防止刷屏。
-  const silentGraphTicksRef = useRef(0);
-  const silentVolumeTicksRef = useRef(0);
+  // 媒体元素照常走表（播放栏正常）却没有声音。异常需持续存在
+  // （SILENT_RECOVERY_MS）才触发自愈，短暂打断不提示；toast 只提示一次。
+  const silentSinceRef = useRef<number | null>(null);
   const silentToastShownRef = useRef(false);
 
   const cancelAudioFade = (audio: HTMLAudioElement) => {
@@ -724,30 +726,38 @@ export default function App() {
         // 1) Web Audio 图被系统挂起（设备切换/休眠唤醒/autoplay 策略），
         //    元素输出被路由进挂起的上下文 → 整条链静音；
         // 2) 淡入淡出竞态把元素音量留在 ≈0。
-        if (!audio.paused && audio.volume < 0.01 && !state.muted) {
-          silentVolumeTicksRef.current += 1;
-        } else {
-          silentVolumeTicksRef.current = 0;
-        }
+        // 判定改为按异常持续时长：系统消息通知音等短暂打断会让上下文
+        // 短暂离开 running 态并自行恢复，只有连续 ≥2.5s 仍无起色才
+        // 动手修复并提示，通知音（通常 ≤2s）不再触发误报。
+        const expectedVolume = state.muted ? 0 : state.volume;
+        const volumeDead =
+          !audio.paused && audio.volume < 0.01 && expectedVolume >= 0.01;
         const graphState = audioGraphState();
-        const graphSilent =
-          graphState !== null && graphState !== "running" && !state.muted;
-        if (graphSilent && !audio.paused) {
-          silentGraphTicksRef.current += 1;
+        const graphDead =
+          !audio.paused &&
+          expectedVolume > 0 &&
+          graphState !== null &&
+          graphState !== "running";
+        if (volumeDead || graphDead) {
+          silentSinceRef.current ??= now;
           resumeAnalyser();
         } else {
-          silentGraphTicksRef.current = 0;
+          silentSinceRef.current = null;
         }
-        // ≈600ms（前台）仍无起色才动手：淡入只有 180ms，不会误伤。
-        if (
-          silentGraphTicksRef.current > 18 ||
-          silentVolumeTicksRef.current > 18
-        ) {
-          silentGraphTicksRef.current = 0;
-          silentVolumeTicksRef.current = 0;
-          audio.volume = state.muted ? 0 : state.volume;
+        const silentMs = silentSinceRef.current
+          ? now - silentSinceRef.current
+          : 0;
+        if (silentMs >= SILENT_RECOVERY_MS) {
+          silentSinceRef.current = null;
+          audio.volume = expectedVolume;
           resumeAnalyser();
-          if (!silentToastShownRef.current) {
+          // 只有确认图真的处于坏状态才提示；纯音量竞态静默修复即可。
+          if (
+            !silentToastShownRef.current &&
+            (graphState === "suspended" ||
+              graphState === "interrupted" ||
+              graphState === "closed")
+          ) {
             silentToastShownRef.current = true;
             usePlayerStore
               .getState()
