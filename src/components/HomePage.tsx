@@ -89,6 +89,9 @@ export default function HomePage() {
   const recommendSongsLoading = usePlayerStore((s) => s.recommendSongsLoading);
   const hotPlaylistsLoading = usePlayerStore((s) => s.hotPlaylistsLoading);
   const homeQuote = usePlayerStore((s) => s.homeQuote);
+  const homeQuoteUnavailable = usePlayerStore(
+    (s) => s.homeQuoteUnavailable,
+  );
   const openPlaylist = usePlayerStore((s) => s.openPlaylist);
   const dismissRecommend = (song: import("../api/types").Song) => {
     usePlayerStore.setState((state) => ({
@@ -209,7 +212,7 @@ export default function HomePage() {
               <p>“{homeQuote.text}”</p>
               <cite>—— {homeQuote.source}</cite>
             </blockquote>
-          ) : (
+          ) : homeQuoteUnavailable ? null : (
             <div className="hero-quote-empty">正在为你挑选一句歌词…</div>
           )}
         </div>

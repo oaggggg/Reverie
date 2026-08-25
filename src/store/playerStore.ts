@@ -498,6 +498,8 @@ interface PlayerState {
   vipInfo: VipInfo | null;
   recentSongs: Song[];
   homeQuote: { text: string; source: string } | null;
+  /** 候选池全部失败时置位：首页据此隐藏加载占位，避免永久“正在挑选…”。 */
+  homeQuoteUnavailable: boolean;
 
   // --- audio ---
   audioEl: HTMLAudioElement | null;
@@ -830,6 +832,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   vipInfo: cachedVipInfo,
   recentSongs: readRecentSongs(),
   homeQuote: cachedHomeQuote,
+  homeQuoteUnavailable: false,
 
   // --- audio ---
   audioEl: null,
@@ -2148,6 +2151,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
           /* try next */
         }
       }
+      // 整个候选池都失败（网络受限/歌曲下架）：标记不可用，
+      // 首页不再无限期停留在“正在挑选…”的加载文案。
+      if (!get().homeQuote) set({ homeQuoteUnavailable: true });
     })();
     homeQuoteLoadPromise = run;
     try {

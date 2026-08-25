@@ -486,7 +486,8 @@ textarea {
 :root[data-window-active="false"] .titlebar-name,
 :root[data-window-active="false"] .titlebar-name-text,
 :root[data-window-active="false"] .titlebar-letter,
-:root[data-window-active="false"] .pb-cover-img,
+:root[data-window-active="false"] .pb-cover-rotor,
+:root[data-window-active="false"] .np-cover-img,
 :root[data-window-active="false"] .loading-spinner,
 :root[data-window-active="false"] .session-loading-mark,
 :root[data-window-active="false"] .boot-shell-mark {
@@ -2698,17 +2699,36 @@ textarea {
 .pb-cover:hover {
   transform: translateY(-2px) scale(1.06);
 }
+/* 封面渐显渐隐：旋转统一放在 rotor 容器上（新旧两层图共享同一旋转相位，
+   交叉淡化时才不会出现角度错位），透明度过渡只作用于图片层。 */
 .pb-cover,
-.pb-cover img,
+.pb-cover-rotor,
 .pb-cover-ph {
   width: 48px;
   height: 48px;
   border-radius: 50%;
 }
-.pb-cover img {
+.pb-cover-rotor {
+  position: relative;
+  box-shadow: 0 4px 14px var(--shadow);
+  animation: pb-cover-rotation var(--motion-cover-spin) linear infinite;
+}
+.pb-cover.spinning .pb-cover-rotor {
+  animation-play-state: running;
+}
+.pb-cover.paused .pb-cover-rotor {
+  animation-play-state: paused;
+}
+.pb-cover-layer {
+  position: absolute;
+  inset: 0;
   display: block;
   object-fit: cover;
-  box-shadow: 0 4px 14px var(--shadow);
+  opacity: 0;
+  transition: opacity 0.38s ease;
+}
+.pb-cover-layer.on {
+  opacity: 1;
 }
 .pb-cover-ph {
   background: color-mix(in srgb, var(--bg-3) 45%, transparent);
@@ -2718,16 +2738,9 @@ textarea {
   color: var(--text-faint);
   font-size: 20px;
 }
-.pb-cover img,
-.pb-cover.spinning img,
-.pb-cover.paused img {
-  animation: pb-cover-rotation var(--motion-cover-spin) linear infinite;
-}
-.pb-cover.spinning img {
-  animation-play-state: running;
-}
-.pb-cover.paused img {
-  animation-play-state: paused;
+.pb-cover .pb-cover-ph {
+  position: absolute;
+  inset: 0;
 }
 @keyframes pb-cover-rotation {
   to {
