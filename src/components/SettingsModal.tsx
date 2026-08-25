@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   CircleUserRound,
   ChevronRight,
+  Bug,
   Info,
   MonitorCog,
   Palette,
@@ -26,6 +27,11 @@ import {
   useOriginTransition,
 } from "../utils/originTransition";
 import { useModalBehavior } from "../utils/modalBehavior";
+import {
+  buildGitHubIssueUrl,
+  createFeedbackIssue,
+  openGitHubIssue,
+} from "../utils/diagnostics";
 
 const APP_THEMES: Array<{ id: ThemePreference; name: string }> = [
   { id: "system", name: "跟随系统" },
@@ -122,6 +128,8 @@ function SettingRow({
 export default function SettingsModal() {
   const [category, setCategory] = useState<Category>("general");
   const [panel, setPanel] = useState<Panel>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackOpening, setFeedbackOpening] = useState(false);
   const [downloadPath, setDownloadPath] = useState(
     () =>
       localStorage.getItem("reverie_download_path") || "D:\Reverie\Downloads",
@@ -205,6 +213,24 @@ export default function SettingsModal() {
 
   const close = () => setShowSettings(false);
   const checking = updatePhase === "checking";
+
+  const openFeedback = async () => {
+    setFeedbackOpening(true);
+    try {
+      const issue = createFeedbackIssue(feedbackText, {
+        platform: window.ncm?.platform || navigator.platform || "unknown",
+        runtime: window.ncm?.versions.runtime || "WebView",
+        webview: window.ncm?.versions.webview || navigator.userAgent,
+        currentSong: usePlayerStore.getState().currentSong?.name,
+      });
+      await openGitHubIssue(buildGitHubIssueUrl(issue));
+      usePlayerStore.getState().toast("已生成反馈报告，请在 GitHub 页面确认提交", "success");
+    } catch {
+      usePlayerStore.getState().toast("打开 GitHub 反馈页面失败，请检查网络", "error");
+    } finally {
+      setFeedbackOpening(false);
+    }
+  };
 
   return (
     <div
@@ -555,6 +581,29 @@ export default function SettingsModal() {
                         ? "可用"
                         : "读取中…"}
                   </b>
+                </div>
+                <div className="about-feedback">
+                  <div className="about-feedback-head">
+                    <Bug size={18} aria-hidden="true" />
+                    <div>
+                      <strong>问题反馈</strong>
+                      <span>自动生成脱敏错误报告并打开 GitHub Issues</span>
+                    </div>
+                  </div>
+                  <textarea
+                    className="about-feedback-input"
+                    value={feedbackText}
+                    onChange={(event) => setFeedbackText(event.target.value)}
+                    placeholder="请描述遇到的问题（可选）"
+                    rows={3}
+                  />
+                  <button
+                    className="btn"
+                    onClick={() => void openFeedback()}
+                    disabled={feedbackOpening}
+                  >
+                    {feedbackOpening ? "正在生成报告…" : "生成并提交反馈"}
+                  </button>
                 </div>
                 <h3>说明与政策</h3>
                 <div className="about-link-list">

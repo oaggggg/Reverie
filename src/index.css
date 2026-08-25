@@ -4961,6 +4961,44 @@ textarea {
 .about-service strong { color: var(--text); font-size: 13px; }
 .about-service span { color: var(--text-dim); font-size: 11px; }
 .about-service b { color: var(--text-dim); font-size: 12px; font-weight: 600; }
+.about-feedback {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.about-feedback-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--accent-2);
+}
+.about-feedback-head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.about-feedback-head strong { color: var(--text); font-size: 13px; }
+.about-feedback-head span { color: var(--text-dim); font-size: 11px; line-height: 1.5; }
+.about-feedback-input {
+  width: 100%;
+  min-height: 70px;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 9px 10px;
+  border: 1px solid var(--glass-popup-border);
+  border-radius: 7px;
+  background: var(--glass-popup-control);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.about-feedback-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+.about-feedback .btn { justify-self: start; }
 .about-link-list { display: grid; gap: 4px; }
 .about-link {
   display: flex;

@@ -4,6 +4,7 @@ import App from "./App";
 import "./index.css";
 import "./tauri-api"; // 初始化 Tauri API
 import { installDesktopExperience } from "./utils/desktopExperience";
+import { installDiagnostics } from "./utils/diagnostics";
 
 function readPreference(key: string, fallback: string) {
   try {
@@ -40,6 +41,7 @@ function initializeVisualPreferences() {
 
 initializeVisualPreferences();
 installDesktopExperience();
+installDiagnostics();
 
 const root = createRoot(document.getElementById("root")!);
 flushSync(() => root.render(<App />));
