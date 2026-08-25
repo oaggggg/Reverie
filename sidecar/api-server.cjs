@@ -115,9 +115,11 @@ async function loadModuleDefs() {
     );
     return filtered;
   } catch (error) {
-    console.warn("[reverie] failed to filter modules, using full registry:", error);
-    // 打包环境异常时退回上游默认注册表，保持服务可用。
-    return undefined;
+    // Never fall back to the upstream full registry: that would re-expose the
+    // login/profile mutation endpoints explicitly excluded above. Failing
+    // closed is safer than starting an API with an unreviewed surface.
+    console.error("[reverie] failed to build the filtered module registry:", error);
+    throw error;
   }
 }
 

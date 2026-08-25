@@ -295,8 +295,11 @@ export async function request<T = unknown>(
       if (res.status === 204) return {} as T;
       return (await res.json()) as T;
     } catch (error) {
+      // AbortController timeouts must retain a retryable status. Converting
+      // them to a generic Error makes GET retries silently stop on slow or
+      // temporarily stalled sidecars.
       lastError = controller.signal.aborted
-        ? new Error(`请求 ${path} 超时`)
+        ? new ApiRequestError(`请求 ${path} 超时`, 408, path)
         : error;
       if (attempt + 1 >= attempts || !isRetryableError(lastError))
         throw lastError;
