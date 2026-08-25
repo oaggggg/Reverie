@@ -826,15 +826,20 @@ export async function loginStatus(): Promise<UserProfile | null> {
     string,
     unknown
   > | null;
-  if (!profile && !account) return null;
-  const accountVip = Number(account?.vipType ?? 0);
-  const profileVip = Number(profile?.vipType ?? 0);
+  // 网易云接口在会话缺失/失效时会回退到“匿名账号”：code 仍为 200，
+  // account 存在但 type=1000（游客）且没有 profile 字段。
+  // 此时必须视为未登录——否则会构造出只有兜底昵称、游客 userId 的幽灵用户，
+  // 界面误显示已登录，而后续所有用户信息请求都拿不到真实数据。
+  if (!profile || Number(account?.type) === 1000) return null;
   return {
-    userId: Number(profile?.userId ?? account?.id ?? 0),
-    nickname: String(profile?.nickname ?? "网易云用户"),
-    avatarUrl: String(profile?.avatarUrl ?? ""),
-    signature: profile?.signature ? String(profile.signature) : undefined,
-    vipType: Math.max(accountVip, profileVip),
+    userId: Number(profile.userId ?? 0),
+    nickname: String(profile.nickname ?? "网易云用户"),
+    avatarUrl: String(profile.avatarUrl ?? ""),
+    signature: profile.signature ? String(profile.signature) : undefined,
+    vipType: Math.max(
+      Number(account?.vipType ?? 0),
+      Number(profile.vipType ?? 0),
+    ),
     badgeUrl: deepFindBadgeUrl(res.data ?? res) || undefined,
   };
 }
