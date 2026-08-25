@@ -455,7 +455,7 @@ export default function SettingsModal() {
                   <div className="about-app-copy">
                     <strong>Reverie</strong>
                     <span>桌面音乐播放器</span>
-                    <small>{"v" + __APP_VERSION__ + " · " + (window.ncm?.versions.runtime ?? "Tauri") + " · WebView " + (window.ncm?.versions.webview ?? "—")}</small>
+                    <small>{"v" + __APP_VERSION__}</small>
                   </div>
                   <button
                     className="btn"
@@ -491,7 +491,6 @@ export default function SettingsModal() {
                   </button>
                   {panel === "disclaimer" && <article className="about-panel">{DISCLAIMER_TEXT}</article>}
                 </div>
-                <p className="settings-legal">数据来源：NeteaseCloudMusicApi · 仅供学习交流</p>
               </div>
             )}
           </div>
