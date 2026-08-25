@@ -210,6 +210,7 @@ fn start_ncm_api_server(app: &AppHandle) -> Result<Option<CommandChild>, String>
         .env("HOST", API_HOST)
         .env("PARENT_PID", std::process::id().to_string())
         .env("REVERIE_AUTH_TOKEN", &token)
+        .env("REVERIE_ALLOW_UNAUTH", if cfg!(debug_assertions) { "1" } else { "0" })
         .spawn()
         .map_err(|e| format!("Failed to start API sidecar: {e}"))?;
 
