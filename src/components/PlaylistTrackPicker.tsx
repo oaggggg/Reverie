@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Check, LoaderCircle, Search, X } from "lucide-react";
+import { Check, Disc3, LoaderCircle, Search, X } from "lucide-react";
 import { searchSongs } from "../api/client.ts";
 import type { Song } from "../api/types.ts";
 import { useOriginTransition } from "../utils/originTransition";
+import { sizedImage } from "../utils/image";
 
 interface Props {
   open: boolean;
@@ -74,7 +75,7 @@ export default function PlaylistTrackPicker({
         <div className="modal-header">
           <div>
             <h2 id="playlist-picker-title">添加歌曲</h2>
-            <p>搜索歌曲后勾选要加入歌单的内容</p>
+            <p>搜索并选择歌曲加入当前歌单</p>
           </div>
           <button className="modal-close" title="关闭" onClick={onClose}>
             <X size={18} />
@@ -102,6 +103,10 @@ export default function PlaylistTrackPicker({
             {loading ? <LoaderCircle size={15} className="spin" /> : "搜索"}
           </button>
         </form>
+        <div className="playlist-picker-summary">
+          <span>{songs.length ? `找到 ${songs.length} 首歌曲` : "搜索结果"}</span>
+          <strong>{selected.size ? `已选 ${selected.size} 首` : "请选择歌曲"}</strong>
+        </div>
         <div className="playlist-picker-results">
           {songs.map((song) => {
             const exists = existingIds.has(song.id);
@@ -121,20 +126,32 @@ export default function PlaylistTrackPicker({
                   })
                 }
               >
-                <span className="playlist-picker-check">
+                <span className="playlist-picker-check" aria-hidden="true">
                   {exists ? "已在歌单" : checked ? <Check size={15} /> : null}
                 </span>
+                {song.picUrl ? (
+                  <img className="playlist-picker-cover" src={sizedImage(song.picUrl, 80)} alt="" />
+                ) : (
+                  <span className="playlist-picker-cover placeholder"><Disc3 size={17} /></span>
+                )}
                 <span className="playlist-picker-meta">
                   <strong>{song.name}</strong>
                   <small>
                     {song.artists} · {song.album}
                   </small>
                 </span>
+                {song.fee === 1 && <span className="vip-badge">VIP</span>}
               </button>
             );
           })}
           {!loading && keyword && !songs.length && (
             <div className="empty">没有找到歌曲</div>
+          )}
+          {!loading && !keyword && !songs.length && (
+            <div className="playlist-picker-empty">
+              <Search size={24} />
+              <span>输入歌曲名、歌手或专辑开始搜索</span>
+            </div>
           )}
         </div>
         <div className="modal-actions">
