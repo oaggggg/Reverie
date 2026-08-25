@@ -41,6 +41,7 @@ import {
   QUALITY_LABEL,
 } from "../utils/gpuBenchmark";
 import type { CoverQuality } from "../utils/gpuBenchmark";
+import { recordDiagnostic } from "../utils/diagnostics";
 
 export type UpdatePhase =
   | "idle"
@@ -902,6 +903,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   // --- toast ---
   toast: (text, type = "info") => {
+    if (type === "error") recordDiagnostic("error", text);
     const id = ++toastSeq;
     set((s) => ({ toasts: [...s.toasts, { id, text, type }] }));
     const expire = () => {
