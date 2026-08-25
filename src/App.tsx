@@ -39,7 +39,9 @@ const ChartPage = lazy(() => import("./components/ChartPage"));
 const SearchPage = lazy(() => import("./components/SearchPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
 const CollectionPage = lazy(() => import("./components/CollectionPage"));
-const NotificationPage = lazy(() => import("./components/NotificationPage"));
+const NotificationModal = lazy(
+  () => import("./components/NotificationModal"),
+);
 const CommentPage = lazy(() => import("./components/CommentPage"));
 const PlaylistPage = lazy(() => import("./components/PlaylistPage"));
 const UserListPage = lazy(() => import("./components/UserListPage"));
@@ -159,6 +161,7 @@ export default function App() {
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
   const showLogin = usePlayerStore((s) => s.showLogin);
   const showUpdate = usePlayerStore((s) => s.showUpdate);
+  const showNotifications = usePlayerStore((s) => s.showNotifications);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
@@ -170,6 +173,7 @@ export default function App() {
     comments: showPlayerComments,
     login: showLogin,
     update: showUpdate,
+    notifications: showNotifications,
   });
 
   useEffect(() => {
@@ -186,13 +190,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!showPlayerComments && !showLogin && !showUpdate) return;
+    if (!showPlayerComments && !showLogin && !showUpdate && !showNotifications)
+      return;
     setMountedOverlays((current) => ({
       comments: current.comments || showPlayerComments,
       login: current.login || showLogin,
       update: current.update || showUpdate,
+      notifications: current.notifications || showNotifications,
     }));
-  }, [showLogin, showPlayerComments, showUpdate]);
+  }, [showLogin, showPlayerComments, showUpdate, showNotifications]);
 
   useLayoutEffect(() => {
     if (currentPage !== "browse") return;
@@ -968,8 +974,6 @@ export default function App() {
         return <ProfilePage />;
       case "collection":
         return <CollectionPage />;
-      case "notifications":
-        return <NotificationPage />;
       case "comments":
         return <CommentPage />;
       case "playlist":
@@ -1063,6 +1067,11 @@ export default function App() {
       {mountedOverlays.login && (
         <Suspense fallback={null}>
           <LoginModal />
+        </Suspense>
+      )}
+      {mountedOverlays.notifications && (
+        <Suspense fallback={null}>
+          <NotificationModal />
         </Suspense>
       )}
       <SettingsModal />

@@ -113,8 +113,6 @@ const preloadView = (view: View) => {
       return import("./LikesPage");
     case "recent":
       return import("./RecentPage");
-    case "notifications":
-      return import("./NotificationPage");
     default:
       return Promise.resolve();
   }
@@ -491,7 +489,7 @@ export default function TopNav() {
 
         <button
           className="topnav-icon-btn"
-          onPointerEnter={() => void preloadView("notifications")}
+          onPointerEnter={() => void import("./NotificationModal")}
           data-origin-key={loggedIn ? undefined : "login"}
           onClick={(event) => {
             if (!loggedIn) {

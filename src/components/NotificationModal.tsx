@@ -13,6 +13,7 @@ import {
   Mail,
   MessageCircle,
   Send,
+  X,
 } from "lucide-react";
 import type {
   MessageUser,
@@ -24,8 +25,9 @@ import { useNotificationStore } from "../store/notificationStore";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
-import BackButton from "./BackButton";
-import { LoadingState, Page, PageHeader } from "./Page";
+import { useOriginTransition } from "../utils/originTransition";
+import { useModalBehavior } from "../utils/modalBehavior";
+import { LoadingState } from "./Page";
 
 const TABS: Array<{
   id: NotificationCategory;
@@ -195,7 +197,7 @@ function PrivateMessages() {
   };
 
   return (
-    <div className="message-layout">
+    <div className="message-layout in-modal">
       <aside className="conversation-panel">
         <div className="conversation-heading">
           <strong>会话</strong>
@@ -352,7 +354,7 @@ function NotificationFeed() {
     );
   }
   return (
-    <div className="notification-feed">
+    <div className="notification-feed in-modal">
       {items.map((item) => (
         <article key={item.id}>
           {item.user ? (
@@ -381,7 +383,9 @@ function NotificationFeed() {
   );
 }
 
-export default function NotificationPage() {
+export default function NotificationModal() {
+  const showNotifications = usePlayerStore((s) => s.showNotifications);
+  const setShowNotifications = usePlayerStore((s) => s.setShowNotifications);
   const category = useNotificationStore((state) => state.category);
   const unreadTotal = useNotificationStore((state) => state.unreadTotal);
   const total = useNotificationStore((state) => state.total);
@@ -389,47 +393,83 @@ export default function NotificationPage() {
     (state) => state.conversationTotal,
   );
   const setCategory = useNotificationStore((state) => state.setCategory);
+
+  const transition = useOriginTransition(
+    showNotifications,
+    "notifications-modal",
+    220,
+  );
+  useModalBehavior(
+    showNotifications,
+    transition.surfaceRef,
+    () => setShowNotifications(false),
+  );
+
+  if (!transition.rendered) return null;
+
+  // 从弹窗跳转「我的评论」页面：先收起弹窗再切换视图。
+  const openCommentHistory = () => {
+    setShowNotifications(false);
+    const player = usePlayerStore.getState();
+    const previous = player.activeView;
+    player.setPage("browse");
+    usePlayerStore.setState({
+      activeView: "commentHistory",
+      prevView: previous === "commentHistory" ? "home" : previous,
+    });
+  };
+
   return (
-    <Page>
-      <BackButton />
-      <PageHeader
-        title={
-          unreadTotal > 0 ? `消息中心 · ${unreadTotal} 条未读` : "消息中心"
-        }
-        subtitle={
-          category === "private"
-            ? `${conversationTotal} 个私信会话`
-            : `${total} 条消息`
-        }
-        actions={
-          <button
-            className="btn"
-            onClick={() =>
-              usePlayerStore.setState({
-                activeView: "commentHistory",
-                prevView: "notifications",
-              })
-            }
-          >
-            我的评论
-          </button>
-        }
-      />
-      <div className="notification-tabs" role="tablist">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={category === tab.id}
-            className={category === tab.id ? "active" : ""}
-            onClick={() => void setCategory(tab.id)}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+    <div
+      className={`modal-backdrop ${transition.backdropClassName}`}
+      onClick={() => setShowNotifications(false)}
+    >
+      <div
+        ref={transition.surfaceRef}
+        className={`modal notification-modal ${transition.surfaceClassName}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="消息中心"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="notification-modal-head">
+          <h2>{unreadTotal > 0 ? `消息中心 · ${unreadTotal} 条未读` : "消息中心"}</h2>
+          <span className="notification-modal-sub">
+            {category === "private"
+              ? `${conversationTotal} 个私信会话`
+              : `${total} 条消息`}
+          </span>
+          <div className="notification-modal-actions">
+            <button className="btn" onClick={openCommentHistory}>
+              我的评论
+            </button>
+            <button
+              className="topnav-icon-btn"
+              title="关闭"
+              onClick={() => setShowNotifications(false)}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </header>
+        <div className="notification-tabs" role="tablist">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={category === tab.id}
+              className={category === tab.id ? "active" : ""}
+              onClick={() => void setCategory(tab.id)}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="notification-modal-body">
+          {category === "private" ? <PrivateMessages /> : <NotificationFeed />}
+        </div>
       </div>
-      {category === "private" ? <PrivateMessages /> : <NotificationFeed />}
-    </Page>
+    </div>
   );
 }

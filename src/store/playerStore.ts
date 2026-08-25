@@ -601,6 +601,7 @@ interface PlayerState {
   fmSongs: Song[];
   showLogin: boolean;
   showSettings: boolean;
+  showNotifications: boolean;
   showPlayerComments: boolean;
   toasts: ToastMsg[];
 
@@ -657,6 +658,7 @@ interface PlayerState {
   detectCoverQuality: (manual?: boolean) => Promise<void>;
   setShowLogin: (v: boolean) => void;
   setShowSettings: (v: boolean) => void;
+  setShowNotifications: (v: boolean) => void;
   setShowPlayerComments: (v: boolean) => void;
   setActiveView: (v: View) => void;
   setPage: (p: "browse" | "nowplaying") => void;
@@ -918,6 +920,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   fmSongs: [],
   showLogin: false,
   showSettings: false,
+  showNotifications: false,
   showPlayerComments: false,
   toasts: [],
 
@@ -1533,6 +1536,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
   },
   setShowLogin: (v) => set({ showLogin: v }),
+  setShowNotifications: (v) => set({ showNotifications: v }),
   // 未登录时一切播放入口统一拦截：弹出扫码登录引导。
   requireLoginForPlayback: () => {
     if (usePlayerStore.getState().loggedIn) return true;
