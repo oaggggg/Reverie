@@ -469,6 +469,7 @@ export default function App() {
     if (!currentUrl) return;
     if (playing) {
       const target = muted ? 0 : volume;
+      resumeAnalyser();
       if (skipNextFadeInRef.current) {
         skipNextFadeInRef.current = false;
         a.volume = target;
@@ -609,21 +610,6 @@ export default function App() {
       a.load();
     }
   }, [activeAudio, preloadedUrl, qualitySwitchUrl]);
-
-  // react to play/pause toggle
-  useEffect(() => {
-    const a = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
-    if (!a || !currentUrl) return;
-    if (playing && a.paused) {
-      a.play().catch(() => {
-        const state = usePlayerStore.getState();
-        if (state.currentUrl === currentUrl && state.playing) {
-          usePlayerStore.setState({ playing: false });
-          state.toast("音频启动失败，请点击播放重试", "error");
-        }
-      });
-    }
-  }, [activeAudio, playing, currentUrl]);
 
   // `timeupdate` only fires a few times per second in WebView. Sample the
   // actual audio clock at 30 fps while playing so the progress bar and lyrics
