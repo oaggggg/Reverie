@@ -220,6 +220,63 @@ export default function PlaylistPage() {
     subscribed: playlistSubscribed,
   };
   const owned = playlistCreatorId > 0 && playlistCreatorId === uid;
+  const playlistActions = !playlistLoading && playlistId > 0 ? (
+    <div className="page-action-row">
+      <button className="btn" onClick={() => void checkIn()} disabled={checkingIn} title="记录歌单播放">
+        <Check size={14} /> {checkingIn ? "打卡中…" : "打卡"}
+      </button>
+      <button className="btn" onClick={() => void loadFullSongs()} disabled={fullLoading} title="从网易云加载歌单全部歌曲">
+        <RefreshCw size={14} className={fullLoading ? "spin" : ""} /> 完整列表
+      </button>
+      <button
+        className="btn"
+        onClick={() =>
+          void openComments(
+            {
+              type: "playlist",
+              id: String(playlistId),
+              title: playlistName || "歌单",
+              subtitle: `${playlistSongs.length} 首歌曲`,
+            },
+            true,
+          )
+        }
+      >
+        <MessageCircle size={14} /> 评论
+      </button>
+      {owned ? (
+        <>
+          <button
+            className="btn primary"
+            onClick={() => setPickerOpen(true)}
+            disabled={mutating}
+          >
+            <ListPlus size={14} /> 添加歌曲
+          </button>
+          <button className="btn" onClick={() => setEditing(true)}>
+            <Pencil size={14} /> 编辑
+          </button>
+          <button
+            className="btn danger"
+            onClick={() => setConfirmingDelete(true)}
+          >
+            <Trash2 size={14} /> 删除
+          </button>
+        </>
+      ) : (
+        <button
+          className={`btn ${playlistSubscribed ? "active" : "primary"}`}
+          onClick={() => void toggleSubscription(playlist)}
+        >
+          <Heart
+            size={14}
+            fill={playlistSubscribed ? "currentColor" : "none"}
+          />
+          {playlistSubscribed ? "已收藏" : "收藏歌单"}
+        </button>
+      )}
+    </div>
+  ) : null;
 
   return (
     <Page>
@@ -227,63 +284,7 @@ export default function PlaylistPage() {
       <PageHeader
         title={playlistName || "歌单"}
         subtitle={playlistDescription || `${playlistSongs.length} 首`}
-        actions={
-          <div className="page-action-row">
-            <button className="btn" onClick={() => void checkIn()} disabled={checkingIn} title="记录歌单播放">
-              <Check size={14} /> {checkingIn ? "打卡中…" : "打卡"}
-            </button>
-            <button className="btn" onClick={() => void loadFullSongs()} disabled={fullLoading} title="从网易云加载歌单全部歌曲">
-              <RefreshCw size={14} className={fullLoading ? "spin" : ""} /> 完整列表
-            </button>
-            <button
-              className="btn"
-              onClick={() =>
-                void openComments(
-                  {
-                    type: "playlist",
-                    id: String(playlistId),
-                    title: playlistName || "歌单",
-                    subtitle: `${playlistSongs.length} 首歌曲`,
-                  },
-                  true,
-                )
-              }
-            >
-              <MessageCircle size={14} /> 评论
-            </button>
-            {owned ? (
-              <>
-                <button
-                  className="btn primary"
-                  onClick={() => setPickerOpen(true)}
-                  disabled={mutating}
-                >
-                  <ListPlus size={14} /> 添加歌曲
-                </button>
-                <button className="btn" onClick={() => setEditing(true)}>
-                  <Pencil size={14} /> 编辑
-                </button>
-                <button
-                  className="btn danger"
-                  onClick={() => setConfirmingDelete(true)}
-                >
-                  <Trash2 size={14} /> 删除
-                </button>
-              </>
-            ) : (
-              <button
-                className={`btn ${playlistSubscribed ? "active" : "primary"}`}
-                onClick={() => void toggleSubscription(playlist)}
-              >
-                <Heart
-                  size={14}
-                  fill={playlistSubscribed ? "currentColor" : "none"}
-                />
-                {playlistSubscribed ? "已收藏" : "收藏歌单"}
-              </button>
-            )}
-          </div>
-        }
+        actions={playlistActions}
       />
       {dynamicStats && (
         <div className="playlist-dynamic-stats" aria-label="歌单动态统计">
