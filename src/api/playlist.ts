@@ -1,10 +1,24 @@
-import { cachedRequest, normalizeSong, request } from "./client.ts";
+import {
+  cachedRequest,
+  invalidateResponseCache,
+  normalizeSong,
+  request,
+} from "./client.ts";
 import type { PlaylistDynamicStats, SocialUser, Song } from "./types.ts";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** 歌单内容变更后需要失效的读缓存前缀。 */
+function invalidatePlaylistCaches(): void {
+  invalidateResponseCache([
+    "/playlist/track/all",
+    "/playlist/detail",
+    "/top/playlist",
+  ]);
+}
 
 /** Record a playlist check-in/play-count update. */
 export async function markPlaylistPlayed(playlistId: number): Promise<void> {
@@ -40,6 +54,7 @@ export async function addPlaylistTracks(
     false,
     { method: "POST" },
   );
+  invalidatePlaylistCaches();
 }
 
 export async function deletePlaylistTracks(
@@ -53,6 +68,7 @@ export async function deletePlaylistTracks(
     false,
     { method: "POST" },
   );
+  invalidatePlaylistCaches();
 }
 
 export async function manipulatePlaylistTracks(
@@ -67,6 +83,7 @@ export async function manipulatePlaylistTracks(
     false,
     { method: "POST" },
   );
+  invalidatePlaylistCaches();
 }
 
 export async function updatePlaylistOrder(

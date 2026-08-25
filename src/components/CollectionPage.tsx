@@ -109,8 +109,15 @@ export default function CollectionPage() {
     loadingMore || !hasMore,
   );
 
-  const empty =
-    !albums.length && !artists.length && !media.length && !radios.length;
+  // 空状态按当前分类判断：任一其他分类有数据不代表当前分类非空。
+  const currentItems =
+    category === "albums"
+      ? albums.length
+      : category === "artists"
+        ? artists.length
+        : category === "mvs"
+          ? media.length
+          : radios.length;
   return (
     <Page>
       <BackButton />
@@ -130,7 +137,7 @@ export default function CollectionPage() {
       </div>
       {loading ? (
         <LoadingState label="正在加载收藏…" />
-      ) : empty ? (
+      ) : currentItems === 0 ? (
         <div className="empty">暂无收藏内容</div>
       ) : (
         <>

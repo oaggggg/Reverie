@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { invalidateResponseCache, normalizeSong, request } from "./client.ts";
 import type {
   AlbumInfo,
   ArtistInfo,
@@ -181,6 +181,7 @@ export async function subscribeAlbum(
   subscribe: boolean,
 ): Promise<void> {
   await request("/album/sub", { id, t: subscribe ? 1 : 0 }, false);
+  invalidateResponseCache(["/album"]);
 }
 
 export async function getSubscribedAlbums(
@@ -249,6 +250,7 @@ export async function subscribeArtist(
   subscribe: boolean,
 ): Promise<void> {
   await request("/artist/sub", { id, t: subscribe ? 1 : 0 }, false);
+  invalidateResponseCache(["/artist/detail", "/artists", "/artist/sublist"]);
 }
 
 export async function getSongComments(
@@ -300,6 +302,7 @@ export async function createPlaylist(
   privacy = 0,
 ): Promise<PlaylistInfo> {
   const res = await request<Obj>("/playlist/create", { name, privacy }, false);
+  invalidateResponseCache(["/user/playlist", "/top/playlist"]);
   return normalizePlaylist(res.playlist);
 }
 
@@ -327,16 +330,19 @@ export async function updatePlaylistBatch(
     { id, name, desc: description, tags },
     false,
   );
+  invalidateResponseCache(["/playlist/detail", "/user/playlist"]);
 }
 
 /** Publish a private playlist. The upstream endpoint only supports privacy=0. */
 export async function publishPlaylist(id: number): Promise<void> {
   if (!id) return;
   await request("/playlist/privacy", { id, privacy: 0 }, false);
+  invalidateResponseCache(["/playlist/detail", "/user/playlist"]);
 }
 
 export async function deletePlaylist(id: number): Promise<void> {
   await request("/playlist/delete", { id }, false);
+  invalidateResponseCache(["/playlist/detail", "/user/playlist", "/top/playlist"]);
 }
 
 export async function subscribePlaylist(
@@ -344,6 +350,7 @@ export async function subscribePlaylist(
   subscribe: boolean,
 ): Promise<void> {
   await request("/playlist/subscribe", { id, t: subscribe ? 1 : 0 }, false);
+  invalidateResponseCache(["/playlist/detail", "/user/playlist"]);
 }
 
 export async function getPersonalFm(): Promise<Song[]> {
@@ -410,6 +417,7 @@ export async function subscribeRadio(
   subscribe: boolean,
 ): Promise<void> {
   await request("/dj/sub", { rid: id, t: subscribe ? 1 : 0 }, false);
+  invalidateResponseCache(["/dj/sublist", "/dj/detail", "/dj/recommend"]);
 }
 
 export async function getFollows(uid: number): Promise<SocialUser[]> {

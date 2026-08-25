@@ -47,10 +47,16 @@ export const useChartStore = create<ChartState>()((set, get) => ({
         return true;
       });
       if (!charts.length) throw new Error("榜单目录为空");
-      if (token !== requestToken) return;
-      set({ charts, selectedId: 0, songs: [], loading: false });
+      if (token !== requestToken) {
+        set({ loading: false });
+        return;
+      }
+      set({ charts, selectedId: 0, songs: [], songsLoading: false, loading: false });
     } catch {
-      if (token !== requestToken) return;
+      if (token !== requestToken) {
+        set({ loading: false });
+        return;
+      }
       set({ charts: [], songs: [], selectedId: 0, loading: false });
       usePlayerStore.getState().toast("加载榜单目录失败", "error");
     }
@@ -65,10 +71,16 @@ export const useChartStore = create<ChartState>()((set, get) => ({
     set({ selectedId: id, songsLoading: true });
     try {
       const songs = await getChartSongs(id);
-      if (token !== requestToken) return;
+      if (token !== requestToken) {
+        set({ songsLoading: false });
+        return;
+      }
       set({ songs, songsLoading: false });
     } catch {
-      if (token !== requestToken) return;
+      if (token !== requestToken) {
+        set({ songsLoading: false });
+        return;
+      }
       set({ songs: [], songsLoading: false });
       usePlayerStore.getState().toast("加载榜单歌曲失败", "error");
     }
@@ -84,10 +96,12 @@ export const useChartStore = create<ChartState>()((set, get) => ({
         cardLoading: { ...state.cardLoading, [id]: false },
       }));
     } catch {
-      set((state) => ({
-        cardSongs: { ...state.cardSongs, [id]: [] },
-        cardLoading: { ...state.cardLoading, [id]: false },
-      }));
+      // 不缓存空结果，允许下次进入页面时重试
+      set((state) => {
+        const nextLoading = { ...state.cardLoading };
+        delete nextLoading[id];
+        return { cardLoading: nextLoading };
+      });
     }
   },
 }));

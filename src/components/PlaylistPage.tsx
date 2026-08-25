@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Heart,
   ListPlus,
@@ -125,7 +125,10 @@ export default function PlaylistPage() {
   }, [playlistId]);
 
   const refreshSongs = async () => {
-    const detail = await getPlaylistDetail(playlistId);
+    const targetId = playlistId;
+    const detail = await getPlaylistDetail(targetId);
+    // 请求期间用户可能已切换到其他歌单，慢响应不得覆盖新歌单。
+    if (usePlayerStore.getState().playlistId !== targetId) return;
     usePlayerStore.setState({
       playlistSongs: detail.songs,
       playlistName: detail.name,
@@ -140,6 +143,7 @@ export default function PlaylistPage() {
     setFullLoading(true);
     try {
       const songs = await getPlaylistAllTracks(playlistId);
+      if (usePlayerStore.getState().playlistId !== playlistId) return;
       if (!songs.length) {
         usePlayerStore.getState().toast("歌单暂无可用歌曲", "error");
         return;
@@ -213,15 +217,27 @@ export default function PlaylistPage() {
       setMutating(false);
     }
   };
-  const playlist: PlaylistInfo = {
-    id: playlistId,
-    name: playlistName,
-    coverImgUrl: "",
-    trackCount: playlistSongs.length,
-    description: playlistDescription,
-    creatorId: playlistCreatorId,
-    subscribed: playlistSubscribed,
-  };
+  // useMemo 稳定对象身份：异步请求触发的重渲染不会生成新引用，
+  // 否则编辑弹窗的回填 effect 会反复执行并清空用户正在输入的表单。
+  const playlist = useMemo<PlaylistInfo>(
+    () => ({
+      id: playlistId,
+      name: playlistName,
+      coverImgUrl: "",
+      trackCount: playlistSongs.length,
+      description: playlistDescription,
+      creatorId: playlistCreatorId,
+      subscribed: playlistSubscribed,
+    }),
+    [
+      playlistId,
+      playlistName,
+      playlistSongs.length,
+      playlistDescription,
+      playlistCreatorId,
+      playlistSubscribed,
+    ],
+  );
   const owned = playlistCreatorId > 0 && playlistCreatorId === uid;
   const playlistActions =
     !playlistLoading && playlistId > 0 ? (

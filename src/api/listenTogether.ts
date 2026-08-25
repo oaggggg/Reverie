@@ -158,7 +158,7 @@ export async function syncListenTogetherPlaylist(input: {
       randomList: ids.join(","),
     },
     false,
-    { method: "POST" },
+    { method: "POST", json: true },
   );
 }
 
@@ -190,7 +190,9 @@ export async function sendListenTogetherHeartbeat(input: {
       progress: input.progress,
     },
     false,
-    { method: "POST" },
+    // JSON body 保持布尔/数字类型；query 序列化会把它们变成字符串，
+    // 上游模块原样嵌入 commandInfo 后与官方客户端的指令类型不一致。
+    { method: "POST", json: true },
   );
 }
 
@@ -210,11 +212,11 @@ export async function sendListenTogetherCommand(input: {
       commandType: input.commandType,
       progress: input.progress ?? 0,
       playStatus: input.playStatus ?? false,
-      formerSongId: input.formerSongId,
-      targetSongId: input.targetSongId,
+      formerSongId: input.formerSongId ?? 0,
+      targetSongId: input.targetSongId ?? 0,
       clientSeq: input.clientSeq ?? Date.now(),
     },
     false,
-    { method: "POST" },
+    { method: "POST", json: true },
   );
 }

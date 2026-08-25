@@ -86,16 +86,24 @@ export default function FansPage() {
               <span>{trend.length} 个数据点</span>
             </div>
             <div className="fans-trend">
-              {trend.slice(-14).map((point) => (
-                <div key={point.date} title={`${point.date}: ${point.count}`}>
-                  <i
-                    style={{
-                      height: `${Math.max(8, Math.min(100, point.count))}%`,
-                    }}
-                  />
-                  <small>{point.date.slice(-5)}</small>
-                </div>
-              ))}
+              {(() => {
+                // 按窗口内最大值归一化，绝对 clamp 会让所有柱子顶格失真。
+                const window = trend.slice(-14);
+                const max = Math.max(1, ...window.map((point) => point.count));
+                return window.map((point) => (
+                  <div key={point.date} title={`${point.date}: ${point.count}`}>
+                    <i
+                      style={{
+                        height: `${Math.max(
+                          8,
+                          Math.round((point.count / max) * 100),
+                        )}%`,
+                      }}
+                    />
+                    <small>{point.date.slice(-5)}</small>
+                  </div>
+                ));
+              })()}
             </div>
           </section>
           <section className="fans-section">

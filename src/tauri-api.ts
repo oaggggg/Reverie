@@ -1,6 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
+import { initApiAuthToken } from "./api/client";
 
 type NativeBridge = NonNullable<Window["ncm"]>;
 type UpdateEvent = Parameters<NativeBridge["onUpdateEvent"]>[0] extends (
@@ -208,7 +209,20 @@ export const ncm: NativeBridge = {
       await pendingUpdate.install();
       // On Windows the updater launches the installer and exits the app. A
       // second relaunch races the installer and can reopen the old binary.
-      if (!navigator.platform.toLowerCase().includes("win")) await relaunch();
+      if (!navigator.platform.toLowerCase().includes("win")) {
+        await relaunch();
+        return;
+      }
+      // 安装器已启动但进程未退出（例如用户取消安装）：解除 busy，
+      // 否则后续更新操作会永远返回 busy 直到重启应用。
+      window.setTimeout(() => {
+        if (installing) {
+          installing = false;
+          downloaded = false;
+          pendingUpdate = null;
+          emit({ type: "not-available", data: { manual: true } });
+        }
+      }, 10_000);
     } catch (error) {
       installing = false;
       emit({
@@ -228,3 +242,11 @@ export const ncm: NativeBridge = {
 };
 
 window.ncm = ncm;
+
+// Tauri 环境：在首个 API 请求前取回本次运行的 sidecar 共享密钥。
+if (hasTauriRuntime) {
+  initApiAuthToken(async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return String((await invoke<string>("get_api_auth_token")) ?? "");
+  });
+}

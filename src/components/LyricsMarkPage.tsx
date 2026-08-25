@@ -33,13 +33,16 @@ export default function LyricsMarkPage() {
   }, [currentSong, setSong]);
 
   const submit = async () => {
-    await add({
+    // 保存失败时保留用户输入，避免刚写的歌词文本丢失。
+    const ok = await add({
       startTimeStamp: Number(timestamp) || 0,
       originalLyricsText: original,
       translateLyricsText: translation,
     });
-    setOriginal("");
-    setTranslation("");
+    if (ok) {
+      setOriginal("");
+      setTranslation("");
+    }
   };
 
   return (

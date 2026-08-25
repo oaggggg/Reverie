@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import {
-  getSearchMediaUrl,
   getHotSearchTerms,
   getDefaultSearchKeyword,
   getSearchSuggestions,
@@ -9,7 +8,6 @@ import {
 import { followUser } from "../api/extended";
 import type {
   SearchCategory,
-  SearchMediaInfo,
   SearchResultPage,
   SearchSuggestion,
 } from "../api/types";
@@ -37,17 +35,12 @@ interface SearchState {
   defaultKeyword: string;
   suggestions: SearchSuggestion[];
   suggestionsLoading: boolean;
-  mediaItem: SearchMediaInfo | null;
-  mediaUrl: string;
-  mediaLoading: boolean;
   openSearch: (keyword: string, category?: SearchCategory) => Promise<void>;
   setCategory: (category: SearchCategory) => Promise<void>;
   loadMore: () => Promise<void>;
   loadHotTerms: () => Promise<void>;
   loadDefaultKeyword: () => Promise<void>;
   loadSuggestions: (keyword: string) => Promise<void>;
-  playMedia: (item: SearchMediaInfo) => Promise<void>;
-  closeMedia: () => void;
   toggleFollow: (userId: number) => Promise<void>;
 }
 
@@ -92,9 +85,6 @@ export const useSearchStore = create<SearchState>()((set, get) => ({
   defaultKeyword: "",
   suggestions: [],
   suggestionsLoading: false,
-  mediaItem: null,
-  mediaUrl: "",
-  mediaLoading: false,
 
   openSearch: async (rawKeyword, category = get().category) => {
     const keyword = rawKeyword.trim();
@@ -190,20 +180,6 @@ export const useSearchStore = create<SearchState>()((set, get) => ({
       set({ suggestions: [], suggestionsLoading: false });
     }
   },
-
-  playMedia: async (item) => {
-    set({ mediaItem: item, mediaUrl: "", mediaLoading: true });
-    try {
-      const mediaUrl = await getSearchMediaUrl(item);
-      if (!mediaUrl) throw new Error("missing media url");
-      set({ mediaUrl, mediaLoading: false });
-    } catch {
-      set({ mediaItem: null, mediaUrl: "", mediaLoading: false });
-      usePlayerStore.getState().toast("视频暂时无法播放", "error");
-    }
-  },
-
-  closeMedia: () => set({ mediaItem: null, mediaUrl: "", mediaLoading: false }),
 
   toggleFollow: async (userId) => {
     const user = get().result.users.find((item) => item.userId === userId);

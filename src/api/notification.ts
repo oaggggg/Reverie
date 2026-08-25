@@ -27,7 +27,9 @@ export async function getNotificationCounts(): Promise<NotificationCounts> {
   const response = await request<Obj>("/pl/count", {}, false);
   const value = obj(response.data ?? response.result ?? response);
   const counts = {
-    private: Number(value.private ?? value.privateCount ?? value.msg ?? 0),
+    private: Number(
+      value.private ?? value.privateMsgCount ?? value.privateCount ?? value.msg ?? 0,
+    ),
     comments: Number(value.comment ?? value.comments ?? value.commentCount ?? 0),
     forwards: Number(value.forward ?? value.forwards ?? value.forwardCount ?? 0),
     notices: Number(value.notice ?? value.notices ?? value.noticeCount ?? 0),

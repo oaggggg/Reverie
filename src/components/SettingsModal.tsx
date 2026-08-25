@@ -132,7 +132,8 @@ export default function SettingsModal() {
   const [feedbackOpening, setFeedbackOpening] = useState(false);
   const [downloadPath, setDownloadPath] = useState(
     () =>
-      localStorage.getItem("reverie_download_path") || "D:\Reverie\Downloads",
+      localStorage.getItem("reverie_download_path") ||
+      "D:\\Reverie\\Downloads",
   );
   const showSettings = usePlayerStore((s) => s.showSettings);
   const setShowSettings = usePlayerStore((s) => s.setShowSettings);
@@ -419,7 +420,7 @@ export default function SettingsModal() {
                           event.target.value,
                         );
                       }}
-                      placeholder="例如 D:\Music\Downloads"
+                      placeholder="例如 D:\\Music\\Downloads"
                     />
                   </SettingRow>
                   <SettingRow title="歌词翻译" hint="在歌词页同时显示译文">

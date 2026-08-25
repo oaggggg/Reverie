@@ -44,6 +44,16 @@ async function loadMv(mode: VideoMode, area: MvArea, type: MvType, order: MvOrde
   return getMvAll(area, type, order);
 }
 
+let requestToken = 0;
+
+function beginVideoLoad() {
+  return ++requestToken;
+}
+
+function isStale(token: number) {
+  return token !== requestToken;
+}
+
 export const useVideoStore = create<VideoState>()((set) => ({
   mode: "recommend",
   groups: [],
@@ -55,12 +65,14 @@ export const useVideoStore = create<VideoState>()((set) => ({
   mvType: "全部",
   mvOrder: "上升最快",
   load: async () => {
+    const token = beginVideoLoad();
     set({ loading: true });
     const [groups, categories, videos] = await Promise.allSettled([
       getVideoGroups(),
       getVideoCategories(),
       getVideoTimeline("recommend"),
     ]);
+    if (isStale(token)) return;
     const groupRows = groups.status === "fulfilled" ? groups.value : [];
     const categoryRows = categories.status === "fulfilled" ? categories.value : [];
     const seen = new Set<number>();
@@ -76,6 +88,7 @@ export const useVideoStore = create<VideoState>()((set) => ({
     });
   },
   setMode: async (mode) => {
+    const token = beginVideoLoad();
     set({ mode, selectedGroup: 0, loading: true });
     try {
       const state = useVideoStore.getState();
@@ -86,28 +99,37 @@ export const useVideoStore = create<VideoState>()((set) => ({
           : mode === "my-like"
             ? await getLikedVideos()
             : await loadMv(mode, state.mvArea, state.mvType, state.mvOrder);
+      if (isStale(token)) return;
       set({ videos, loading: false });
     } catch {
+      if (isStale(token)) return;
       set({ videos: [], loading: false });
       usePlayerStore.getState().toast("加载视频列表失败", "error");
     }
   },
   selectGroup: async (id) => {
+    const token = beginVideoLoad();
     set({ mode: "group", selectedGroup: id, loading: true });
     try {
-      set({ videos: await getVideosByGroup(id), loading: false });
+      const videos = await getVideosByGroup(id);
+      if (isStale(token)) return;
+      set({ videos, loading: false });
     } catch {
+      if (isStale(token)) return;
       set({ videos: [], loading: false });
       usePlayerStore.getState().toast("加载视频分组失败", "error");
     }
   },
   setMvFilters: async (filters) => {
+    const token = beginVideoLoad();
     const next = { ...useVideoStore.getState(), ...filters };
     set({ ...filters, loading: true });
     try {
       const videos = await loadMv(next.mode, next.mvArea, next.mvType, next.mvOrder);
+      if (isStale(token)) return;
       set({ videos, loading: false });
     } catch {
+      if (isStale(token)) return;
       set({ videos: [], loading: false });
       usePlayerStore.getState().toast("加载 MV 列表失败", "error");
     }

@@ -162,6 +162,9 @@ export default function MediaDetailDialog() {
       setActiveUrl("");
       setPendingUrl(null);
     }
+    // 封面失败标记必须随条目切换复位，否则一个封面失败会让
+    // 之后所有视频永远显示占位图。
+    if (coverFailed) setCoverFailed(false);
   }
 
   useEffect(() => {

@@ -65,6 +65,23 @@ export default function PlayerBar() {
   const qualityTransition = useOriginTransition<HTMLDivElement>(qualityOpen, "player-quality", 160);
   const queueTransition = useOriginTransition<HTMLDivElement>(queueOpen, "player-queue", 180);
   const volumeTransition = useOriginTransition<HTMLDivElement>(volumeOpen, "player-volume", 180);
+  const volWrapRef = useRef<HTMLDivElement | null>(null);
+
+  // React 对 wheel 采用 passive 监听，onWheel 里 preventDefault 无效；
+  // 改用原生非 passive 监听，滚轮调音量时不再连带滚动页面。
+  useEffect(() => {
+    const el = volWrapRef.current;
+    if (!el) return;
+    const handler = (event: WheelEvent) => {
+      event.preventDefault();
+      const s = usePlayerStore.getState();
+      s.setVolume(
+        (s.muted ? 0 : s.volume) + (event.deltaY < 0 ? 0.02 : -0.02),
+      );
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const previewEnd = usePlayerStore((s) => s.previewEnd);
   const playing = usePlayerStore((s) => s.playing);
@@ -386,6 +403,7 @@ export default function PlayerBar() {
           </button>
           <div
             className="vol-wrap"
+            ref={volWrapRef}
             onPointerEnter={(event) => {
               captureInteractionOrigin("player-volume", event.currentTarget.querySelector("button") ?? event.currentTarget);
               setVolumeOpen(true);
@@ -397,11 +415,6 @@ export default function PlayerBar() {
             onPointerLeave={() => setVolumeOpen(false)}
             onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setVolumeOpen(false);
-            }}
-            onWheel={(e) => {
-              e.preventDefault();
-              const current = muted ? 0 : volume;
-              setVolume(current + (e.deltaY < 0 ? 0.02 : -0.02));
             }}
           >
             <button className="icon-btn" onClick={toggleMute} title="静音">

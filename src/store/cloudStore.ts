@@ -39,6 +39,7 @@ interface CloudState {
 }
 
 let requestToken = 0;
+let detailToken = 0;
 const pageSize = 30;
 
 function toast(text: string, type: "info" | "error" | "success" = "info") {
@@ -172,17 +173,23 @@ export const useCloudStore = create<CloudState>()((set, get) => ({
   },
 
   openDetail: async (song) => {
+    const token = ++detailToken;
     set({ detail: song, detailLoading: true });
     try {
       const details = await getCloudSongDetails([song.cloudId || song.id]);
+      if (token !== detailToken) return;
       set({ detail: details[0] ?? song, detailLoading: false });
     } catch {
+      if (token !== detailToken) return;
       set({ detail: song, detailLoading: false });
       toast("加载云盘歌曲详情失败", "error");
     }
   },
 
-  closeDetail: () => set({ detail: null, detailLoading: false }),
+  closeDetail: () => {
+    ++detailToken;
+    set({ detail: null, detailLoading: false });
+  },
 
   resetUpload: () =>
     set({ uploadPhase: "idle", uploadName: "", uploadError: "" }),

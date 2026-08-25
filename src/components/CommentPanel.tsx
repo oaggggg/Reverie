@@ -17,6 +17,7 @@ import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { hugComment } from "../api/comment";
 import { LoadingState } from "./Page";
+import ConfirmModal from "./ConfirmModal";
 
 const SORTS: Array<{ id: CommentSort; label: string }> = [
   { id: "recommended", label: "推荐" },
@@ -92,6 +93,10 @@ export default function CommentPanel({
     loadingMore || !hasMore,
   );
   const [replying, setReplying] = useState<{
+    comment: CommentInfo;
+    parentId?: number;
+  } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
     comment: CommentInfo;
     parentId?: number;
   } | null>(null);
@@ -185,7 +190,9 @@ export default function CommentPanel({
             {canDelete && (
               <button
                 title="删除"
-                onClick={() => requireLogin() && void remove(comment, parentId)}
+                onClick={() =>
+                  requireLogin() && setPendingDelete({ comment, parentId })
+                }
               >
                 <Trash2 size={14} /> 删除
               </button>
@@ -252,6 +259,8 @@ export default function CommentPanel({
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
+              // IME 组词期间的 Enter 是确认候选词，不能触发发送。
+              if (event.nativeEvent.isComposing) return;
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 void publish();
@@ -269,6 +278,17 @@ export default function CommentPanel({
         </div>
         <span>{draft.length}/140</span>
       </div>
+
+      <ConfirmModal
+        open={!!pendingDelete}
+        title="删除评论"
+        message="确定要删除这条评论吗？删除后无法恢复。"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          void remove(pendingDelete.comment, pendingDelete.parentId);
+        }}
+      />
     </section>
   );
 }

@@ -207,6 +207,14 @@ export default function TopNav() {
     setSearchDropdownClosing(false);
   }, [searchOpen]);
 
+  // 组件卸载时清理关闭回退定时器，避免卸载后仍触发导航回调。
+  useEffect(
+    () => () => {
+      window.clearTimeout(searchCloseTimerRef.current);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!searchTransition.rendered) return;
     const frame = window.requestAnimationFrame(() => {

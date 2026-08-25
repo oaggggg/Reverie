@@ -5,24 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; media-src 'self' data: blob: https: http:; connect-src 'self' http://127.0.0.1:* http://localhost:* https: http:; font-src 'self' data:;"
+      content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; media-src 'self' data: blob: https: http:; connect-src 'self' http://127.0.0.1:* http://localhost:* https: http:; font-src 'self' data:;"
     />
     <title>Reverie</title>
-    <script>
-      // Apply persisted theme before React mounts to avoid a flash of the wrong theme.
-      try {
-        var t = localStorage.getItem("reverie_theme") || "system";
-        var d =
-          t === "system"
-            ? window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light"
-            : t === "light"
-              ? "light"
-              : "dark";
-        document.documentElement.setAttribute("data-theme", d);
-      } catch (e) {}
-    </script>
+    <!-- 外链脚本：配合严格 CSP（script-src 'self'），避免 unsafe-inline -->
+    <script src="/boot-theme.js"></script>
   </head>
   <body>
     <div id="root">

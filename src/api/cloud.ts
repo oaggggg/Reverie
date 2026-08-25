@@ -20,7 +20,7 @@ function normalizeCloudSong(raw: unknown): CloudSong | null {
     album: String(item.albumName ?? "未知专辑"),
     albumId: Number(item.albumId ?? 0),
     picUrl: String(item.picUrl ?? ""),
-    duration: Number(item.duration ?? item.dfsId ?? 0),
+    duration: Number(item.duration ?? 0),
     fee: Number(item.fee ?? 0),
   };
   return {

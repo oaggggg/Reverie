@@ -80,7 +80,9 @@ function normalizePlaylist(raw: unknown): PlaylistInfo | null {
     description: String(value.description ?? ""),
     creatorId: Number(creator.userId ?? creator.id ?? 0),
     creatorName: String(creator.nickname ?? creator.name ?? ""),
-    subscribed: Boolean(value.subscribed ?? value.subscribedCount),
+    // 仅信任显式 subscribed 字段；收藏数>0 不代表当前用户已收藏。
+    subscribed:
+      value.subscribed === undefined ? false : Boolean(value.subscribed),
     privacy: Number(value.privacy ?? 0),
     tags: arr(value.tags).map(String).filter(Boolean),
   };

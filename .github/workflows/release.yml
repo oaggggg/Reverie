@@ -166,8 +166,19 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const tag = process.env.RELEASE_TAG;
-            const release = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
-            const assets = release.data.assets;
+            // getReleaseByTag 对 draft release 返回 404，必须走列表接口。
+            const releases = await github.paginate(
+              github.rest.repos.listReleases,
+              { owner, repo, per_page: 100 },
+            );
+            const release = releases.find((item) => item.tag_name === tag);
+
+            if (!release) {
+              core.setFailed(`Release ${tag} not found`);
+              return;
+            }
+            const rel = release.data ?? release;
+            const assets = rel.assets;
             const latestAsset = assets.find((asset) => asset.name === "latest.json");
 
             if (!latestAsset) {
@@ -232,7 +243,7 @@ jobs:
             await github.rest.repos.uploadReleaseAsset({
               owner,
               repo,
-              release_id: release.data.id,
+              release_id: rel.id,
               name: "latest.json",
               data,
               headers: {

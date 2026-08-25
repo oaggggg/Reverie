@@ -43,6 +43,8 @@ export default function ConfirmModal({
     try {
       const result = await onConfirm();
       if (result !== false) onClose();
+    } catch {
+      // 调用方抛错时保持弹窗打开：既不产生 unhandled rejection，也不会卡死。
     } finally {
       setBusy(false);
     }

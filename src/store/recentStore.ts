@@ -24,6 +24,8 @@ interface RecentState {
   load: (category?: RecentCategory) => Promise<void>;
 }
 
+let requestToken = 0;
+
 export const useRecentStore = create<RecentState>()((set, get) => ({
   category: "songs",
   songs: [],
@@ -39,11 +41,14 @@ export const useRecentStore = create<RecentState>()((set, get) => ({
     await get().load(category);
   },
   load: async (category = get().category) => {
+    const token = ++requestToken;
     set({ loading: true });
     try {
       const result = await getRecentCategory(category);
+      if (token !== requestToken) return;
       set({ ...result, category, loadedCategory: category, loading: false });
     } catch {
+      if (token !== requestToken) return;
       set({ loading: false });
       usePlayerStore.getState().toast("加载云端最近记录失败", "error");
     }

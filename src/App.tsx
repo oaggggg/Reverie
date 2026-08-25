@@ -342,7 +342,7 @@ export default function App() {
       idle = window.requestIdleCallback?.(
         () => {
           idle = undefined;
-          void bridge.checkUpdate(false);
+          void bridge.checkUpdate(false)?.catch?.(() => {});
         },
         { timeout: delay },
       );
@@ -350,7 +350,7 @@ export default function App() {
         fallback = window.setTimeout(
           () => {
             fallback = 0;
-            void bridge.checkUpdate(false);
+            void bridge.checkUpdate(false)?.catch?.(() => {});
           },
           Math.min(delay, 2000),
         );
@@ -604,6 +604,12 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [activeAudio, currentUrl, playing, preloadedSongId, preloadedUrl]);
 
+  // 无缝过渡被暂停打断时，丢弃残留的“跳过淡入”标记，
+  // 否则下一次手动播放会直接把音量拉满。
+  useEffect(() => {
+    if (!playing) skipNextFadeInRef.current = false;
+  }, [playing]);
+
   // Fill the inactive decoder while the current track plays. The URL comes
   // directly from Netease's official song URL endpoint.
   useEffect(() => {
@@ -635,6 +641,12 @@ export default function App() {
     let frame = 0;
     let lastPaint = 0;
     const tick = (now: number) => {
+      const state = usePlayerStore.getState();
+      // 切歌过渡窗口内旧解码器仍在走表，不能把旧进度写进新歌的状态。
+      if (state.pendingPlayToken !== 0) {
+        frame = window.requestAnimationFrame(tick);
+        return;
+      }
       const foreground =
         document.visibilityState === "visible" && document.hasFocus();
       const interval = foreground ? 32 : 250;
@@ -644,7 +656,6 @@ export default function App() {
         const duration = Number.isFinite(audio.duration)
           ? Math.floor(audio.duration * 1000)
           : 0;
-        const state = usePlayerStore.getState();
         if (state.previewEnd !== null && progress >= state.previewEnd) {
           const previewPosition = state.previewEnd;
           audio.pause();
@@ -680,6 +691,9 @@ export default function App() {
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (audio !== active || seamlessTransitionRef.current) return;
     const st = usePlayerStore.getState();
+    // 切歌过渡窗口内，ended 事件来自旧曲目：此时 queue/index 已指向新歌，
+    // 若继续推进会用新 index+1 直接跳过用户刚选的歌。
+    if (st.pendingPlayToken !== 0) return;
     if (!st.currentUrl || handledEndedUrlRef.current === st.currentUrl) return;
     handledEndedUrlRef.current = st.currentUrl;
     const endedSong = st.currentSong;
@@ -758,12 +772,19 @@ export default function App() {
     const active =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (event.currentTarget !== active) return;
+    const state = usePlayerStore.getState();
+    // 过渡窗口内不写进度；同时 duration 需按试听截断，避免总时长来回跳。
+    if (state.pendingPlayToken !== 0) return;
     const el = event.currentTarget;
+    const rawDuration = Number.isFinite(el.duration)
+      ? Math.floor(el.duration * 1000)
+      : 0;
     usePlayerStore.setState({
       progress: Math.floor(el.currentTime * 1000),
-      duration: Number.isFinite(el.duration)
-        ? Math.floor(el.duration * 1000)
-        : 0,
+      duration:
+        state.previewEnd === null
+          ? rawDuration
+          : Math.min(rawDuration || state.previewEnd, state.previewEnd),
     });
   };
 

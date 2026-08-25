@@ -42,6 +42,9 @@ function showProfileView() {
   });
 }
 
+let profileToken = 0;
+let recordsToken = 0;
+
 export const useProfileStore = create<ProfileState>()((set, get) => ({
   detail: null,
   level: null,
@@ -60,6 +63,7 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
       usePlayerStore.getState().setShowLogin(true);
       return;
     }
+    const token = ++profileToken;
     showProfileView();
     set({ loading: true, period: "week" });
     try {
@@ -69,6 +73,7 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
         getUserCreatedRadios(uid).catch(() => []),
         getUserDjPrograms(uid).catch(() => []),
       ]);
+      if (token !== profileToken) return;
       set({
         detail: data.detail,
         level: data.level,
@@ -79,9 +84,10 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
         createdPrograms,
       });
     } catch {
+      if (token !== profileToken) return;
       usePlayerStore.getState().toast("加载个人中心失败", "error");
     } finally {
-      set({ loading: false });
+      if (token === profileToken) set({ loading: false });
     }
   },
 
@@ -89,13 +95,18 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
     if (period === get().period && get().records.length) return;
     const uid = usePlayerStore.getState().profile?.userId;
     if (!uid) return;
+    const token = ++recordsToken;
+    ++profileToken; // 作废仍在途的 openProfile，防止其 records 覆盖当前周期
     set({ period, recordsLoading: true });
     try {
-      set({ records: await getListeningRecords(uid, period) });
+      const records = await getListeningRecords(uid, period);
+      if (token !== recordsToken) return;
+      set({ records });
     } catch {
+      if (token !== recordsToken) return;
       usePlayerStore.getState().toast("加载听歌排行失败", "error");
     } finally {
-      set({ recordsLoading: false });
+      if (token === recordsToken) set({ recordsLoading: false });
     }
   },
 }));

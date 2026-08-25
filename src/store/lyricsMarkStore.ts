@@ -23,7 +23,7 @@ interface LyricsMarkState {
     startTimeStamp: number;
     originalLyricsText: string;
     translateLyricsText?: string;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   remove: (mark: LyricMark) => Promise<void>;
 }
 
@@ -75,7 +75,7 @@ export const useLyricsMarkStore = create<LyricsMarkState>((set, get) => ({
       get().songId || usePlayerStore.getState().currentSong?.id || 0;
     if (!songId || !mark.originalLyricsText.trim()) {
       set({ error: "需要歌曲 ID 和原文摘录" });
-      return;
+      return false;
     }
     set({ saving: true, error: "" });
     try {
@@ -88,11 +88,13 @@ export const useLyricsMarkStore = create<LyricsMarkState>((set, get) => ({
       set({ saving: false });
       await Promise.all([get().loadSongMarks(), get().loadUserMarks()]);
       usePlayerStore.getState().toast("歌词摘录已保存", "success");
+      return true;
     } catch (error) {
       set({
         saving: false,
         error: error instanceof Error ? error.message : "保存歌词摘录失败",
       });
+      return false;
     }
   },
   remove: async (mark) => {
