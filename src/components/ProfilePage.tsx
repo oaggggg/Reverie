@@ -4,7 +4,7 @@ import {
   CalendarDays,
   Disc3,
   Heart,
-  ListMusic,
+  LibraryBig,
   Music2,
   Podcast,
   Radio,
@@ -128,7 +128,7 @@ export default function ProfilePage() {
           <span>听过歌曲</span>
         </div>
         <div>
-          <ListMusic size={18} />
+          <LibraryBig size={18} />
           <strong>
             {subcount?.createdPlaylistCount ?? detail.playlistCount}
           </strong>

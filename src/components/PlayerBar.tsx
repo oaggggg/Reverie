@@ -14,6 +14,7 @@ import ShareResourceDialog from "./ShareResourceDialog";
 import {
   Disc3,
   Heart,
+  ListOrdered,
   ListMusic,
   MessageCircle,
   Pause,
@@ -46,7 +47,7 @@ const PLAYER_FOCUS_SCOPE_SELECTOR = [
 function ModeIcon({ mode }: { mode: PlayMode }) {
   if (mode === "shuffle") return <Shuffle size={18} />;
   if (mode === "one") return <Repeat1 size={18} />;
-  return <ListMusic size={18} />;
+  return <ListOrdered size={18} />;
 }
 
 export default function PlayerBar() {
