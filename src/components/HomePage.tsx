@@ -84,6 +84,8 @@ async function fetchLocation(): Promise<string> {
 }
 
 export default function HomePage() {
+  const loggedIn = usePlayerStore((s) => s.loggedIn);
+  const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const hotPlaylists = usePlayerStore((s) => s.hotPlaylists);
   const recommendSongs = usePlayerStore((s) => s.recommendSongs);
   const recommendSongsLoading = usePlayerStore((s) => s.recommendSongsLoading);
@@ -207,81 +209,104 @@ export default function HomePage() {
           </div>
         </div>
         <div className="hero-right">
-          {homeQuote ? (
-            <blockquote className="hero-quote">
-              <p>“{homeQuote.text}”</p>
-              <cite>—— {homeQuote.source}</cite>
-            </blockquote>
-          ) : homeQuoteUnavailable ? null : (
-            <div className="hero-quote-empty">正在为你挑选一句歌词…</div>
-          )}
+          {loggedIn &&
+            (homeQuote ? (
+              <blockquote className="hero-quote">
+                <p>“{homeQuote.text}”</p>
+                <cite>—— {homeQuote.source}</cite>
+              </blockquote>
+            ) : (
+              !homeQuoteUnavailable && (
+                <div className="hero-quote-empty">正在为你挑选一句歌词…</div>
+              )
+            ))}
         </div>
       </div>
 
-      {homepageEntries.length > 0 && (
-        <section className="home-section">
-          <div className="section-title">
-            <h2>首页入口</h2>
-          </div>
-          <div className="home-entry-grid">
-            {homepageEntries.slice(0, 12).map((entry) => (
-              <button
-                className="link-btn"
-                key={entry.id}
-                onClick={() => {
-                  if (entry.target) {
-                    window.open(entry.target, "_blank", "noopener,noreferrer");
-                  }
-                }}
-                title={entry.target || entry.name}
-              >
-                {entry.name}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="home-section">
-        <div className="section-title">
-          <h2>每日推荐</h2>
+      {!loggedIn ? (
+        <div className="home-login-nudge">
+          <p>登录后查看每日推荐、歌单与个性化内容</p>
+          <button
+            className="btn primary"
+            onClick={() => setShowLogin(true)}
+          >
+            扫码登录
+          </button>
         </div>
-        <SongCards
-          songs={recommendSongs.slice(0, 8)}
-          loading={recommendSongsLoading}
-          onDislike={dismissRecommend}
-        />
-      </section>
+      ) : (
+        <>
+          {homepageEntries.length > 0 && (
+            <section className="home-section">
+              <div className="section-title">
+                <h2>首页入口</h2>
+              </div>
+              <div className="home-entry-grid">
+                {homepageEntries.slice(0, 12).map((entry) => (
+                  <button
+                    className="link-btn"
+                    key={entry.id}
+                    onClick={() => {
+                      if (entry.target) {
+                        window.open(
+                          entry.target,
+                          "_blank",
+                          "noopener,noreferrer",
+                        );
+                      }
+                    }}
+                    title={entry.target || entry.name}
+                  >
+                    {entry.name}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
-      <section className="home-section">
-        <div className="section-title">
-          <h2>每日推荐歌单</h2>
-        </div>
-        <PlaylistGrid
-          playlists={dailyPlaylists}
-          onOpen={openPlaylist}
-          loading={hotPlaylistsLoading}
-        />
-      </section>
+          <section className="home-section">
+            <div className="section-title">
+              <h2>每日推荐</h2>
+            </div>
+            <SongCards
+              songs={recommendSongs.slice(0, 8)}
+              loading={recommendSongsLoading}
+              onDislike={dismissRecommend}
+            />
+          </section>
 
-      {starpickComments.length > 0 && (
-        <section className="home-section">
-          <div className="section-title">
-            <h2>星评热评</h2>
-          </div>
-          <div className="home-comment-grid">
-            {starpickComments.slice(0, 6).map((comment) => (
-              <article
-                className="home-comment-card"
-                key={`${comment.id}-${comment.content}`}
-              >
-                <strong>{comment.nickname}</strong>
-                <p>{comment.content}</p>
-                <small>赞 {comment.likedCount.toLocaleString("zh-CN")}</small>
-              </article>
-            ))}
-          </div>
-        </section>
+          <section className="home-section">
+            <div className="section-title">
+              <h2>每日推荐歌单</h2>
+            </div>
+            <PlaylistGrid
+              playlists={dailyPlaylists}
+              onOpen={openPlaylist}
+              loading={hotPlaylistsLoading}
+            />
+          </section>
+
+          {starpickComments.length > 0 && (
+            <section className="home-section">
+              <div className="section-title">
+                <h2>星评热评</h2>
+              </div>
+              <div className="home-comment-grid">
+                {starpickComments.slice(0, 6).map((comment) => (
+                  <article
+                    className="home-comment-card"
+                    key={`${comment.id}-${comment.content}`}
+                  >
+                    <strong>{comment.nickname}</strong>
+                    <p>{comment.content}</p>
+                    <small>
+                      赞 {comment.likedCount.toLocaleString("zh-CN")}
+                    </small>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </Page>
   );

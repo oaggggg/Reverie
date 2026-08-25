@@ -1552,6 +1552,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const generation = accountDataGeneration;
     const requestToken = ++homeRequestToken;
     set({ activeView: "home" });
+    // 未登录：不拉取、不保留任何首页数据。
+    if (!get().loggedIn) {
+      set({
+        hotPlaylists: [],
+        topSongs: [],
+        recommendSongs: [],
+        hotPlaylistsLoading: false,
+        topSongsLoading: false,
+        recommendSongsLoading: false,
+      });
+      return;
+    }
     if (homeLoadPromise) {
       await homeLoadPromise;
       return get().loadHome(refreshPlaylists);
@@ -2109,6 +2121,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     get().toast("已清空最近播放", "info");
   },
   loadHomeQuote: async () => {
+    // 未登录不展示歌词文案。
+    if (!get().loggedIn) {
+      if (get().homeQuote || !get().homeQuoteUnavailable) {
+        set({ homeQuote: null, homeQuoteUnavailable: true });
+      }
+      return;
+    }
     if (
       get().homeQuote &&
       isCacheFresh(HOME_QUOTE_CACHE_AT_KEY, HOME_QUOTE_CACHE_TTL)
@@ -2164,46 +2183,53 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // Permissions (VIP levels, region blocks) change with the account.
     clearResponseCache();
     set({ authReady: false });
-    try {
-      const profile = await loginStatusWithRetry();
-      if (profile && profile.userId > 0) {
-        accountDataGeneration++;
-        // Switching accounts: wipe the previous account's cached data first,
-        // otherwise its likes / recommendations stay on screen.
-        set({
-          loggedIn: true,
-          authReady: true,
-          profile,
-          likedIds: readJson<number[]>(likedIdsCacheKey(profile.userId), []),
-          likedSongs: [],
-          likedAt: {},
-          vipInfo: readJson<VipInfo | null>(vipCacheKey(profile.userId), null),
-          userPlaylists: [],
-          recommendSongs: readJson<Song[]>(
-            recommendCacheKey(profile.userId),
-            [],
-          ),
-        });
-        writeJson(PROFILE_CACHE_KEY, profile);
-        write(LIKED_AT_KEY, "{}");
-        get().toast(`欢迎，${profile.nickname}`, "success");
-        void get().loadLiked();
-        void get().loadVipInfo();
-        void get().loadHome();
-        void get().loadUserPlaylists(false);
-        return true;
+    // 新扫码的会话在服务端偶尔需要短暂同步：此窗口内 /login/status
+    // 会按匿名会话应答（无 profile），不能据此断定 cookie 无效。
+    // 带退避重试若干次，仍拿不到真实档案才判失败。
+    let profile: UserProfile | null = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        profile = await loginStatusWithRetry();
+        if (profile && profile.userId > 0) break;
+      } catch {
+        /* 网络抖动：继续重试 */
       }
-      clearCookie();
-      localStorage.removeItem(PROFILE_CACHE_KEY);
-      if (get().profile?.userId) {
-        localStorage.removeItem(vipCacheKey(get().profile!.userId));
-      }
-      set({ loggedIn: false, authReady: true, profile: null });
-      return false;
-    } catch {
-      set({ authReady: true });
-      return false;
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
     }
+    if (profile && profile.userId > 0) {
+      accountDataGeneration++;
+      // Switching accounts: wipe the previous account's cached data first,
+      // otherwise its likes / recommendations stay on screen.
+      set({
+        loggedIn: true,
+        authReady: true,
+        profile,
+        likedIds: readJson<number[]>(likedIdsCacheKey(profile.userId), []),
+        likedSongs: [],
+        likedAt: {},
+        vipInfo: readJson<VipInfo | null>(vipCacheKey(profile.userId), null),
+        userPlaylists: [],
+        recommendSongs: readJson<Song[]>(
+          recommendCacheKey(profile.userId),
+          [],
+        ),
+      });
+      writeJson(PROFILE_CACHE_KEY, profile);
+      write(LIKED_AT_KEY, "{}");
+      get().toast(`欢迎，${profile.nickname}`, "success");
+      void get().loadLiked();
+      void get().loadVipInfo();
+      void get().loadHome();
+      void get().loadUserPlaylists(false);
+      return true;
+    }
+    clearCookie();
+    localStorage.removeItem(PROFILE_CACHE_KEY);
+    if (get().profile?.userId) {
+      localStorage.removeItem(vipCacheKey(get().profile!.userId));
+    }
+    set({ loggedIn: false, authReady: true, profile: null });
+    return false;
   },
   logout: () => {
     accountDataGeneration++;
@@ -2232,6 +2258,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playlistSongs: [],
       playlistLoading: false,
       playlistName: "",
+      hotPlaylists: [],
+      topSongs: [],
+      homeQuote: null,
+      homeQuoteUnavailable: false,
       recommendSongs: [],
       recommendSongsLoading: false,
       likedSongsLoading: false,
