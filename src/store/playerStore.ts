@@ -734,7 +734,7 @@ async function resolveUrl(
           url: result.url,
           reason: "",
           previewEnd: previewOnly
-            ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
+          ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
             : undefined,
         };
       }
@@ -751,7 +751,7 @@ async function resolveUrl(
         url: result.url,
         reason: "",
         previewEnd: previewOnly
-          ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
+            ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
           : undefined,
       };
     }
@@ -905,13 +905,41 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   // --- playback ---
   togglePlay: () => {
-    const { playing, currentUrl, currentSong, queue, queueSource } = get();
+    const {
+      playing,
+      currentUrl,
+      currentSong,
+      queue,
+      queueSource,
+      audioEl,
+      muted,
+      volume,
+    } = get();
     if (!currentSong) return;
     if (!currentUrl) {
       get().playSong(currentSong, queue, queueSource);
       return;
     }
-    set({ playing: !playing });
+    if (playing) {
+      audioEl?.pause();
+      set({ playing: false });
+      return;
+    }
+
+    if (!audioEl) {
+      set({ playing: true });
+      return;
+    }
+
+    audioEl.volume = muted ? 0 : volume;
+    const request = audioEl.play();
+    set({ playing: true });
+    void request.catch(() => {
+      if (get().currentUrl === currentUrl) {
+        set({ playing: false });
+        get().toast("音频启动失败，请点击播放重试", "error");
+      }
+    });
   },
   next: () => {
     const { queue, index, playMode, queueSource } = get();
