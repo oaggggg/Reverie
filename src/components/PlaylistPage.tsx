@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Heart, ListPlus, MessageCircle, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Heart, ListPlus, MessageCircle, Pencil, Play, RefreshCw, Trash2, X } from "lucide-react";
 import type { PlaylistInfo } from "../api/types";
 import type { Song } from "../api/types";
 import { getPlaylistDetail } from "../api/client";
@@ -8,7 +8,6 @@ import {
   getPlaylistDynamicStats,
   getPlaylistSubscribers,
   getPlaylistAllTracks,
-  markPlaylistPlayed,
   manipulatePlaylistTracks,
   updatePlaylistOrder,
 } from "../api/playlist";
@@ -24,6 +23,7 @@ import BackButton from "./BackButton";
 import ConfirmModal from "./ConfirmModal";
 import PlaylistTrackPicker from "./PlaylistTrackPicker";
 import PlaylistGrid from "./PlaylistGrid";
+import CommentPanel from "./CommentPanel";
 
 export default function PlaylistPage() {
   const playlistSongs = usePlayerStore((s) => s.playlistSongs);
@@ -45,7 +45,7 @@ export default function PlaylistPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [mutating, setMutating] = useState(false);
   const [fullLoading, setFullLoading] = useState(false);
-  const [checkingIn, setCheckingIn] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [dynamicStats, setDynamicStats] = useState<PlaylistDynamicStats | null>(null);
   const [relatedPlaylists, setRelatedPlaylists] = useState<PlaylistInfo[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
@@ -137,21 +137,6 @@ export default function PlaylistPage() {
     }
   };
 
-  const checkIn = async () => {
-    if (!playlistId || checkingIn) return;
-    setCheckingIn(true);
-    try {
-      await markPlaylistPlayed(playlistId);
-      const stats = await getPlaylistDynamicStats(playlistId);
-      setDynamicStats(stats);
-      usePlayerStore.getState().toast("歌单打卡成功", "success");
-    } catch {
-      usePlayerStore.getState().toast("歌单打卡失败", "error");
-    } finally {
-      setCheckingIn(false);
-    }
-  };
-
   const addSongs = async (songs: Song[]) => {
     setMutating(true);
     try {
@@ -222,15 +207,25 @@ export default function PlaylistPage() {
   const owned = playlistCreatorId > 0 && playlistCreatorId === uid;
   const playlistActions = !playlistLoading && playlistId > 0 ? (
     <div className="page-action-row">
-      <button className="btn" onClick={() => void checkIn()} disabled={checkingIn} title="记录歌单播放">
-        <Check size={14} /> {checkingIn ? "打卡中…" : "打卡"}
+      <button
+        className="btn primary"
+        onClick={() => {
+          if (playlistSongs.length) {
+            void usePlayerStore.getState().playSong(playlistSongs[0], playlistSongs);
+          }
+        }}
+        disabled={!playlistSongs.length}
+        title="播放歌单中的全部歌曲"
+      >
+        <Play size={14} fill="currentColor" /> 播放全部
       </button>
       <button className="btn" onClick={() => void loadFullSongs()} disabled={fullLoading} title="从网易云加载歌单全部歌曲">
         <RefreshCw size={14} className={fullLoading ? "spin" : ""} /> 完整列表
       </button>
       <button
         className="btn"
-        onClick={() =>
+        onClick={() => {
+          setCommentsOpen(true);
           void openComments(
             {
               type: "playlist",
@@ -238,9 +233,9 @@ export default function PlaylistPage() {
               title: playlistName || "歌单",
               subtitle: `${playlistSongs.length} 首歌曲`,
             },
-            true,
-          )
-        }
+            false,
+          );
+        }}
       >
         <MessageCircle size={14} /> 评论
       </button>
@@ -346,6 +341,31 @@ export default function PlaylistPage() {
         open={editing}
         onClose={() => setEditing(false)}
       />
+      {commentsOpen && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => event.target === event.currentTarget && setCommentsOpen(false)}
+        >
+          <div
+            className="modal playlist-comments-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="playlist-comments-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <h2 id="playlist-comments-title">歌单评论</h2>
+                <p>{playlistName || "歌单"}</p>
+              </div>
+              <button className="modal-close" title="关闭" onClick={() => setCommentsOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <CommentPanel compact />
+          </div>
+        </div>
+      )}
       <ConfirmModal
         open={confirmingDelete}
         title="删除歌单"

@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import type { PlaylistInfo } from "../api/types";
 import { useExploreStore } from "../store/exploreStore";
-import {
-  updatePlaylistCover,
-} from "../api/playlistMetadata.ts";
-import { usePlayerStore } from "../store/playerStore";
 import { useOriginTransition } from "../utils/originTransition";
 
 export default function PlaylistEditorModal({
@@ -22,7 +18,6 @@ export default function PlaylistEditorModal({
   const [description, setDescription] = useState("");
   const [privateList, setPrivateList] = useState(false);
   const [tags, setTags] = useState("");
-  const [cover, setCover] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const transition = useOriginTransition<HTMLDivElement>(open, "playlist-editor", 220);
 
@@ -32,7 +27,6 @@ export default function PlaylistEditorModal({
     setDescription(playlist?.description ?? "");
     setPrivateList(playlist?.privacy === 10);
     setTags(playlist?.tags?.join(", ") ?? "");
-    setCover(null);
   }, [open, playlist]);
 
   if (!transition.rendered) return null;
@@ -49,15 +43,6 @@ export default function PlaylistEditorModal({
           playlist.privacy === 10 && !privateList,
         )
       : await createPlaylist(name, privateList ? 10 : 0);
-    if (ok && playlist) {
-      try {
-        if (cover) await updatePlaylistCover(playlist.id, cover);
-      } catch {
-        usePlayerStore
-          .getState()
-          .toast("歌单信息已保存，但封面更新失败", "error");
-      }
-    }
     setSaving(false);
     if (ok) onClose();
   };
@@ -82,16 +67,6 @@ export default function PlaylistEditorModal({
               maxLength={100}
               placeholder="多个标签用逗号分隔"
               onChange={(e) => setTags(e.target.value)}
-            />
-          </label>
-        )}
-        {playlist && (
-          <label className="field-label">
-            封面
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setCover(e.target.files?.[0] ?? null)}
             />
           </label>
         )}
