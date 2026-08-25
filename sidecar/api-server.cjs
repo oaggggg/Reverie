@@ -11,10 +11,8 @@ if (!existsSync(anonymousTokenPath)) {
   writeFileSync(anonymousTokenPath, "", "utf8");
 }
 
-const {
-  serveNcmApi,
-  getModulesDefinitions,
-} = require("NeteaseCloudMusicApi/server");
+const { serveNcmApi, getModulesDefinitions } = require("NeteaseCloudMusicApi/server");
+const { bareForm, matchPrefecture } = require("./prefecture.cjs");
 const path = require("node:path");
 
 const port = Number(process.env.PORT || 3939);
@@ -177,26 +175,18 @@ const MUNICIPALITY_PROVINCES = new Set([
   "澳门",
 ]);
 
-// 仅用于同名比较，不改动城市原文，保留“自治州/盟/地区”等后缀。
-function stripCitySuffix(value) {
-  return String(value || "")
-    .trim()
-    .replace(/(?:自治州|[市区])$|(?:地区|盟)$/, "");
-}
-
 function cleanLocation(raw) {
   const country = String(raw.country || "").trim();
   const province = normalizeProvince(raw.province);
   const city = String(raw.city || "").trim();
-  // 直辖市/特别行政区的“城市”字段与省级区域重名时丢弃，避免展示重复；
-  // 其余同名情形（如吉林省吉林市）必须保留城市，否则位置退化为仅省级。
-  const dropRedundantCity =
-    MUNICIPALITY_PROVINCES.has(province) && stripCitySuffix(city) === province;
-  return {
-    country,
-    province,
-    city: city && !dropRedundantCity ? city : "",
-  };
+  if (!province) return { country, province, city };
+  // 直辖市/特别行政区的“城市”字段与省级区域重名时丢弃，避免展示重复。
+  if (MUNICIPALITY_PROVINCES.has(province) && bareForm(city) === province) {
+    return { country, province, city: "" };
+  }
+  // IP 库的 city 可能是区县/乡镇级地名（如江苏南通的“平潮”镇），
+  // 只有命中所在地省份的地级行政区名录才保留，否则降级为仅省级。
+  return { country, province, city: matchPrefecture(province, city) };
 }
 
 function chooseLocation(candidates) {
@@ -257,7 +247,8 @@ if (Number.isInteger(parentPid) && parentPid > 0) {
 })()
   .then((app) => {
     // 浏览器直连公网 IP 定位服务会被 CORS 拦截，由 sidecar 服务端代理。
-    // 主源返回城市级 JSON（province/city），备用 ipip 文本源仅省级。
+    // 主源多服务投票返回城市级 JSON（province/city，城市经地级名录校验），
+    // 备用 ipip 文本源仅省级。
     if (app && typeof app.get === "function") {
       app.get("/reverie/location", async (req, res) => {
         const source = String(req.query.src || "");
