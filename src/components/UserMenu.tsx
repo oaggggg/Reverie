@@ -20,20 +20,27 @@ export default function UserMenu() {
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const openProfile = useProfileStore((s) => s.openProfile);
   const [followDialog, setFollowDialog] = useState<"follows" | "followers" | null>(null);
+  const prefetchStarted = useRef(false);
   const profileDetail = useProfileStore((s) => s.detail);
   const ref = useRef<HTMLDivElement>(null);
   const transition = useOriginTransition<HTMLDivElement>(open, "user-menu", 200);
 
-  useEffect(() => {
-    if (!open) return;
-    if (profile && !vipInfo) void loadVipInfo();
-    // 轻量加载个人资料（等级/关注/粉丝/简介/加入时间），不跳转页面
+  const prefetchDetails = () => {
+    if (!profile || prefetchStarted.current) return;
+    prefetchStarted.current = true;
+    if (!vipInfo) void loadVipInfo();
+    // 轻量加载个人资料（等级/关注/粉丝/简介/加入时间），不跳转页面。
     const uid = usePlayerStore.getState().profile?.userId;
     if (profile && uid && !useProfileStore.getState().detail) {
       void getProfileCenter(uid)
         .then((data) => useProfileStore.setState({ detail: data.detail }))
         .catch(() => {});
     }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    prefetchDetails();
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node))
         setOpen(false);
@@ -58,6 +65,8 @@ export default function UserMenu() {
       <button
         className="topnav-user"
         data-origin-key="user-menu"
+        onPointerEnter={prefetchDetails}
+        onFocus={prefetchDetails}
         onClick={(event) => {
           captureInteractionOrigin("user-menu", event.currentTarget);
           setOpen(!open);
