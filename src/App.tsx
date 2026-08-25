@@ -84,6 +84,7 @@ export default function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadAudioRef = useRef<HTMLAudioElement>(null);
   const fadeFramesRef = useRef(new Map<HTMLAudioElement, number>());
+  const playbackSyncRef = useRef(0);
   const seamlessTransitionRef = useRef(false);
   const skipNextFadeInRef = useRef(false);
 
@@ -447,8 +448,11 @@ export default function App() {
   // Keep the active decoder attached to the current URL. When a preloaded
   // decoder is promoted, its existing buffer is reused instead of reloading.
   useEffect(() => {
+    const syncToken = ++playbackSyncRef.current;
     const a = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!a) return;
+    if (audioRef.current) cancelAudioFade(audioRef.current);
+    if (preloadAudioRef.current) cancelAudioFade(preloadAudioRef.current);
     if (!currentUrl) {
       cancelAudioFade(a);
       a.pause();
@@ -471,11 +475,26 @@ export default function App() {
       } else {
         a.volume = 0;
         a.play()
-          .then(() => fadeAudioVolume(a, target, AUDIO_FADE_IN_MS))
+          .then(() => {
+            if (
+              syncToken !== playbackSyncRef.current ||
+              !usePlayerStore.getState().playing
+            ) {
+              a.pause();
+              a.volume = target;
+              return;
+            }
+            return fadeAudioVolume(a, target, AUDIO_FADE_IN_MS);
+          })
           .catch(() => {});
       }
     } else if (!a.paused) {
       void fadeAudioVolume(a, 0, AUDIO_FADE_OUT_MS).then(() => {
+        if (
+          syncToken !== playbackSyncRef.current ||
+          usePlayerStore.getState().playing
+        )
+          return;
         a.pause();
         a.volume = muted ? 0 : volume;
       });
