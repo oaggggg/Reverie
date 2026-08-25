@@ -23,13 +23,9 @@ function maskPhone(value: string): string {
 }
 
 export async function getAccountOverview(): Promise<AccountOverview> {
-  // 三个来源各自独立降级：任一扩展接口失败都不应把“用户信息没有数据”
-  // 的空壳抛给设置页；/user/account 是账号身份的权威来源，必须成功。
-  const [account, detail, binding] = await Promise.all([
-    request<Obj>("/user/account", {}, false),
-    request<Obj>("/user/detail/new", {}, false).catch(() => ({}) as Obj),
-    request<Obj>("/user/binding", {}, false).catch(() => ({}) as Obj),
-  ]);
+  // 第一步：/user/account 是账号身份的权威来源，必须成功；
+  // 同时从它拿到 uid —— 下面的扩展接口都要求 uid。
+  const account = await request<Obj>("/user/account", {}, false);
   // /user/account 同时携带 account{} 与 profile{}；profile 字段
   // （等级/会员/昵称/签名）比 detail 接口更全且随登录态实时更新，
   // 因此以它优先，detail 仅作补充。
@@ -43,6 +39,16 @@ export async function getAccountOverview(): Promise<AccountOverview> {
   ) {
     throw new Error("anonymous session");
   }
+  const uid = Number(
+    accountData.id ?? accountData.userId ?? accountProfile.userId ?? 0,
+  );
+  // 第二步：扩展信息各自独立降级。注意 /user/binding 与 /user/detail/new
+  // 都要求 uid 参数，缺参时接口直接返回 code 400“参数错误”——
+  // 实测这正是设置页绑定方式永远“未读取到”、手机/邮箱为空的根因。
+  const [detail, binding] = await Promise.all([
+    request<Obj>("/user/detail/new", { uid }, false).catch(() => ({}) as Obj),
+    request<Obj>("/user/binding", { uid }, false).catch(() => ({}) as Obj),
+  ]);
   const detailProfile = obj(detail.profile ?? detail.data ?? detail);
   const mergedProfile: Obj = { ...detailProfile };
   for (const [key, value] of Object.entries(accountProfile)) {
@@ -87,7 +93,7 @@ export async function getAccountOverview(): Promise<AccountOverview> {
  * /user/binding 在不同版本返回数组（[{type,url},…]）或对象两种形态。
  * 数组形态的 type 是数字枚举：0 手机 / 2 邮箱 / 常见第三方见映射表。
  */
-function bindingsObjFromArray(value: unknown[]): Obj {
+export function bindingsObjFromArray(value: unknown[]): Obj {
   const TYPE_NAMES: Record<number, string> = {
     0: "phone",
     1: "weibo",
@@ -101,7 +107,9 @@ function bindingsObjFromArray(value: unknown[]): Obj {
     const key =
       TYPE_NAMES[Number(item.type)] || String(item.type ?? "") || "";
     if (!key) continue;
-    result[key] = Boolean(item.url ?? item.token ?? true);
+    // 出现在绑定列表里即视为已绑定；url 常为空字符串（falsy 但非空缺），
+    // 不能用 `url ?? token ?? true` 判断，否则会把真实存在的绑定丢掉。
+    if (!(key in result)) result[key] = true;
   }
   return result;
 }
