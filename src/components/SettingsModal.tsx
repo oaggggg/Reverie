@@ -325,22 +325,6 @@ export default function SettingsModal() {
                     </div>
                   </SettingRow>
                 </div>
-                <div className="settings-section">
-                  <h3>界面</h3>
-                  <SettingRow title="界面主题" hint="切换应用的整体明暗外观">
-                    <div className="opt-group">
-                      {APP_THEMES.map((item) => (
-                        <button
-                          key={item.id}
-                          className={`opt-btn ${theme === item.id ? "active" : ""}`}
-                          onClick={() => setTheme(item.id)}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  </SettingRow>
-                </div>
               </>
             )}
 
