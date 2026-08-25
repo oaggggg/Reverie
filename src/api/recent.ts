@@ -26,11 +26,7 @@ export async function getRecentSongs(limit = 100): Promise<Song[]> {
 }
 
 export async function getRecentListenSongs(limit = 100): Promise<Song[]> {
-  const response = await request<Obj>(
-    "/recent/listen/list",
-    { limit },
-    false,
-  );
+  const response = await request<Obj>("/recent/listen/list", { limit }, false);
   return listOf(response)
     .map((raw) => normalizeSong(obj(raw).song ?? obj(raw).resource ?? raw))
     .filter((song): song is Song => song !== null);
@@ -126,7 +122,8 @@ export async function getRecentMedia(
 
 export async function getRecentCategory(category: RecentCategory) {
   if (category === "songs") return { songs: await getRecentSongs() };
-  if (category === "listen") return { listenSongs: await getRecentListenSongs() };
+  if (category === "listen")
+    return { listenSongs: await getRecentListenSongs() };
   if (category === "albums") return { albums: await getRecentAlbums() };
   if (category === "playlists")
     return { playlists: await getRecentPlaylists() };

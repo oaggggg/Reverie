@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoDir = dirname(scriptDir);
-const moduleDir = join(repoDir, "node_modules", "NeteaseCloudMusicApi", "module");
+const moduleDir = join(
+  repoDir,
+  "node_modules",
+  "NeteaseCloudMusicApi",
+  "module",
+);
 const outputFile = join(repoDir, "src", "api", "generated.ts");
 
 // These modules are deliberately outside the product scope: authentication
@@ -43,7 +48,8 @@ const specialRoutes = {
   fm_trash: "/fm_trash",
   personal_fm: "/personal_fm",
 };
-const routeFor = (name) => specialRoutes[name] ?? `/${name.replaceAll("_", "/")}`;
+const routeFor = (name) =>
+  specialRoutes[name] ?? `/${name.replaceAll("_", "/")}`;
 const quote = (value) => JSON.stringify(value);
 const lines = [
   "/* eslint-disable @typescript-eslint/consistent-type-imports */",

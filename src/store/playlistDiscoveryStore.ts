@@ -44,7 +44,11 @@ export const usePlaylistDiscoveryStore = create<PlaylistDiscoveryState>()(
       try {
         const [categories, page] = await Promise.all([
           get().loaded
-            ? Promise.resolve({ categories: get().categories, hotTags: get().hotTags, highQualityTags: get().highQualityTags })
+            ? Promise.resolve({
+                categories: get().categories,
+                hotTags: get().hotTags,
+                highQualityTags: get().highQualityTags,
+              })
             : getPlaylistDiscoveryCategories(),
           getHighQualityPlaylists(selectedTag),
         ]);

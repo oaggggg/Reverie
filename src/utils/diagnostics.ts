@@ -13,12 +13,22 @@ let originalWarn: typeof console.warn | null = null;
 let originalError: typeof console.error | null = null;
 
 function sanitize(value: unknown): string {
-  const text = value instanceof Error ? value.stack || value.message : String(value);
+  const text =
+    value instanceof Error ? value.stack || value.message : String(value);
   return text
-    .replace(/(cookie|authorization|token|password|passwd|secret)=([^\s&]+)/gi, "$1=[redacted]")
-    .replace(/(cookie|authorization|token|password|passwd|secret)\s*:\s*([^\s,]+)/gi, "$1: [redacted]")
+    .replace(
+      /(cookie|authorization|token|password|passwd|secret)=([^\s&]+)/gi,
+      "$1=[redacted]",
+    )
+    .replace(
+      /(cookie|authorization|token|password|passwd|secret)\s*:\s*([^\s,]+)/gi,
+      "$1: [redacted]",
+    )
     .replace(/https?:\/\/[^\s]+/gi, (url) =>
-      url.replace(/([?&](?:cookie|token|password|secret|auth)=[^&\s]*)/gi, "[redacted]"),
+      url.replace(
+        /([?&](?:cookie|token|password|secret|auth)=[^&\s]*)/gi,
+        "[redacted]",
+      ),
     );
 }
 
@@ -31,7 +41,8 @@ export function recordDiagnostic(
     level,
     message: sanitize(message).slice(0, 1600),
   });
-  if (entries.length > MAX_ENTRIES) entries.splice(0, entries.length - MAX_ENTRIES);
+  if (entries.length > MAX_ENTRIES)
+    entries.splice(0, entries.length - MAX_ENTRIES);
 }
 
 export function getDiagnosticEntries(): DiagnosticEntry[] {
@@ -46,7 +57,10 @@ export function installDiagnostics(): void {
     const location = event.filename
       ? ` (${event.filename}:${event.lineno}:${event.colno})`
       : "";
-    recordDiagnostic("error", `${event.message}${location}\n${event.error?.stack || ""}`);
+    recordDiagnostic(
+      "error",
+      `${event.message}${location}\n${event.error?.stack || ""}`,
+    );
   });
   window.addEventListener("unhandledrejection", (event) => {
     recordDiagnostic("error", `Unhandled promise rejection: ${event.reason}`);
@@ -82,10 +96,15 @@ export function createFeedbackIssue(
   const storageKeys =
     typeof localStorage === "undefined"
       ? []
-      : Object.keys(localStorage).filter((key) => !/cookie|token|password|secret/i.test(key));
+      : Object.keys(localStorage).filter(
+          (key) => !/cookie|token|password|secret/i.test(key),
+        );
   const logText = report.length
     ? report
-        .map((entry) => `[${entry.at}] [${entry.level.toUpperCase()}] ${entry.message}`)
+        .map(
+          (entry) =>
+            `[${entry.at}] [${entry.level.toUpperCase()}] ${entry.message}`,
+        )
         .join("\n")
     : "暂无运行时日志。";
 
@@ -94,7 +113,9 @@ export function createFeedbackIssue(
     sanitize(description).trim() || "（未填写，请在此补充问题描述）",
     "",
     "## 错误标记",
-    errors.length ? `检测到 ${errors.length} 条错误记录。` : "未检测到未捕获错误，请根据现象排查。",
+    errors.length
+      ? `检测到 ${errors.length} 条错误记录。`
+      : "未检测到未捕获错误，请根据现象排查。",
     "",
     "## 运行环境",
     `- 应用版本：v${__APP_VERSION__}`,
@@ -116,14 +137,18 @@ export function createFeedbackIssue(
   return { title, body };
 }
 
-export function buildGitHubIssueUrl(issue: { title: string; body: string }): string {
+export function buildGitHubIssueUrl(issue: {
+  title: string;
+  body: string;
+}): string {
   const params = new URLSearchParams({ title: issue.title, body: issue.body });
   return `https://github.com/oaggggg/Reverie/issues/new?${params.toString()}`;
 }
 
 export async function openGitHubIssue(url: string): Promise<void> {
   const hasTauri = Boolean(
-    (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__,
+    (window as unknown as { __TAURI_INTERNALS__?: unknown })
+      .__TAURI_INTERNALS__,
   );
   if (hasTauri) {
     const { open } = await import("@tauri-apps/plugin-shell");

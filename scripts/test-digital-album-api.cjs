@@ -15,7 +15,8 @@ const failures = [];
       });
       // Some digital-album modules return an empty upstream error body for an
       // anonymous request; the sidecar still reached the registered handler.
-      if (response.status === 404) console.log(`${method} ${path}: 404 (upstream empty response)`);
+      if (response.status === 404)
+        console.log(`${method} ${path}: 404 (upstream empty response)`);
       else console.log(`${method} ${path}: ${response.status}`);
     } catch (error) {
       failures.push(

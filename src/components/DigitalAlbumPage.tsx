@@ -33,7 +33,8 @@ export default function DigitalAlbumPage() {
   const [payment, setPayment] = useState<"balance" | "alipay" | "wxpay">(
     "balance",
   );
-  const [boardPeriod, setBoardPeriod] = useState<DigitalAlbumSalesPeriod>("daily");
+  const [boardPeriod, setBoardPeriod] =
+    useState<DigitalAlbumSalesPeriod>("daily");
   const [board, setBoard] = useState<DigitalAlbumRank[]>([]);
   const [boardLoading, setBoardLoading] = useState(false);
   const [styleArea, setStyleArea] = useState<DigitalAlbumStyleArea>("Z_H");
@@ -48,7 +49,12 @@ export default function DigitalAlbumPage() {
   const loadBoard = async (period = boardPeriod) => {
     setBoardLoading(true);
     try {
-      setBoard(await getDigitalAlbumSalesBoard(period, period === "year" ? new Date().getFullYear() : undefined));
+      setBoard(
+        await getDigitalAlbumSalesBoard(
+          period,
+          period === "year" ? new Date().getFullYear() : undefined,
+        ),
+      );
     } catch {
       setBoard([]);
     } finally {
@@ -65,7 +71,16 @@ export default function DigitalAlbumPage() {
     setStyleLoading(true);
     try {
       const albums = await getDigitalAlbumStyleLibrary(area, 30, offset);
-      setStyleAlbums((current) => offset ? [...current, ...albums.filter((item) => !current.some((entry) => entry.id === item.id))] : albums);
+      setStyleAlbums((current) =>
+        offset
+          ? [
+              ...current,
+              ...albums.filter(
+                (item) => !current.some((entry) => entry.id === item.id),
+              ),
+            ]
+          : albums,
+      );
       setStyleMore(albums.length >= 30);
     } catch {
       if (!offset) setStyleAlbums([]);
@@ -111,11 +126,31 @@ export default function DigitalAlbumPage() {
       </section>
       <section className="digital-album-board">
         <div className="digital-album-section-head">
-          <h2><BarChart3 size={17} /> 销量榜</h2>
-          <div className="collection-tabs" role="tablist" aria-label="数字专辑销量周期">
+          <h2>
+            <BarChart3 size={17} /> 销量榜
+          </h2>
+          <div
+            className="collection-tabs"
+            role="tablist"
+            aria-label="数字专辑销量周期"
+          >
             {(["daily", "week", "year", "total"] as const).map((period) => (
-              <button key={period} className={boardPeriod === period ? "active" : ""} onClick={() => { setBoardPeriod(period); void loadBoard(period); }} disabled={boardLoading}>
-                {period === "daily" ? "日榜" : period === "week" ? "周榜" : period === "year" ? "年榜" : "总榜"}
+              <button
+                key={period}
+                className={boardPeriod === period ? "active" : ""}
+                onClick={() => {
+                  setBoardPeriod(period);
+                  void loadBoard(period);
+                }}
+                disabled={boardLoading}
+              >
+                {period === "daily"
+                  ? "日榜"
+                  : period === "week"
+                    ? "周榜"
+                    : period === "year"
+                      ? "年榜"
+                      : "总榜"}
               </button>
             ))}
           </div>
@@ -125,27 +160,60 @@ export default function DigitalAlbumPage() {
         ) : board.length ? (
           <div className="digital-album-board-grid">
             {board.slice(0, 20).map((album) => (
-              <button className="digital-album-board-card" key={album.id} onClick={() => { setId(String(album.id)); void loadDetail(album.id); }}>
+              <button
+                className="digital-album-board-card"
+                key={album.id}
+                onClick={() => {
+                  setId(String(album.id));
+                  void loadDetail(album.id);
+                }}
+              >
                 <b>{album.rank}</b>
-                {album.coverUrl ? <img src={sizedImage(album.coverUrl, 180)} alt="" /> : <span><Album size={20} /></span>}
-                <div><strong>{album.name}</strong><small>{album.artistName || "数字专辑"}</small></div>
+                {album.coverUrl ? (
+                  <img src={sizedImage(album.coverUrl, 180)} alt="" />
+                ) : (
+                  <span>
+                    <Album size={20} />
+                  </span>
+                )}
+                <div>
+                  <strong>{album.name}</strong>
+                  <small>{album.artistName || "数字专辑"}</small>
+                </div>
                 <em>{album.score.toLocaleString("zh-CN")}</em>
               </button>
             ))}
           </div>
-        ) : <div className="digital-album-empty">暂无销量榜数据</div>}
+        ) : (
+          <div className="digital-album-empty">暂无销量榜数据</div>
+        )}
       </section>
       <section className="digital-album-style-library">
         <div className="digital-album-section-head">
-          <h2><Album size={17} /> 语种风格馆</h2>
-          <div className="collection-tabs" role="tablist" aria-label="数字专辑语种">
-            {([
-              ["Z_H", "华语"],
-              ["E_A", "欧美"],
-              ["KR", "韩国"],
-              ["JP", "日本"],
-            ] as const).map(([area, label]) => (
-              <button key={area} className={styleArea === area ? "active" : ""} onClick={() => setStyleArea(area)} disabled={styleLoading}>{label}</button>
+          <h2>
+            <Album size={17} /> 语种风格馆
+          </h2>
+          <div
+            className="collection-tabs"
+            role="tablist"
+            aria-label="数字专辑语种"
+          >
+            {(
+              [
+                ["Z_H", "华语"],
+                ["E_A", "欧美"],
+                ["KR", "韩国"],
+                ["JP", "日本"],
+              ] as const
+            ).map(([area, label]) => (
+              <button
+                key={area}
+                className={styleArea === area ? "active" : ""}
+                onClick={() => setStyleArea(area)}
+                disabled={styleLoading}
+              >
+                {label}
+              </button>
             ))}
           </div>
         </div>
@@ -154,14 +222,29 @@ export default function DigitalAlbumPage() {
         ) : styleAlbums.length ? (
           <div className="digital-album-grid">
             {styleAlbums.map((album) => (
-              <button className="digital-album-card" key={album.id} onClick={() => { setId(String(album.id)); void loadDetail(album.id); }}>
-                {album.coverUrl ? <img src={sizedImage(album.coverUrl, 180)} alt="" /> : <span><Album size={24} /></span>}
+              <button
+                className="digital-album-card"
+                key={album.id}
+                onClick={() => {
+                  setId(String(album.id));
+                  void loadDetail(album.id);
+                }}
+              >
+                {album.coverUrl ? (
+                  <img src={sizedImage(album.coverUrl, 180)} alt="" />
+                ) : (
+                  <span>
+                    <Album size={24} />
+                  </span>
+                )}
                 <strong>{album.name}</strong>
                 <small>{album.artistName || "数字专辑"}</small>
               </button>
             ))}
           </div>
-        ) : <div className="digital-album-empty">暂无该语种的数字专辑</div>}
+        ) : (
+          <div className="digital-album-empty">暂无该语种的数字专辑</div>
+        )}
         {styleMore && <div ref={styleMoreRef} className="load-more-sentinel" />}
       </section>
       {detail && (

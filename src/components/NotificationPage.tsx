@@ -231,10 +231,7 @@ function PrivateMessages() {
             ))}
         </div>
         {conversationHasMore && (
-          <div
-            ref={conversationMoreRef}
-            className="load-more-sentinel"
-          />
+          <div ref={conversationMoreRef} className="load-more-sentinel" />
         )}
       </aside>
 
@@ -396,7 +393,9 @@ export default function NotificationPage() {
     <Page>
       <BackButton />
       <PageHeader
-        title={unreadTotal > 0 ? `消息中心 · ${unreadTotal} 条未读` : "消息中心"}
+        title={
+          unreadTotal > 0 ? `消息中心 · ${unreadTotal} 条未读` : "消息中心"
+        }
         subtitle={
           category === "private"
             ? `${conversationTotal} 个私信会话`

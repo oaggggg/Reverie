@@ -747,11 +747,11 @@ export async function getUserPlaylists(uid: number): Promise<PlaylistInfo[]> {
   const MAX_PAGES = 20; // 上限 1000 个歌单，防御异常死循环
   const rows: unknown[] = [];
   for (let offset = 0; offset < MAX_PAGES * PAGE; offset += PAGE) {
-    const res = await cachedRequest<{ code?: number; playlist?: unknown[]; more?: boolean }>(
-      "/user/playlist",
-      { uid, limit: PAGE, offset },
-      2 * 60 * 1000,
-    );
+    const res = await cachedRequest<{
+      code?: number;
+      playlist?: unknown[];
+      more?: boolean;
+    }>("/user/playlist", { uid, limit: PAGE, offset }, 2 * 60 * 1000);
     const page = res.playlist ?? [];
     rows.push(...page);
     if (page.length < PAGE || res.more === false) break;

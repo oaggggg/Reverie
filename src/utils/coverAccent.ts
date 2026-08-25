@@ -12,7 +12,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function toAccent(hue: number, saturation: number, lightness: number): CoverAccent {
+function toAccent(
+  hue: number,
+  saturation: number,
+  lightness: number,
+): CoverAccent {
   const color = `hsl(${Math.round(hue)} ${Math.round(saturation)}% ${Math.round(lightness)}%)`;
   return {
     color,

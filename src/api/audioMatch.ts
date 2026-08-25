@@ -19,7 +19,9 @@ export async function matchAudioFingerprint(
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.result ?? value.songs ?? value.matches ?? response.data ?? response)
+  return arr(
+    value.result ?? value.songs ?? value.matches ?? response.data ?? response,
+  )
     .map((raw) => normalizeSong(obj(raw).song ?? obj(raw).track ?? raw))
     .filter((song): song is Song => song !== null);
 }

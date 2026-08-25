@@ -52,9 +52,7 @@ export default function SongCards({
 
     setEntering((current) => [...new Set([...current, ...addedIds])]);
     const timer = window.setTimeout(() => {
-      setEntering((current) =>
-        current.filter((id) => !addedIds.includes(id)),
-      );
+      setEntering((current) => current.filter((id) => !addedIds.includes(id)));
     }, 320);
     return () => window.clearTimeout(timer);
   }, [songs]);

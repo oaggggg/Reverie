@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Headphones, Mic2, RefreshCw } from "lucide-react";
-import { getPersonalFmByMode, getPrivateDjContent, type PersonalFmMode } from "../api/privateDj.ts";
+import {
+  getPersonalFmByMode,
+  getPrivateDjContent,
+  type PersonalFmMode,
+} from "../api/privateDj.ts";
 import type { PrivateDjItem } from "../api/types.ts";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
@@ -12,7 +16,9 @@ export default function PrivateDjPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fmMode, setFmMode] = useState<PersonalFmMode>("DEFAULT");
-  const [fmSongs, setFmSongs] = useState<NonNullable<PrivateDjItem["song"]>[]>([]);
+  const [fmSongs, setFmSongs] = useState<NonNullable<PrivateDjItem["song"]>[]>(
+    [],
+  );
   const [fmLoading, setFmLoading] = useState(false);
 
   const load = async () => {
@@ -46,7 +52,10 @@ export default function PrivateDjPage() {
   };
 
   const songs = useMemo(
-    () => items.map((item) => item.song).filter((song): song is NonNullable<typeof song> => song !== null),
+    () =>
+      items
+        .map((item) => item.song)
+        .filter((song): song is NonNullable<typeof song> => song !== null),
     [items],
   );
   const programs = items.filter((item) => item.kind === "program");
@@ -57,7 +66,12 @@ export default function PrivateDjPage() {
         title="私人 DJ"
         subtitle="为你推荐 DJ 声音与歌曲"
         actions={
-          <button className="icon-button" title="刷新私人 DJ" onClick={() => void load()} disabled={loading}>
+          <button
+            className="icon-button"
+            title="刷新私人 DJ"
+            onClick={() => void load()}
+            disabled={loading}
+          >
             <RefreshCw size={17} className={loading ? "spin" : ""} />
           </button>
         }
@@ -71,7 +85,9 @@ export default function PrivateDjPage() {
               <h3>私人 FM 模式</h3>
               <select
                 value={fmMode}
-                onChange={(event) => void loadFmMode(event.target.value as PersonalFmMode)}
+                onChange={(event) =>
+                  void loadFmMode(event.target.value as PersonalFmMode)
+                }
                 disabled={fmLoading}
               >
                 <option value="DEFAULT">默认</option>
@@ -81,27 +97,43 @@ export default function PrivateDjPage() {
                 <option value="aidj">AI DJ</option>
               </select>
             </div>
-            {fmLoading ? <LoadingState label="正在切换 FM 模式…" /> : <SongList songs={fmSongs} emptyText="选择模式加载歌曲" />}
+            {fmLoading ? (
+              <LoadingState label="正在切换 FM 模式…" />
+            ) : (
+              <SongList songs={fmSongs} emptyText="选择模式加载歌曲" />
+            )}
           </section>
-          {songs.length > 0 && <SongList songs={songs} title="推荐歌曲" emptyText="暂无推荐歌曲" />}
+          {songs.length > 0 && (
+            <SongList songs={songs} title="推荐歌曲" emptyText="暂无推荐歌曲" />
+          )}
           {programs.length > 0 && (
             <section className="private-dj-section">
               <div className="list-header">
-                <h3><Mic2 size={16} /> DJ 声音</h3>
+                <h3>
+                  <Mic2 size={16} /> DJ 声音
+                </h3>
                 <span className="count">{programs.length} 条</span>
               </div>
               <div className="private-dj-grid">
                 {programs.map((item) => (
                   <article className="private-dj-card" key={item.id}>
                     {item.coverUrl ? (
-                      <img src={sizedImage(item.coverUrl, 240)} alt="" loading="lazy" />
+                      <img
+                        src={sizedImage(item.coverUrl, 240)}
+                        alt=""
+                        loading="lazy"
+                      />
                     ) : (
-                      <span className="private-dj-cover"><Headphones size={22} /></span>
+                      <span className="private-dj-cover">
+                        <Headphones size={22} />
+                      </span>
                     )}
                     <div className="private-dj-copy">
                       <strong>{item.title}</strong>
                       <span>{item.subtitle || "私人 DJ 推荐"}</span>
-                      {item.audioUrl && <audio controls preload="none" src={item.audioUrl} />}
+                      {item.audioUrl && (
+                        <audio controls preload="none" src={item.audioUrl} />
+                      )}
                     </div>
                   </article>
                 ))}
@@ -115,7 +147,11 @@ export default function PrivateDjPage() {
           <strong>暂无私人 DJ 推荐</strong>
         </div>
       )}
-      {error && <div className="private-dj-error" role="alert">{error}</div>}
+      {error && (
+        <div className="private-dj-error" role="alert">
+          {error}
+        </div>
+      )}
     </Page>
   );
 }

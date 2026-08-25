@@ -40,7 +40,9 @@ export async function getSongSheets(songId: number): Promise<SongSheet[]> {
     .filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
 }
 
-export async function getSongSheetPreview(songId: number): Promise<SongSheet | null> {
+export async function getSongSheetPreview(
+  songId: number,
+): Promise<SongSheet | null> {
   if (!songId) return null;
   const response = await request<Obj>("/sheet/preview", { id: songId }, false);
   const value = obj(response.data ?? response.result ?? response);

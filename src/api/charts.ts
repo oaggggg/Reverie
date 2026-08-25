@@ -1,5 +1,11 @@
 import { normalizeSong, request } from "./client.ts";
-import type { ArtistInfo, ChartCity, ChartSummary, DimensionChartDetail, Song } from "./types.ts";
+import type {
+  ArtistInfo,
+  ChartCity,
+  ChartSummary,
+  DimensionChartDetail,
+  Song,
+} from "./types.ts";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
@@ -25,7 +31,10 @@ function normalizeChart(raw: unknown): ChartSummary | null {
     name: String(value.name ?? value.title ?? "音乐榜单"),
     coverUrl: String(value.coverImgUrl ?? value.cover ?? value.picUrl ?? ""),
     updateFrequency: String(
-      value.updateFrequency ?? value.updateFrequencyText ?? value.frequency ?? "",
+      value.updateFrequency ??
+        value.updateFrequencyText ??
+        value.frequency ??
+        "",
     ),
     description: String(value.description ?? value.desc ?? ""),
     trackCount: Number(value.trackCount ?? value.songCount ?? 0),
@@ -60,7 +69,9 @@ export async function getChartSongs(id: number): Promise<Song[]> {
 export async function getArtistToplist(type = 1): Promise<ArtistInfo[]> {
   const response = await request<Obj>("/toplist/artist", { type }, false);
   // 该接口实际形状为 {list: {artists: [...]}}，artists 嵌套在 list 下。
-  const value = obj(response.data ?? response.result ?? response.list ?? response);
+  const value = obj(
+    response.data ?? response.result ?? response.list ?? response,
+  );
   return firstArray(value, "artists", "list", "data", "records")
     .map((raw) => {
       const item = obj(raw);
@@ -68,8 +79,12 @@ export async function getArtistToplist(type = 1): Promise<ArtistInfo[]> {
       return {
         id: Number(item.id ?? item.artistId ?? artist.id ?? 0),
         name: String(item.name ?? item.artistName ?? artist.name ?? "未知歌手"),
-        picUrl: String(item.picUrl ?? item.img1v1Url ?? item.cover ?? artist.picUrl ?? ""),
-        alias: arr(item.alias ?? artist.alias).map(String).filter(Boolean),
+        picUrl: String(
+          item.picUrl ?? item.img1v1Url ?? item.cover ?? artist.picUrl ?? "",
+        ),
+        alias: arr(item.alias ?? artist.alias)
+          .map(String)
+          .filter(Boolean),
         briefDesc: String(item.briefDesc ?? artist.briefDesc ?? ""),
         followed: Boolean(item.followed ?? item.follow ?? false),
         musicSize: Number(item.musicSize ?? artist.musicSize ?? 0),
@@ -81,7 +96,9 @@ export async function getArtistToplist(type = 1): Promise<ArtistInfo[]> {
 
 function normalizeCity(raw: unknown, parentId?: string): ChartCity | null {
   const value = obj(raw);
-  const id = String(value.id ?? value.code ?? value.cityCode ?? value.value ?? "").trim();
+  const id = String(
+    value.id ?? value.code ?? value.cityCode ?? value.value ?? "",
+  ).trim();
   const name = String(value.name ?? value.cityName ?? value.label ?? "").trim();
   if (!id || !name) return null;
   const children = firstArray(value, "children", "sub", "items", "list")
@@ -114,13 +131,21 @@ export async function getDimensionChartDetail(
     targetType: query.targetType,
     name: String(value.name ?? value.title ?? value.chartName ?? "城市榜"),
     description: String(value.description ?? value.desc ?? ""),
-    updateTime: Number(value.updateTime ?? value.update_time ?? value.time ?? 0),
+    updateTime: Number(
+      value.updateTime ?? value.update_time ?? value.time ?? 0,
+    ),
     songCount: Number(value.songCount ?? value.trackCount ?? value.total ?? 0),
   };
 }
 
-export async function getDimensionChartSongs(query: DimensionChartQuery): Promise<Song[]> {
-  const response = await request<Obj>("/chart/song/detail", { ...query }, false);
+export async function getDimensionChartSongs(
+  query: DimensionChartQuery,
+): Promise<Song[]> {
+  const response = await request<Obj>(
+    "/chart/song/detail",
+    { ...query },
+    false,
+  );
   return firstArray(response, "songs", "list", "data", "records")
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
     .filter((song): song is Song => song !== null);

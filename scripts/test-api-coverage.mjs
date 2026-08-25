@@ -6,7 +6,10 @@ const { serveNcmApi } = require("NeteaseCloudMusicApi");
 
 const port = 3979;
 const base = `http://127.0.0.1:${port}`;
-const moduleDir = new URL("../node_modules/NeteaseCloudMusicApi/module/", import.meta.url);
+const moduleDir = new URL(
+  "../node_modules/NeteaseCloudMusicApi/module/",
+  import.meta.url,
+);
 const excluded = new Set([
   "activate_init_profile",
   "captcha_sent",
@@ -83,7 +86,11 @@ async function worker() {
   }
 }
 
-const server = await serveNcmApi({ port, host: "127.0.0.1", checkVersion: false });
+const server = await serveNcmApi({
+  port,
+  host: "127.0.0.1",
+  checkVersion: false,
+});
 try {
   await Promise.all(Array.from({ length: concurrency }, worker));
 } finally {
@@ -99,10 +106,14 @@ const report = {
   results,
 };
 await mkdir("test-results", { recursive: true });
-await writeFile("test-results/api-coverage-report.json", `${JSON.stringify(report, null, 2)}\n`);
+await writeFile(
+  "test-results/api-coverage-report.json",
+  `${JSON.stringify(report, null, 2)}\n`,
+);
 console.log(`接口路由覆盖: ${report.reachable}/${report.total} 可达`);
 if (missing.length) {
   console.log("不可达接口:");
-  for (const item of missing) console.log(`  ${item.name} (${item.path}) -> ${item.detail}`);
+  for (const item of missing)
+    console.log(`  ${item.name} (${item.path}) -> ${item.detail}`);
 }
 process.exit(missing.length ? 1 : 0);

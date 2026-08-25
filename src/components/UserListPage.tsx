@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Compass, Download, Heart, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import {
+  Compass,
+  Download,
+  Heart,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import type { PlaylistInfo } from "../api/types";
 import { useExploreStore } from "../store/exploreStore";
 import { usePlayerStore } from "../store/playerStore";
@@ -10,7 +18,10 @@ import PlaylistGrid from "./PlaylistGrid";
 import PlaylistEditorModal from "./PlaylistEditorModal";
 import ConfirmModal from "./ConfirmModal";
 import PlaylistImportModal from "./PlaylistImportModal";
-import { getUserCollectedPlaylists, getUserCreatedPlaylists } from "../api/extended";
+import {
+  getUserCollectedPlaylists,
+  getUserCreatedPlaylists,
+} from "../api/extended";
 
 export default function UserListPage() {
   const userPlaylists = usePlayerStore((s) => s.userPlaylists);
@@ -26,7 +37,9 @@ export default function UserListPage() {
   const [pendingDelete, setPendingDelete] = useState<PlaylistInfo | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [mode, setMode] = useState<"mine" | "discover">("mine");
-  const [accountListMode, setAccountListMode] = useState<"all" | "created" | "collected">("all");
+  const [accountListMode, setAccountListMode] = useState<
+    "all" | "created" | "collected"
+  >("all");
   const [accountPlaylists, setAccountPlaylists] = useState<PlaylistInfo[]>([]);
   const [accountLoading, setAccountLoading] = useState(false);
   const discovery = usePlaylistDiscoveryStore();
@@ -45,26 +58,35 @@ export default function UserListPage() {
     if (mode !== "mine" || accountListMode === "all" || !uid) return;
     let alive = true;
     setAccountLoading(true);
-    const task = accountListMode === "created"
-      ? getUserCreatedPlaylists(uid)
-      : getUserCollectedPlaylists(uid);
-    void task.then((items) => {
-      if (alive) setAccountPlaylists(items);
-    }).catch(() => {
-      if (alive) setAccountPlaylists([]);
-    }).finally(() => {
-      if (alive) setAccountLoading(false);
-    });
-    return () => { alive = false; };
+    const task =
+      accountListMode === "created"
+        ? getUserCreatedPlaylists(uid)
+        : getUserCollectedPlaylists(uid);
+    void task
+      .then((items) => {
+        if (alive) setAccountPlaylists(items);
+      })
+      .catch(() => {
+        if (alive) setAccountPlaylists([]);
+      })
+      .finally(() => {
+        if (alive) setAccountLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [accountListMode, mode, uid]);
 
-  const minePlaylists = accountListMode === "all" ? userPlaylists : accountPlaylists;
+  const minePlaylists =
+    accountListMode === "all" ? userPlaylists : accountPlaylists;
 
   return (
     <Page>
       <PageHeader
         title="我的歌单"
-        subtitle={mode === "mine" ? "管理我创建和收藏的歌单" : "按分类发现高质量歌单"}
+        subtitle={
+          mode === "mine" ? "管理我创建和收藏的歌单" : "按分类发现高质量歌单"
+        }
         actions={
           <div className="page-action-row">
             {mode === "mine" ? (
@@ -114,67 +136,99 @@ export default function UserListPage() {
       </div>
       {mode === "mine" ? (
         <>
-          <div className="playlist-view-tabs" role="tablist" aria-label="账户歌单范围">
-            <button className={accountListMode === "all" ? "active" : ""} onClick={() => setAccountListMode("all")}>全部</button>
-            <button className={accountListMode === "created" ? "active" : ""} onClick={() => setAccountListMode("created")}>我创建</button>
-            <button className={accountListMode === "collected" ? "active" : ""} onClick={() => setAccountListMode("collected")}>我收藏</button>
+          <div
+            className="playlist-view-tabs"
+            role="tablist"
+            aria-label="账户歌单范围"
+          >
+            <button
+              className={accountListMode === "all" ? "active" : ""}
+              onClick={() => setAccountListMode("all")}
+            >
+              全部
+            </button>
+            <button
+              className={accountListMode === "created" ? "active" : ""}
+              onClick={() => setAccountListMode("created")}
+            >
+              我创建
+            </button>
+            <button
+              className={accountListMode === "collected" ? "active" : ""}
+              onClick={() => setAccountListMode("collected")}
+            >
+              我收藏
+            </button>
           </div>
           <PlaylistGrid
-          playlists={minePlaylists}
-          onOpen={openPlaylist}
-          loading={accountLoading || userPlaylistsLoading}
-          emptyText="登录后查看「我创建 / 收藏的歌单」"
-          renderActions={(playlist) =>
-            playlist.creatorId === uid ? (
-              <>
+            playlists={minePlaylists}
+            onOpen={openPlaylist}
+            loading={accountLoading || userPlaylistsLoading}
+            emptyText="登录后查看「我创建 / 收藏的歌单」"
+            renderActions={(playlist) =>
+              playlist.creatorId === uid ? (
+                <>
+                  <button
+                    className="icon-action"
+                    title="编辑歌单"
+                    onClick={() => {
+                      setEditing(playlist);
+                      setEditorOpen(true);
+                    }}
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    className="icon-action danger"
+                    title="删除歌单"
+                    onClick={() => setPendingDelete(playlist)}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </>
+              ) : (
                 <button
-                  className="icon-action"
-                  title="编辑歌单"
-                  onClick={() => {
-                    setEditing(playlist);
-                    setEditorOpen(true);
-                  }}
+                  className={`icon-action ${playlist.subscribed ? "active" : ""}`}
+                  title={playlist.subscribed ? "取消收藏" : "收藏歌单"}
+                  onClick={() => void toggleSubscription(playlist)}
                 >
-                  <Pencil size={15} />
+                  <Heart
+                    size={15}
+                    fill={playlist.subscribed ? "currentColor" : "none"}
+                  />
                 </button>
-                <button
-                  className="icon-action danger"
-                  title="删除歌单"
-                  onClick={() => setPendingDelete(playlist)}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </>
-            ) : (
-              <button
-                className={`icon-action ${playlist.subscribed ? "active" : ""}`}
-                title={playlist.subscribed ? "取消收藏" : "收藏歌单"}
-                onClick={() => void toggleSubscription(playlist)}
-              >
-                <Heart
-                  size={15}
-                  fill={playlist.subscribed ? "currentColor" : "none"}
-                />
-              </button>
-            )
-          }
+              )
+            }
           />
         </>
       ) : (
         <>
           <div className="playlist-discovery-toolbar">
-            <div className="playlist-discovery-tags" role="tablist" aria-label="热门歌单标签">
-              {[{ id: 0, name: "全部" }, ...discovery.highQualityTags, ...discovery.hotTags]
-                .filter((tag, index, items) => items.findIndex((item) => item.name === tag.name) === index)
+            <div
+              className="playlist-discovery-tags"
+              role="tablist"
+              aria-label="热门歌单标签"
+            >
+              {[
+                { id: 0, name: "全部" },
+                ...discovery.highQualityTags,
+                ...discovery.hotTags,
+              ]
+                .filter(
+                  (tag, index, items) =>
+                    items.findIndex((item) => item.name === tag.name) === index,
+                )
                 .map((tag) => (
-                <button
-                  key={`${tag.id}-${tag.name}`}
-                  className={discovery.selectedTag === tag.name ? "active" : ""}
-                  onClick={() => void discovery.load(tag.name)}
-                >
-                  {tag.name}
-                </button>
-              ))}
+                  <button
+                    key={`${tag.id}-${tag.name}`}
+                    className={
+                      discovery.selectedTag === tag.name ? "active" : ""
+                    }
+                    onClick={() => void discovery.load(tag.name)}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
             </div>
             <label className="playlist-discovery-select">
               <span>分类</span>
@@ -186,7 +240,10 @@ export default function UserListPage() {
                 {discovery.categories
                   .filter((category) => category.name !== "全部")
                   .map((category) => (
-                    <option key={`${category.id}-${category.name}`} value={category.name}>
+                    <option
+                      key={`${category.id}-${category.name}`}
+                      value={category.name}
+                    >
                       {category.name}
                     </option>
                   ))}
@@ -204,7 +261,10 @@ export default function UserListPage() {
                 title={playlist.subscribed ? "取消收藏" : "收藏歌单"}
                 onClick={() => void toggleSubscription(playlist)}
               >
-                <Heart size={15} fill={playlist.subscribed ? "currentColor" : "none"} />
+                <Heart
+                  size={15}
+                  fill={playlist.subscribed ? "currentColor" : "none"}
+                />
               </button>
             )}
           />

@@ -19,7 +19,16 @@ import {
 import type { SearchMediaInfo } from "../api/types.ts";
 import { usePlayerStore } from "./playerStore.ts";
 
-export type VideoMode = "recommend" | "all" | "group" | "mv-top" | "mv-first" | "mv-all" | "mv-exclusive" | "playlist-recent" | "my-like";
+export type VideoMode =
+  | "recommend"
+  | "all"
+  | "group"
+  | "mv-top"
+  | "mv-first"
+  | "mv-all"
+  | "mv-exclusive"
+  | "playlist-recent"
+  | "my-like";
 
 interface VideoState {
   mode: VideoMode;
@@ -34,10 +43,17 @@ interface VideoState {
   load: () => Promise<void>;
   setMode: (mode: VideoMode) => Promise<void>;
   selectGroup: (id: number) => Promise<void>;
-  setMvFilters: (filters: Partial<Pick<VideoState, "mvArea" | "mvType" | "mvOrder">>) => Promise<void>;
+  setMvFilters: (
+    filters: Partial<Pick<VideoState, "mvArea" | "mvType" | "mvOrder">>,
+  ) => Promise<void>;
 }
 
-async function loadMv(mode: VideoMode, area: MvArea, type: MvType, order: MvOrder): Promise<SearchMediaInfo[]> {
+async function loadMv(
+  mode: VideoMode,
+  area: MvArea,
+  type: MvType,
+  order: MvOrder,
+): Promise<SearchMediaInfo[]> {
   if (mode === "mv-top") return getMvToplist(area);
   if (mode === "mv-first") return getMvFirst(area);
   if (mode === "mv-exclusive") return getExclusiveMvs();
@@ -74,7 +90,8 @@ export const useVideoStore = create<VideoState>()((set) => ({
     ]);
     if (isStale(token)) return;
     const groupRows = groups.status === "fulfilled" ? groups.value : [];
-    const categoryRows = categories.status === "fulfilled" ? categories.value : [];
+    const categoryRows =
+      categories.status === "fulfilled" ? categories.value : [];
     const seen = new Set<number>();
     set({
       groups: [...groupRows, ...categoryRows].filter((item) => {
@@ -92,13 +109,14 @@ export const useVideoStore = create<VideoState>()((set) => ({
     set({ mode, selectedGroup: 0, loading: true });
     try {
       const state = useVideoStore.getState();
-      const videos = mode === "recommend" || mode === "all"
-        ? await getVideoTimeline(mode)
-        : mode === "playlist-recent"
-          ? await getPlaylistRecentVideos()
-          : mode === "my-like"
-            ? await getLikedVideos()
-            : await loadMv(mode, state.mvArea, state.mvType, state.mvOrder);
+      const videos =
+        mode === "recommend" || mode === "all"
+          ? await getVideoTimeline(mode)
+          : mode === "playlist-recent"
+            ? await getPlaylistRecentVideos()
+            : mode === "my-like"
+              ? await getLikedVideos()
+              : await loadMv(mode, state.mvArea, state.mvType, state.mvOrder);
       if (isStale(token)) return;
       set({ videos, loading: false });
     } catch {
@@ -125,7 +143,12 @@ export const useVideoStore = create<VideoState>()((set) => ({
     const next = { ...useVideoStore.getState(), ...filters };
     set({ ...filters, loading: true });
     try {
-      const videos = await loadMv(next.mode, next.mvArea, next.mvType, next.mvOrder);
+      const videos = await loadMv(
+        next.mode,
+        next.mvArea,
+        next.mvType,
+        next.mvOrder,
+      );
       if (isStale(token)) return;
       set({ videos, loading: false });
     } catch {

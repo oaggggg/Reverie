@@ -56,19 +56,52 @@ export default function ChartPage() {
 
   return (
     <Page>
-      <PageHeader
-        title="排行榜"
-        subtitle="官方榜单 · 每天更新"
-      />
+      <PageHeader title="排行榜" subtitle="官方榜单 · 每天更新" />
       {selectedChart ? (
         <section className="chart-detail">
           <div className="chart-detail-head">
-            <button className="icon-button" title="返回榜单目录" onClick={() => void select(0)}><ArrowLeft size={17} /></button>
-            {selectedChart.coverUrl ? <img src={sizedImage(selectedChart.coverUrl, 180)} alt="" /> : null}
-            <div><h2>{selectedChart.name}</h2><p>{selectedChart.description || selectedChart.updateFrequency || "官方榜单"}</p></div>
-            <button className="btn primary" onClick={() => detailSongs.length && playSong(detailSongs[0]!, detailSongs)}><Play size={15} /> 播放全部</button>
+            <button
+              className="icon-button"
+              title="返回榜单目录"
+              onClick={() => void select(0)}
+            >
+              <ArrowLeft size={17} />
+            </button>
+            {selectedChart.coverUrl ? (
+              <img src={sizedImage(selectedChart.coverUrl, 180)} alt="" />
+            ) : null}
+            <div>
+              <h2>{selectedChart.name}</h2>
+              <p>
+                {selectedChart.description ||
+                  selectedChart.updateFrequency ||
+                  "官方榜单"}
+              </p>
+            </div>
+            <button
+              className="btn primary"
+              onClick={() =>
+                detailSongs.length && playSong(detailSongs[0]!, detailSongs)
+              }
+            >
+              <Play size={15} /> 播放全部
+            </button>
           </div>
-          {songsLoading ? <div className="loading-hint">正在加载榜单歌曲…</div> : detailSongs.length ? <ol className="chart-detail-list">{detailSongs.map((song, index) => <li key={song.id} onClick={() => playSong(song, detailSongs)}><b>{index + 1}</b><span>{song.name}</span><small>{song.artists}</small></li>)}</ol> : <div className="empty">暂无歌曲</div>}
+          {songsLoading ? (
+            <div className="loading-hint">正在加载榜单歌曲…</div>
+          ) : detailSongs.length ? (
+            <ol className="chart-detail-list">
+              {detailSongs.map((song, index) => (
+                <li key={song.id} onClick={() => playSong(song, detailSongs)}>
+                  <b>{index + 1}</b>
+                  <span>{song.name}</span>
+                  <small>{song.artists}</small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="empty">暂无歌曲</div>
+          )}
         </section>
       ) : loading && !charts.length ? (
         <div className="loading-hint">正在加载榜单…</div>
@@ -78,14 +111,30 @@ export default function ChartPage() {
             const songs = cardSongs[chart.id] ?? [];
             const isLoading = cardLoading[chart.id] ?? false;
             return (
-              <section className="chart-card" key={chart.id} title={chart.description || chart.name}>
+              <section
+                className="chart-card"
+                key={chart.id}
+                title={chart.description || chart.name}
+              >
                 <header className="chart-card-head">
                   {chart.coverUrl ? (
-                    <button className="chart-cover-button" title="查看详细榜单" onClick={() => void select(chart.id)}><img src={sizedImage(chart.coverUrl, 160)} alt="" loading="lazy" /></button>
+                    <button
+                      className="chart-cover-button"
+                      title="查看详细榜单"
+                      onClick={() => void select(chart.id)}
+                    >
+                      <img
+                        src={sizedImage(chart.coverUrl, 160)}
+                        alt=""
+                        loading="lazy"
+                      />
+                    </button>
                   ) : null}
                   <div className="chart-card-title">
                     <h3>{chart.name}</h3>
-                    {chart.updateFrequency ? <small>{chart.updateFrequency}</small> : null}
+                    {chart.updateFrequency ? (
+                      <small>{chart.updateFrequency}</small>
+                    ) : null}
                   </div>
                   <button
                     className="icon-btn"

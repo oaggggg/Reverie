@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
-import {
-  PLAYBACK_QUALITY_LABELS,
-  usePlayerStore,
-} from "../store/playerStore";
+import { PLAYBACK_QUALITY_LABELS, usePlayerStore } from "../store/playerStore";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
-import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
+import {
+  captureInteractionOrigin,
+  useOriginTransition,
+} from "../utils/originTransition";
 import { preloadNowPlayingAssets } from "../utils/nowPlayingPreload";
 import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
@@ -62,9 +62,21 @@ export default function PlayerBar() {
   const queueIndex = usePlayerStore((s) => s.index);
   const playQueueAt = usePlayerStore((s) => s.playQueueAt);
   const menuRef = useRef<HTMLDivElement>(null);
-  const qualityTransition = useOriginTransition<HTMLDivElement>(qualityOpen, "player-quality", 160);
-  const queueTransition = useOriginTransition<HTMLDivElement>(queueOpen, "player-queue", 180);
-  const volumeTransition = useOriginTransition<HTMLDivElement>(volumeOpen, "player-volume", 180);
+  const qualityTransition = useOriginTransition<HTMLDivElement>(
+    qualityOpen,
+    "player-quality",
+    160,
+  );
+  const queueTransition = useOriginTransition<HTMLDivElement>(
+    queueOpen,
+    "player-queue",
+    180,
+  );
+  const volumeTransition = useOriginTransition<HTMLDivElement>(
+    volumeOpen,
+    "player-volume",
+    180,
+  );
   const volWrapRef = useRef<HTMLDivElement | null>(null);
 
   // React 对 wheel 采用 passive 监听，onWheel 里 preventDefault 无效；
@@ -75,9 +87,7 @@ export default function PlayerBar() {
     const handler = (event: WheelEvent) => {
       event.preventDefault();
       const s = usePlayerStore.getState();
-      s.setVolume(
-        (s.muted ? 0 : s.volume) + (event.deltaY < 0 ? 0.02 : -0.02),
-      );
+      s.setVolume((s.muted ? 0 : s.volume) + (event.deltaY < 0 ? 0.02 : -0.02));
     };
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
@@ -96,7 +106,9 @@ export default function PlayerBar() {
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
   const playbackQuality = usePlayerStore((s) => s.playbackQuality);
-  const availablePlaybackQualities = usePlayerStore((s) => s.availablePlaybackQualities);
+  const availablePlaybackQualities = usePlayerStore(
+    (s) => s.availablePlaybackQualities,
+  );
   const qualitySwitching = usePlayerStore((s) => s.qualitySwitching);
 
   const togglePlay = usePlayerStore((s) => s.togglePlay);
@@ -120,14 +132,21 @@ export default function PlayerBar() {
     setRemoteLiked(null);
     if (!currentSong) return;
     void getDynamicSongCover(currentSong.id)
-      .then((url) => { if (alive && url) setDynamicCover(url); })
+      .then((url) => {
+        if (alive && url) setDynamicCover(url);
+      })
       .catch(() => {});
     if (loggedIn) {
       void getSongLikeStatus([currentSong.id])
-        .then((status) => { if (alive && currentSong.id in status) setRemoteLiked(status[currentSong.id]!); })
+        .then((status) => {
+          if (alive && currentSong.id in status)
+            setRemoteLiked(status[currentSong.id]!);
+        })
         .catch(() => {});
     }
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [currentSong?.id, loggedIn]);
 
   useEffect(() => {
@@ -177,7 +196,9 @@ export default function PlayerBar() {
   }, []);
 
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
-  const liked = currentSong ? remoteLiked ?? likedIds.includes(currentSong.id) : false;
+  const liked = currentSong
+    ? (remoteLiked ?? likedIds.includes(currentSong.id))
+    : false;
   const coverUrl = dynamicCover || currentSong?.picUrl || "";
   const showCover = Boolean(
     currentSong && coverUrl && failedCover !== coverUrl,
@@ -185,266 +206,316 @@ export default function PlayerBar() {
 
   return (
     <>
-    <footer className="player-bar">
-      {/* progress row inside the pill, with time at both ends */}
-      <div className="pb-progress">
-        <span className="pb-time">{formatTime(progress)}</span>
-        <input
-          className="slider pb-slider"
-          type="range"
-          min={0}
-          max={duration || 0}
-          value={progress}
-          style={{ ["--val" as never]: `${pct}%` }}
-          onChange={(e) => seek(Number(e.target.value))}
-        />
-        <span className="pb-time">{formatTime(duration)}</span>
-      </div>
-
-      <div className="pb-row">
-        <div className="pb-left">
-          <div
-            className={`pb-cover ${playing ? "spinning" : "paused"}`}
-            onPointerEnter={() => {
-              preloadNowPlayingAssets(
-                currentSong?.picUrl,
-                coverQuality !== "image",
-              );
-            }}
-            onClick={(event) => {
-              captureCoverOrigin(event.currentTarget);
-              setPage("nowplaying");
-            }}
-            title="打开播放页"
-            style={{ cursor: "pointer" }}
-          >
-            {showCover && currentSong ? (
-              <img
-                key={currentSong.id}
-                src={sizedImage(coverUrl, 120)}
-                alt=""
-                onError={() => setFailedCover(coverUrl)}
-              />
-            ) : (
-              <div className="pb-cover-ph">
-                <Disc3 size={21} />
-              </div>
-            )}
-          </div>
-          <div className="pb-info">
-            <div className="t">
-              <span className="pb-title">{currentSong?.name ?? "未在播放"}</span>
-              {currentSong?.fee === 1 && <span className="vip-badge">VIP</span>}
-              {previewEnd !== null && (
-                <span className="preview-badge" title="当前为 60 秒试听">
-                  试听
-                </span>
-              )}
-            </div>
-            <div className="a">
-              {currentSong?.artists ?? "选择一首歌开始播放"}
-            </div>
-          </div>
+      <footer className="player-bar">
+        {/* progress row inside the pill, with time at both ends */}
+        <div className="pb-progress">
+          <span className="pb-time">{formatTime(progress)}</span>
+          <input
+            className="slider pb-slider"
+            type="range"
+            min={0}
+            max={duration || 0}
+            value={progress}
+            style={{ ["--val" as never]: `${pct}%` }}
+            onChange={(e) => seek(Number(e.target.value))}
+          />
+          <span className="pb-time">{formatTime(duration)}</span>
         </div>
 
-        <div className="pb-controls">
-          <button className="icon-btn" onClick={prev} title="上一首">
-            <SkipBack size={19} />
-          </button>
-          <button
-            className="icon-btn primary"
-            onClick={togglePlay}
-            title={playing ? "暂停" : "播放"}
-          >
-            {loadingUrl ? (
-              <span className="spin-dot" />
-            ) : playing ? (
-              <Pause size={19} fill="currentColor" />
-            ) : (
-              <Play size={19} fill="currentColor" />
-            )}
-          </button>
-          <button className="icon-btn" onClick={next} title="下一首">
-            <SkipForward size={19} />
-          </button>
-          <button
-            className="icon-btn active"
-            onClick={cyclePlayMode}
-            title={MODE_LABEL[playMode]}
-          >
-            <ModeIcon mode={playMode} />
-          </button>
-        </div>
-
-        <div className="pb-right" ref={menuRef}>
-          <div className="pb-queue-wrap">
-            <button className={`icon-btn ${queueOpen ? "active" : ""}`} title="播放列表" aria-expanded={queueOpen} onClick={(event) => {
-              captureInteractionOrigin("player-queue", event.currentTarget);
-              setQueueOpen((open) => !open);
-              setQualityOpen(false);
-              setShareOpen(false);
-              setShowPlayerComments(false);
-            }}>
-              <ListMusic size={17} />
-            </button>
-            {queueTransition.rendered && <div ref={queueTransition.surfaceRef} className={`pb-queue-menu ${queueTransition.surfaceClassName}`} role="dialog" aria-label="播放列表">
-              <div className="pb-queue-head">
-                <strong>播放列表</strong>
-                <span>{queue.length} 首</span>
-              </div>
-              <div className="pb-queue-list">
-                {queue.length
-                  ? queue.map((song, index) => (
-                      <button
-                        key={`${song.id}-${index}`}
-                        className={index === queueIndex ? "active" : ""}
-                        onClick={() => {
-                          void playQueueAt(index);
-                          setQueueOpen(false);
-                        }}
-                      >
-                        <span className="pb-queue-index">{index + 1}</span>
-                        <span className="pb-queue-title">{song.name}</span>
-                        <small>{song.artists}</small>
-                      </button>
-                    ))
-                  : <div className="empty">暂无播放歌曲</div>}
-              </div>
-            </div>}
-          </div>
-          <button
-            className={`icon-btn ${queueSource === "fm" ? "active" : ""}`}
-            onClick={() => void loadPersonalFm()}
-            title="私人漫游"
-          >
-            <Radio size={17} />
-          </button>
-          <div className="pb-quality-wrap">
-            <button
-              className={`pb-quality-btn ${qualityOpen ? "active" : ""}`}
-              onClick={(event) => {
-                captureInteractionOrigin("player-quality", event.currentTarget);
-                setQualityOpen((open) => !open);
-                setQueueOpen(false);
-                setShareOpen(false);
-                setShowPlayerComments(false);
+        <div className="pb-row">
+          <div className="pb-left">
+            <div
+              className={`pb-cover ${playing ? "spinning" : "paused"}`}
+              onPointerEnter={() => {
+                preloadNowPlayingAssets(
+                  currentSong?.picUrl,
+                  coverQuality !== "image",
+                );
               }}
-              title="音质"
-              aria-haspopup="menu"
-              aria-expanded={qualityOpen}
-              aria-busy={qualitySwitching}
+              onClick={(event) => {
+                captureCoverOrigin(event.currentTarget);
+                setPage("nowplaying");
+              }}
+              title="打开播放页"
+              style={{ cursor: "pointer" }}
             >
-              <span>{PLAYBACK_QUALITY_LABELS[playbackQuality]}</span>
-            </button>
-            {qualityTransition.rendered && (
-              <div ref={qualityTransition.surfaceRef} className={`pb-quality-menu ${qualityTransition.surfaceClassName}`} role="menu">
-                {availablePlaybackQualities.map((quality) => (
-                  <button
-                    key={quality}
-                    className={quality === playbackQuality ? "active" : ""}
-                    role="menuitemradio"
-                    aria-checked={quality === playbackQuality}
-                    onClick={() => {
-                      setQualityOpen(false);
-                      void setPlaybackQuality(quality);
-                    }}
-                  >
-                    <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
-                    {quality === playbackQuality && (
-                      <span aria-hidden="true">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            className={`icon-btn ${showPlayerComments ? "active" : ""}`}
-            onPointerEnter={() => void import("./PlayerCommentsDrawer")}
-            onClick={(event) => {
-              if (!currentSong) {
-                toast("请先播放一首歌曲", "info");
-                return;
-              }
-              captureInteractionOrigin("player-comments", event.currentTarget);
-              setQueueOpen(false);
-              setQualityOpen(false);
-              setShareOpen(false);
-              setShowPlayerComments(!showPlayerComments);
-            }}
-            title="歌曲评论"
-          >
-            <MessageCircle size={17} />
-          </button>
-          <button
-            className={`icon-btn ${shareOpen ? "active" : ""}`}
-            onClick={(event) => {
-              if (!currentSong) { toast("请先播放一首歌曲", "info"); return; }
-              captureInteractionOrigin("player-share", event.currentTarget);
-              setQueueOpen(false);
-              setQualityOpen(false);
-              setShowPlayerComments(false);
-              setShareOpen((open) => !open);
-            }}
-            title="分享歌曲"
-          >
-            <Share2 size={17} />
-          </button>
-          <button
-            className={`icon-btn ${liked ? "active" : ""}`}
-            onClick={() => {
-              setRemoteLiked(!liked);
-              void toggleLike().then(() => setRemoteLiked(null));
-            }}
-            title={liked ? "取消喜欢" : "喜欢"}
-            style={liked ? { color: "#ec4141" } : undefined}
-          >
-            <Heart size={18} fill={liked ? "currentColor" : "none"} />
-          </button>
-          <div
-            className="vol-wrap"
-            ref={volWrapRef}
-            onPointerEnter={(event) => {
-              captureInteractionOrigin("player-volume", event.currentTarget.querySelector("button") ?? event.currentTarget);
-              setVolumeOpen(true);
-            }}
-            onFocus={(event) => {
-              captureInteractionOrigin("player-volume", event.currentTarget.querySelector("button") ?? event.currentTarget);
-              setVolumeOpen(true);
-            }}
-            onPointerLeave={() => setVolumeOpen(false)}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setVolumeOpen(false);
-            }}
-          >
-            <button className="icon-btn" onClick={toggleMute} title="静音">
-              {muted || volume === 0 ? (
-                <VolumeX size={18} />
+              {showCover && currentSong ? (
+                <img
+                  key={currentSong.id}
+                  src={sizedImage(coverUrl, 120)}
+                  alt=""
+                  onError={() => setFailedCover(coverUrl)}
+                />
               ) : (
-                <Volume2 size={18} />
+                <div className="pb-cover-ph">
+                  <Disc3 size={21} />
+                </div>
+              )}
+            </div>
+            <div className="pb-info">
+              <div className="t">
+                <span className="pb-title">
+                  {currentSong?.name ?? "未在播放"}
+                </span>
+                {currentSong?.fee === 1 && (
+                  <span className="vip-badge">VIP</span>
+                )}
+                {previewEnd !== null && (
+                  <span className="preview-badge" title="当前为 60 秒试听">
+                    试听
+                  </span>
+                )}
+              </div>
+              <div className="a">
+                {currentSong?.artists ?? "选择一首歌开始播放"}
+              </div>
+            </div>
+          </div>
+
+          <div className="pb-controls">
+            <button className="icon-btn" onClick={prev} title="上一首">
+              <SkipBack size={19} />
+            </button>
+            <button
+              className="icon-btn primary"
+              onClick={togglePlay}
+              title={playing ? "暂停" : "播放"}
+            >
+              {loadingUrl ? (
+                <span className="spin-dot" />
+              ) : playing ? (
+                <Pause size={19} fill="currentColor" />
+              ) : (
+                <Play size={19} fill="currentColor" />
               )}
             </button>
-            {volumeTransition.rendered && <div ref={volumeTransition.surfaceRef} className={`volume-popover ${volumeTransition.surfaceClassName}`} aria-label="音量调节">
-              <span className="volume-value">
-                {Math.round((muted ? 0 : volume) * 100)}
-              </span>
-              <input
-                className="slider volume-slider"
-                type="range"
-                min={0}
-                max={100}
-                value={Math.round((muted ? 0 : volume) * 100)}
-                style={{
-                  ["--val" as never]: `${(muted ? 0 : volume) * 100}%`,
+            <button className="icon-btn" onClick={next} title="下一首">
+              <SkipForward size={19} />
+            </button>
+            <button
+              className="icon-btn active"
+              onClick={cyclePlayMode}
+              title={MODE_LABEL[playMode]}
+            >
+              <ModeIcon mode={playMode} />
+            </button>
+          </div>
+
+          <div className="pb-right" ref={menuRef}>
+            <div className="pb-queue-wrap">
+              <button
+                className={`icon-btn ${queueOpen ? "active" : ""}`}
+                title="播放列表"
+                aria-expanded={queueOpen}
+                onClick={(event) => {
+                  captureInteractionOrigin("player-queue", event.currentTarget);
+                  setQueueOpen((open) => !open);
+                  setQualityOpen(false);
+                  setShareOpen(false);
+                  setShowPlayerComments(false);
                 }}
-                onChange={(e) => setVolume(Number(e.target.value) / 100)}
-              />
-            </div>}
+              >
+                <ListMusic size={17} />
+              </button>
+              {queueTransition.rendered && (
+                <div
+                  ref={queueTransition.surfaceRef}
+                  className={`pb-queue-menu ${queueTransition.surfaceClassName}`}
+                  role="dialog"
+                  aria-label="播放列表"
+                >
+                  <div className="pb-queue-head">
+                    <strong>播放列表</strong>
+                    <span>{queue.length} 首</span>
+                  </div>
+                  <div className="pb-queue-list">
+                    {queue.length ? (
+                      queue.map((song, index) => (
+                        <button
+                          key={`${song.id}-${index}`}
+                          className={index === queueIndex ? "active" : ""}
+                          onClick={() => {
+                            void playQueueAt(index);
+                            setQueueOpen(false);
+                          }}
+                        >
+                          <span className="pb-queue-index">{index + 1}</span>
+                          <span className="pb-queue-title">{song.name}</span>
+                          <small>{song.artists}</small>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="empty">暂无播放歌曲</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              className={`icon-btn ${queueSource === "fm" ? "active" : ""}`}
+              onClick={() => void loadPersonalFm()}
+              title="私人漫游"
+            >
+              <Radio size={17} />
+            </button>
+            <div className="pb-quality-wrap">
+              <button
+                className={`pb-quality-btn ${qualityOpen ? "active" : ""}`}
+                onClick={(event) => {
+                  captureInteractionOrigin(
+                    "player-quality",
+                    event.currentTarget,
+                  );
+                  setQualityOpen((open) => !open);
+                  setQueueOpen(false);
+                  setShareOpen(false);
+                  setShowPlayerComments(false);
+                }}
+                title="音质"
+                aria-haspopup="menu"
+                aria-expanded={qualityOpen}
+                aria-busy={qualitySwitching}
+              >
+                <span>{PLAYBACK_QUALITY_LABELS[playbackQuality]}</span>
+              </button>
+              {qualityTransition.rendered && (
+                <div
+                  ref={qualityTransition.surfaceRef}
+                  className={`pb-quality-menu ${qualityTransition.surfaceClassName}`}
+                  role="menu"
+                >
+                  {availablePlaybackQualities.map((quality) => (
+                    <button
+                      key={quality}
+                      className={quality === playbackQuality ? "active" : ""}
+                      role="menuitemradio"
+                      aria-checked={quality === playbackQuality}
+                      onClick={() => {
+                        setQualityOpen(false);
+                        void setPlaybackQuality(quality);
+                      }}
+                    >
+                      <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
+                      {quality === playbackQuality && (
+                        <span aria-hidden="true">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              className={`icon-btn ${showPlayerComments ? "active" : ""}`}
+              onPointerEnter={() => void import("./PlayerCommentsDrawer")}
+              onClick={(event) => {
+                if (!currentSong) {
+                  toast("请先播放一首歌曲", "info");
+                  return;
+                }
+                captureInteractionOrigin(
+                  "player-comments",
+                  event.currentTarget,
+                );
+                setQueueOpen(false);
+                setQualityOpen(false);
+                setShareOpen(false);
+                setShowPlayerComments(!showPlayerComments);
+              }}
+              title="歌曲评论"
+            >
+              <MessageCircle size={17} />
+            </button>
+            <button
+              className={`icon-btn ${shareOpen ? "active" : ""}`}
+              onClick={(event) => {
+                if (!currentSong) {
+                  toast("请先播放一首歌曲", "info");
+                  return;
+                }
+                captureInteractionOrigin("player-share", event.currentTarget);
+                setQueueOpen(false);
+                setQualityOpen(false);
+                setShowPlayerComments(false);
+                setShareOpen((open) => !open);
+              }}
+              title="分享歌曲"
+            >
+              <Share2 size={17} />
+            </button>
+            <button
+              className={`icon-btn ${liked ? "active" : ""}`}
+              onClick={() => {
+                setRemoteLiked(!liked);
+                void toggleLike().then(() => setRemoteLiked(null));
+              }}
+              title={liked ? "取消喜欢" : "喜欢"}
+              style={liked ? { color: "#ec4141" } : undefined}
+            >
+              <Heart size={18} fill={liked ? "currentColor" : "none"} />
+            </button>
+            <div
+              className="vol-wrap"
+              ref={volWrapRef}
+              onPointerEnter={(event) => {
+                captureInteractionOrigin(
+                  "player-volume",
+                  event.currentTarget.querySelector("button") ??
+                    event.currentTarget,
+                );
+                setVolumeOpen(true);
+              }}
+              onFocus={(event) => {
+                captureInteractionOrigin(
+                  "player-volume",
+                  event.currentTarget.querySelector("button") ??
+                    event.currentTarget,
+                );
+                setVolumeOpen(true);
+              }}
+              onPointerLeave={() => setVolumeOpen(false)}
+              onBlur={(event) => {
+                if (
+                  !event.currentTarget.contains(
+                    event.relatedTarget as Node | null,
+                  )
+                )
+                  setVolumeOpen(false);
+              }}
+            >
+              <button className="icon-btn" onClick={toggleMute} title="静音">
+                {muted || volume === 0 ? (
+                  <VolumeX size={18} />
+                ) : (
+                  <Volume2 size={18} />
+                )}
+              </button>
+              {volumeTransition.rendered && (
+                <div
+                  ref={volumeTransition.surfaceRef}
+                  className={`volume-popover ${volumeTransition.surfaceClassName}`}
+                  aria-label="音量调节"
+                >
+                  <span className="volume-value">
+                    {Math.round((muted ? 0 : volume) * 100)}
+                  </span>
+                  <input
+                    className="slider volume-slider"
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round((muted ? 0 : volume) * 100)}
+                    style={{
+                      ["--val" as never]: `${(muted ? 0 : volume) * 100}%`,
+                    }}
+                    onChange={(e) => setVolume(Number(e.target.value) / 100)}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <style>{`
+        <style>{`
         .spin-dot {
           width: 16px; height: 16px; border-radius: 50%;
           border: 2px solid rgba(255,255,255,0.35);
@@ -452,15 +523,15 @@ export default function PlayerBar() {
           animation: spin var(--motion-spinner) linear infinite;
         }
       `}</style>
-    </footer>
+      </footer>
 
-    {/* 弹窗必须渲染在 player-bar 之外：footer 的 transform/contain 会改变
+      {/* 弹窗必须渲染在 player-bar 之外：footer 的 transform/contain 会改变
         fixed 元素的包含块，导致弹窗相对播放条而非视口定位。 */}
-    <ShareResourceDialog
-      song={currentSong}
-      open={shareOpen}
-      onClose={() => setShareOpen(false)}
-    />
+      <ShareResourceDialog
+        song={currentSong}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+      />
     </>
   );
 }

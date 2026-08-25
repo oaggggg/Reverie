@@ -7,7 +7,12 @@ const obj = (value: unknown): Obj =>
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 function rows(response: Obj, ...keys: string[]): unknown[] {
-  const candidates = [response, obj(response.data), obj(response.result), obj(response.albums)];
+  const candidates = [
+    response,
+    obj(response.data),
+    obj(response.result),
+    obj(response.albums),
+  ];
   for (const candidate of candidates) {
     for (const key of keys) {
       if (Array.isArray(candidate[key])) return candidate[key] as unknown[];
@@ -27,8 +32,13 @@ function normalizeAlbum(raw: unknown): AlbumInfo | null {
     id,
     name: String(value.name ?? "未知专辑"),
     picUrl: String(value.picUrl ?? value.blurPicUrl ?? value.coverImgUrl ?? ""),
-    artistNames: list.map((item) => String(item.name ?? "")).filter(Boolean).join(" / "),
-    artistIds: list.map((item) => Number(item.id ?? 0)).filter((item) => item > 0),
+    artistNames: list
+      .map((item) => String(item.name ?? ""))
+      .filter(Boolean)
+      .join(" / "),
+    artistIds: list
+      .map((item) => Number(item.id ?? 0))
+      .filter((item) => item > 0),
     description: String(value.description ?? value.desc ?? ""),
     publishTime: Number(value.publishTime ?? value.publishTimeMs ?? 0),
     size: Number(value.size ?? value.trackCount ?? 0),
@@ -54,7 +64,9 @@ function normalizeArtist(raw: unknown): ArtistInfo | null {
 
 function unique<T extends { id: number }>(items: T[]): T[] {
   const seen = new Set<number>();
-  return items.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
+  return items.filter((item) =>
+    seen.has(item.id) ? false : (seen.add(item.id), true),
+  );
 }
 
 export type AlbumArea = "ALL" | "ZH" | "EA" | "KR" | "JP";
@@ -64,14 +76,24 @@ export async function getAlbumDirectory(
   offset = 0,
   limit = 30,
 ): Promise<{ albums: AlbumInfo[]; more: boolean }> {
-  const response = await request<Obj>("/album/new", { area, offset, limit }, false);
+  const response = await request<Obj>(
+    "/album/new",
+    { area, offset, limit },
+    false,
+  );
   const albums = unique(
     rows(response, "albums", "data", "list")
       .map(normalizeAlbum)
       .filter((item): item is AlbumInfo => item !== null),
   );
-  const total = Number(response.total ?? response.count ?? obj(response.data).total ?? 0);
-  return { albums, more: Boolean(response.more) || (total > 0 && offset + albums.length < total) };
+  const total = Number(
+    response.total ?? response.count ?? obj(response.data).total ?? 0,
+  );
+  return {
+    albums,
+    more:
+      Boolean(response.more) || (total > 0 && offset + albums.length < total),
+  };
 }
 
 export async function getNewestAlbums(): Promise<AlbumInfo[]> {
@@ -83,8 +105,16 @@ export async function getNewestAlbums(): Promise<AlbumInfo[]> {
   );
 }
 
-export async function getTopAlbums(area: AlbumArea = "ALL", offset = 0, limit = 30): Promise<AlbumInfo[]> {
-  const response = await request<Obj>("/top/album", { area, offset, limit }, false);
+export async function getTopAlbums(
+  area: AlbumArea = "ALL",
+  offset = 0,
+  limit = 30,
+): Promise<AlbumInfo[]> {
+  const response = await request<Obj>(
+    "/top/album",
+    { area, offset, limit },
+    false,
+  );
   return unique(
     rows(response, "albums", "data", "list")
       .map(normalizeAlbum)
@@ -92,9 +122,15 @@ export async function getTopAlbums(area: AlbumArea = "ALL", offset = 0, limit = 
   );
 }
 
-export async function getAlbumPrivileges(id: number): Promise<AlbumPrivilege[]> {
+export async function getAlbumPrivileges(
+  id: number,
+): Promise<AlbumPrivilege[]> {
   if (!id) return [];
-  const response = await cachedRequest<Obj>("/album/privilege", { id }, 10 * 60 * 1000);
+  const response = await cachedRequest<Obj>(
+    "/album/privilege",
+    { id },
+    10 * 60 * 1000,
+  );
   const value = obj(response.data ?? response.result ?? response);
   const rows = arr(value.data ?? value.list ?? response.data ?? response);
   return rows
@@ -122,17 +158,30 @@ export async function getArtistDirectory(
   offset = 0,
   limit = 30,
 ): Promise<{ artists: ArtistInfo[]; more: boolean }> {
-  const response = await request<Obj>("/artist/list", { area, type, initial, offset, limit }, false);
+  const response = await request<Obj>(
+    "/artist/list",
+    { area, type, initial, offset, limit },
+    false,
+  );
   const artists = unique(
     rows(response, "artists", "data", "list")
       .map(normalizeArtist)
       .filter((item): item is ArtistInfo => item !== null),
   );
-  const total = Number(response.total ?? response.count ?? obj(response.data).total ?? 0);
-  return { artists, more: Boolean(response.more) || (total > 0 && offset + artists.length < total) };
+  const total = Number(
+    response.total ?? response.count ?? obj(response.data).total ?? 0,
+  );
+  return {
+    artists,
+    more:
+      Boolean(response.more) || (total > 0 && offset + artists.length < total),
+  };
 }
 
-export async function getTopArtists(offset = 0, limit = 50): Promise<ArtistInfo[]> {
+export async function getTopArtists(
+  offset = 0,
+  limit = 50,
+): Promise<ArtistInfo[]> {
   const response = await request<Obj>("/top/artists", { offset, limit }, false);
   return unique(
     rows(response, "artists", "data", "list")

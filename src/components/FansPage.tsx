@@ -54,9 +54,22 @@ export default function FansPage() {
                 </span>
               </div>
               <div className="fans-summary">
-                <div><span>粉丝</span><strong>{threshold.fanCount} / {threshold.requiredFans || "—"}</strong></div>
-                <div><span>播放</span><strong>{threshold.playCount} / {threshold.requiredPlayCount || "—"}</strong></div>
-                <div><span>等级</span><strong>Lv.{threshold.level}</strong></div>
+                <div>
+                  <span>粉丝</span>
+                  <strong>
+                    {threshold.fanCount} / {threshold.requiredFans || "—"}
+                  </strong>
+                </div>
+                <div>
+                  <span>播放</span>
+                  <strong>
+                    {threshold.playCount} / {threshold.requiredPlayCount || "—"}
+                  </strong>
+                </div>
+                <div>
+                  <span>等级</span>
+                  <strong>Lv.{threshold.level}</strong>
+                </div>
               </div>
               {threshold.description && <p>{threshold.description}</p>}
             </section>

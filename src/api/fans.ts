@@ -29,12 +29,21 @@ export async function getInfluencerThreshold(): Promise<InfluencerThreshold> {
   const response = await request<Obj>("/threshold/detail/get", {}, false);
   const value = obj(response.data ?? response.result ?? response);
   return {
-    eligible: Boolean(value.eligible ?? value.qualified ?? value.canApply ?? value.status),
+    eligible: Boolean(
+      value.eligible ?? value.qualified ?? value.canApply ?? value.status,
+    ),
     level: Number(value.level ?? value.creatorLevel ?? 0),
     fanCount: Number(value.fanCount ?? value.fans ?? value.currentFans ?? 0),
-    requiredFans: Number(value.requiredFans ?? value.fansThreshold ?? value.needFans ?? 0),
+    requiredFans: Number(
+      value.requiredFans ?? value.fansThreshold ?? value.needFans ?? 0,
+    ),
     playCount: Number(value.playCount ?? value.currentPlayCount ?? 0),
-    requiredPlayCount: Number(value.requiredPlayCount ?? value.playThreshold ?? value.needPlayCount ?? 0),
+    requiredPlayCount: Number(
+      value.requiredPlayCount ??
+        value.playThreshold ??
+        value.needPlayCount ??
+        0,
+    ),
     description: String(value.description ?? value.desc ?? value.message ?? ""),
   };
 }

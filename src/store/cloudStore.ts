@@ -32,7 +32,9 @@ interface CloudState {
   remove: (song: CloudSong) => Promise<boolean>;
   match: (song: CloudSong, adjustSongId: number) => Promise<boolean>;
   upload: (file: File) => Promise<boolean>;
-  importSong: (input: Parameters<typeof importCloudSong>[0]) => Promise<boolean>;
+  importSong: (
+    input: Parameters<typeof importCloudSong>[0],
+  ) => Promise<boolean>;
   openDetail: (song: CloudSong) => Promise<void>;
   closeDetail: () => void;
   resetUpload: () => void;

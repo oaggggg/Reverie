@@ -31,7 +31,9 @@ function formatDate(timestamp: number) {
 export default function ProfilePage() {
   const [brokenAvatar, setBrokenAvatar] = useState("");
   const [brokenBackground, setBrokenBackground] = useState("");
-  const [followDialog, setFollowDialog] = useState<"follows" | "followers" | null>(null);
+  const [followDialog, setFollowDialog] = useState<
+    "follows" | "followers" | null
+  >(null);
   const detail = useProfileStore((state) => state.detail);
   const level = useProfileStore((state) => state.level);
   const subcount = useProfileStore((state) => state.subcount);
@@ -188,11 +190,21 @@ export default function ProfilePage() {
           </div>
           <div className="profile-medal-grid">
             {medals.map((medal) => (
-              <article className="profile-medal" key={medal.id} title={medal.description || medal.name}>
+              <article
+                className="profile-medal"
+                key={medal.id}
+                title={medal.description || medal.name}
+              >
                 {medal.iconUrl ? (
-                  <img src={sizedImage(medal.iconUrl, 120)} alt="" loading="lazy" />
+                  <img
+                    src={sizedImage(medal.iconUrl, 120)}
+                    alt=""
+                    loading="lazy"
+                  />
                 ) : (
-                  <span className="profile-medal-placeholder"><Disc3 size={18} /></span>
+                  <span className="profile-medal-placeholder">
+                    <Disc3 size={18} />
+                  </span>
                 )}
                 <strong>{medal.name}</strong>
                 {medal.level > 0 && <small>Lv.{medal.level}</small>}
@@ -212,13 +224,21 @@ export default function ProfilePage() {
             {createdRadios.map((radio) => (
               <button key={radio.id} onClick={() => void openRadio(radio.id)}>
                 {radio.picUrl ? (
-                  <img src={sizedImage(radio.picUrl, 120)} alt="" loading="lazy" />
+                  <img
+                    src={sizedImage(radio.picUrl, 120)}
+                    alt=""
+                    loading="lazy"
+                  />
                 ) : (
-                  <span className="profile-radio-placeholder"><Podcast size={18} /></span>
+                  <span className="profile-radio-placeholder">
+                    <Podcast size={18} />
+                  </span>
                 )}
                 <span>
                   <strong>{radio.name}</strong>
-                  <small>{radio.programCount} 期 · {radio.subscriberCount} 订阅</small>
+                  <small>
+                    {radio.programCount} 期 · {radio.subscriberCount} 订阅
+                  </small>
                 </span>
               </button>
             ))}
@@ -293,7 +313,10 @@ export default function ProfilePage() {
         )}
       </section>
       {followDialog && (
-        <FollowListDialog type={followDialog} onClose={() => setFollowDialog(null)} />
+        <FollowListDialog
+          type={followDialog}
+          onClose={() => setFollowDialog(null)}
+        />
       )}
     </Page>
   );

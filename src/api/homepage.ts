@@ -54,7 +54,9 @@ export async function getHomepageBlockPage(
 export async function getHomepageDragonBall(): Promise<HomepageEntry[]> {
   const response = await request<Obj>("/homepage/dragon/ball", {}, false);
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.data ?? value.list ?? response.data ?? response.list ?? response)
+  return arr(
+    value.data ?? value.list ?? response.data ?? response.list ?? response,
+  )
     .map((raw, index) => {
       const item = obj(raw);
       return {

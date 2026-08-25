@@ -97,7 +97,8 @@ function qualitiesFromPrivilege(privilege: {
   spatialAudio: boolean;
 }): PlaybackQuality[] {
   const qualities: PlaybackQuality[] = [];
-  if (privilege.standard || privilege.maxBitrate > 0) qualities.push("standard");
+  if (privilege.standard || privilege.maxBitrate > 0)
+    qualities.push("standard");
   if (privilege.maxBitrate >= 192000) qualities.push("higher");
   if (privilege.maxBitrate >= 320000) qualities.push("exhigh");
   if (privilege.lossless) qualities.push("lossless");
@@ -150,23 +151,10 @@ function readAnimationSpeed(): AnimationSpeed {
 
 /** Motion applied to the 3D particle album cover on the now-playing page. */
 export type ParticleEffect =
-  | "none"
-  | "spin"
-  | "wave"
-  | "audio"
-  | "orbit"
-  | "ripple"
-  | "shimmer";
+  "none" | "spin" | "wave" | "audio" | "orbit" | "ripple" | "shimmer";
 
 export type LyricTheme =
-  | "auto"
-  | "default"
-  | "neon"
-  | "fire"
-  | "aurora"
-  | "mint"
-  | "rose"
-  | "pure";
+  "auto" | "default" | "neon" | "fire" | "aurora" | "mint" | "rose" | "pure";
 
 /* ------------------------- persistence helpers ------------------------- */
 function readNum(key: string, def: number): number {
@@ -276,14 +264,31 @@ function shuffle<T>(items: T[]): T[] {
 /** Roaming pool: prefer free tracks, VIP ones cannot be streamed. */
 function readParticleEffect(): ParticleEffect {
   const v = readStr("reverie_particle", "spin");
-  return ["none", "spin", "wave", "audio", "orbit", "ripple", "shimmer"].includes(v)
+  return [
+    "none",
+    "spin",
+    "wave",
+    "audio",
+    "orbit",
+    "ripple",
+    "shimmer",
+  ].includes(v)
     ? (v as ParticleEffect)
     : "spin";
 }
 
 function readLyricTheme(): LyricTheme {
   const value = readStr("reverie_lyrictheme", "auto");
-  return ["auto", "default", "neon", "fire", "aurora", "mint", "rose", "pure"].includes(value)
+  return [
+    "auto",
+    "default",
+    "neon",
+    "fire",
+    "aurora",
+    "mint",
+    "rose",
+    "pure",
+  ].includes(value)
     ? (value as LyricTheme)
     : "auto";
 }
@@ -772,7 +777,10 @@ async function resolveUrl(
           url: result.url,
           reason: "",
           previewEnd: previewOnly
-          ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
+            ? Math.min(
+                result.previewEnd ?? PREVIEW_DURATION_MS,
+                PREVIEW_DURATION_MS,
+              )
             : undefined,
         };
       }
@@ -789,7 +797,10 @@ async function resolveUrl(
         url: result.url,
         reason: "",
         previewEnd: previewOnly
-            ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
+          ? Math.min(
+              result.previewEnd ?? PREVIEW_DURATION_MS,
+              PREVIEW_DURATION_MS,
+            )
           : undefined,
       };
     }
@@ -800,8 +811,7 @@ async function resolveUrl(
   }
   return {
     url: null,
-    reason:
-      lastReason || playbackFailureMessage(song),
+    reason: lastReason || playbackFailureMessage(song),
   };
 }
 
@@ -929,9 +939,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set((s) => ({
       toasts: s.toasts.map((t) => (t.id === id ? { ...t, exiting: true } : t)),
     }));
-    setTimeout(() =>
-      set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
-    260);
+    setTimeout(
+      () => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+      260,
+    );
   },
 
   setAudioEl: (el) => {
@@ -1100,7 +1111,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         write("reverie_playback_quality", fallback);
       }
     } catch {
-      if (get().currentSong?.id === song.id) set({ availablePlaybackQualities: ["standard"] });
+      if (get().currentSong?.id === song.id)
+        set({ availablePlaybackQualities: ["standard"] });
     }
   },
   commitQualitySwitch: (url, quality, position) => {
@@ -1468,7 +1480,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   applyDiyPreset: (preset) => {
     if (preset !== "pure") return;
-    set({ lyricTheme: "pure", particleEffect: "none", coverQuality: "image", coverQualityReason: "纯净预设" });
+    set({
+      lyricTheme: "pure",
+      particleEffect: "none",
+      coverQuality: "image",
+      coverQualityReason: "纯净预设",
+    });
     write("reverie_lyrictheme", "pure");
     write("reverie_particle", "none");
     write(COVER_QUALITY_KEY, "image");
@@ -1676,7 +1693,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       set({ showLogin: true });
       return;
     }
-    set({ ...(navigate ? { activeView: "userlist" as View } : {}), userPlaylistsLoading: true });
+    set({
+      ...(navigate ? { activeView: "userlist" as View } : {}),
+      userPlaylistsLoading: true,
+    });
     try {
       const lists = await getUserPlaylists(uid);
       set({ userPlaylists: lists });
@@ -1714,7 +1734,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       if (requestToken !== playlistRequestToken) return;
       get().toast("载入歌单失败", "error");
     } finally {
-      if (requestToken === playlistRequestToken) set({ playlistLoading: false });
+      if (requestToken === playlistRequestToken)
+        set({ playlistLoading: false });
     }
   },
   closePlaylist: () => {
@@ -1755,8 +1776,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // Manual next/previous clicks should promote the already buffered decoder
     // just like automatic end-of-track playback. Re-resolving the URL here
     // discards the prepared buffer and is the main source of rapid-switch lag.
-    const promotedUrl =
-      st.preloadedSongId === song.id ? st.preloadedUrl : null;
+    const promotedUrl = st.preloadedSongId === song.id ? st.preloadedUrl : null;
     const promotedAudio = promotedUrl
       ? st.activeAudio === 0
         ? 1
@@ -1907,10 +1927,16 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       return;
     }
     const queue = state.queue.filter((item) => item.id !== song.id);
-    const currentIndex = queue.findIndex((item) => item.id === state.currentSong?.id);
+    const currentIndex = queue.findIndex(
+      (item) => item.id === state.currentSong?.id,
+    );
     queue.splice(Math.min(currentIndex + 1, queue.length), 0, song);
     set({ queue, index: currentIndex });
-    writeSession({ queue, index: currentIndex, currentSong: state.currentSong });
+    writeSession({
+      queue,
+      index: currentIndex,
+      currentSong: state.currentSong,
+    });
     get().toast("已加入下一首播放", "success");
   },
   fmNext: async () => {

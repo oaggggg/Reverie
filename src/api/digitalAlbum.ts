@@ -22,19 +22,24 @@ export function normalizeDigitalAlbum(raw: unknown): DigitalAlbum | null {
   const artists = arr(value.artists ?? row.artists)
     .map((artist) => String(obj(artist).name ?? ""))
     .filter(Boolean);
-  const artistName = [
-    value.artistName,
-    typeof value.artist === "string" ? value.artist : obj(value.artist).name,
-    value.creatorName,
-    row.artistName,
-    artists.join(" / "),
-  ]
-    .map((item) => String(item ?? ""))
-    .find(Boolean) ?? "";
+  const artistName =
+    [
+      value.artistName,
+      typeof value.artist === "string" ? value.artist : obj(value.artist).name,
+      value.creatorName,
+      row.artistName,
+      artists.join(" / "),
+    ]
+      .map((item) => String(item ?? ""))
+      .find(Boolean) ?? "";
   return {
     id,
     name: String(
-      value.name ?? value.albumName ?? value.productName ?? row.albumName ?? "数字专辑",
+      value.name ??
+        value.albumName ??
+        value.productName ??
+        row.albumName ??
+        "数字专辑",
     ),
     artistName,
     coverUrl: String(
@@ -73,9 +78,15 @@ export async function getDigitalAlbumStyleLibrary(
   limit = 30,
   offset = 0,
 ): Promise<DigitalAlbum[]> {
-  const response = await request<Obj>("/album/list/style", { area, limit, offset }, false);
+  const response = await request<Obj>(
+    "/album/list/style",
+    { area, limit, offset },
+    false,
+  );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.albums ?? value.list ?? value.records ?? response.data ?? response)
+  return arr(
+    value.albums ?? value.list ?? value.records ?? response.data ?? response,
+  )
     .map(normalizeDigitalAlbum)
     .filter((item): item is DigitalAlbum => item !== null);
 }
@@ -91,7 +102,14 @@ export async function getDigitalAlbumSalesBoard(
     false,
   );
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.list ?? value.albums ?? value.records ?? value.data ?? response.data ?? response)
+  return arr(
+    value.list ??
+      value.albums ??
+      value.records ??
+      value.data ??
+      response.data ??
+      response,
+  )
     .map((raw, index) => {
       const album = normalizeDigitalAlbum(obj(raw).album ?? raw);
       if (!album) return null;

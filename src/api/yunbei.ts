@@ -51,11 +51,7 @@ export async function dailySignIn(type: 0 | 1 = 1): Promise<Obj> {
 export async function getSigninProgress(
   moduleId = "1207signin-1207signin",
 ): Promise<SigninProgress> {
-  const response = await request<Obj>(
-    "/signin/progress",
-    { moduleId },
-    false,
-  );
+  const response = await request<Obj>("/signin/progress", { moduleId }, false);
   const value = obj(response.data ?? response.result ?? response);
   const current = Number(
     value.current ?? value.progress ?? value.day ?? value.completedDays ?? 0,
@@ -67,7 +63,9 @@ export async function getSigninProgress(
     description: String(value.description ?? value.desc ?? ""),
     current,
     total,
-    completed: Boolean(value.completed ?? value.finished ?? (total > 0 && current >= total)),
+    completed: Boolean(
+      value.completed ?? value.finished ?? (total > 0 && current >= total),
+    ),
     reward: String(value.reward ?? value.rewardText ?? value.nextReward ?? ""),
   };
 }

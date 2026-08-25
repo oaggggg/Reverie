@@ -19,11 +19,17 @@ export default function UserMenu() {
   const loadVipInfo = usePlayerStore((s) => s.loadVipInfo);
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const openProfile = useProfileStore((s) => s.openProfile);
-  const [followDialog, setFollowDialog] = useState<"follows" | "followers" | null>(null);
+  const [followDialog, setFollowDialog] = useState<
+    "follows" | "followers" | null
+  >(null);
   const prefetchStarted = useRef(false);
   const profileDetail = useProfileStore((s) => s.detail);
   const ref = useRef<HTMLDivElement>(null);
-  const transition = useOriginTransition<HTMLDivElement>(open, "user-menu", 200);
+  const transition = useOriginTransition<HTMLDivElement>(
+    open,
+    "user-menu",
+    200,
+  );
 
   const prefetchDetails = () => {
     if (!profile || prefetchStarted.current) return;
@@ -120,21 +126,36 @@ export default function UserMenu() {
               </div>
               <div className="uh-stats">
                 {profileDetail && (
-                  <button className="user-dropdown-stat" onClick={() => { setOpen(false); setFollowDialog("follows"); }}>
+                  <button
+                    className="user-dropdown-stat"
+                    onClick={() => {
+                      setOpen(false);
+                      setFollowDialog("follows");
+                    }}
+                  >
                     关注 {profileDetail.follows}
                   </button>
                 )}
                 {profileDetail && (
-                  <button className="user-dropdown-stat" onClick={() => { setOpen(false); setFollowDialog("followers"); }}>
+                  <button
+                    className="user-dropdown-stat"
+                    onClick={() => {
+                      setOpen(false);
+                      setFollowDialog("followers");
+                    }}
+                  >
                     粉丝 {profileDetail.followeds}
                   </button>
                 )}
                 {isVip && expireTime > 0 && (
                   <span>
                     {new Date(expireTime).getFullYear()}年
-                    {String(new Date(expireTime).getMonth() + 1).padStart(2, "0")}
-                    月
-                    {String(new Date(expireTime).getDate()).padStart(2, "0")}日
+                    {String(new Date(expireTime).getMonth() + 1).padStart(
+                      2,
+                      "0",
+                    )}
+                    月{String(new Date(expireTime).getDate()).padStart(2, "0")}
+                    日
                   </span>
                 )}
               </div>
@@ -180,7 +201,10 @@ export default function UserMenu() {
         </div>
       )}
       {followDialog && (
-        <FollowListDialog type={followDialog} onClose={() => setFollowDialog(null)} />
+        <FollowListDialog
+          type={followDialog}
+          onClose={() => setFollowDialog(null)}
+        />
       )}
     </div>
   );

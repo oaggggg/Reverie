@@ -8,19 +8,27 @@ const obj = (value: unknown): Obj =>
     ? (value as Obj)
     : {};
 
-function collectComments(value: unknown, depth = 0, output: CommentInfo[] = []): CommentInfo[] {
+function collectComments(
+  value: unknown,
+  depth = 0,
+  output: CommentInfo[] = [],
+): CommentInfo[] {
   if (depth > 6 || value === null || value === undefined) return output;
   if (Array.isArray(value)) {
     for (const item of value) collectComments(item, depth + 1, output);
     return output;
   }
   const item = obj(value);
-  if (typeof item.content === "string" && (item.user || item.userInfo || item.nickname)) {
+  if (
+    typeof item.content === "string" &&
+    (item.user || item.userInfo || item.nickname)
+  ) {
     const normalized = normalizeResourceComment(item);
     if (normalized.id || normalized.content) output.push(normalized);
   }
   for (const nested of Object.values(item)) {
-    if (nested && typeof nested === "object") collectComments(nested, depth + 1, output);
+    if (nested && typeof nested === "object")
+      collectComments(nested, depth + 1, output);
   }
   return output;
 }
@@ -28,6 +36,9 @@ function collectComments(value: unknown, depth = 0, output: CommentInfo[] = []):
 export async function getStarpickCommentsSummary(): Promise<CommentInfo[]> {
   const response = await request<Obj>("/starpick/comments/summary", {}, true);
   return collectComments(response).filter(
-    (item, index, items) => items.findIndex((entry) => entry.id === item.id && entry.content === item.content) === index,
+    (item, index, items) =>
+      items.findIndex(
+        (entry) => entry.id === item.id && entry.content === item.content,
+      ) === index,
   );
 }

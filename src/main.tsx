@@ -36,7 +36,10 @@ function initializeVisualPreferences() {
   root.setAttribute("data-glass-blur", glassBlur);
   root.setAttribute("data-glass-contrast", glassContrast);
   root.setAttribute("data-animation-speed", animationSpeed);
-  root.setAttribute("data-reduced-motion", reducedMotion === "1" ? "true" : "false");
+  root.setAttribute(
+    "data-reduced-motion",
+    reducedMotion === "1" ? "true" : "false",
+  );
 }
 
 initializeVisualPreferences();

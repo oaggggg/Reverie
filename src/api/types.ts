@@ -345,13 +345,7 @@ export interface YunbeiOverview {
 }
 
 export type RecentCategory =
-  | "songs"
-  | "listen"
-  | "albums"
-  | "playlists"
-  | "radios"
-  | "videos"
-  | "voices";
+  "songs" | "listen" | "albums" | "playlists" | "radios" | "videos" | "voices";
 
 export interface RecentAlbum {
   id: number;
@@ -419,7 +413,6 @@ export interface SongMusicDetail {
   size: number;
   url?: string;
 }
-
 
 export interface ListenTogetherRoom {
   roomId: string;
@@ -522,12 +515,43 @@ export interface MusicianTask {
   period?: string;
 }
 
-export interface SatiTag { id: string; name: string; }
-export interface SatiResource { id: number; name: string; description: string; coverUrl: string; duration: number; subscribed: boolean; playCount: number; audioUrl: string; }
+export interface SatiTag {
+  id: string;
+  name: string;
+}
+export interface SatiResource {
+  id: number;
+  name: string;
+  description: string;
+  coverUrl: string;
+  duration: number;
+  subscribed: boolean;
+  playCount: number;
+  audioUrl: string;
+}
 
-export interface BroadcastCategory { id: number; name: string; }
-export interface BroadcastChannel { id: number; name: string; description: string; coverUrl: string; subscribed: boolean; categoryName: string; regionName: string; currentSong?: Song; }
-export interface ChartSummary { id: number; name: string; coverUrl: string; updateFrequency: string; description: string; trackCount: number; }
+export interface BroadcastCategory {
+  id: number;
+  name: string;
+}
+export interface BroadcastChannel {
+  id: number;
+  name: string;
+  description: string;
+  coverUrl: string;
+  subscribed: boolean;
+  categoryName: string;
+  regionName: string;
+  currentSong?: Song;
+}
+export interface ChartSummary {
+  id: number;
+  name: string;
+  coverUrl: string;
+  updateFrequency: string;
+  description: string;
+  trackCount: number;
+}
 
 export interface ChartCity {
   id: string;
@@ -546,16 +570,65 @@ export interface DimensionChartDetail {
   songCount: number;
 }
 
-export interface UgcResource { kind: "song" | "album" | "artist" | "mv"; id: number; name: string; description: string; coverUrl: string; extra: string; }
-export interface UgcContribution { id: string; type: number; title: string; status: string; createTime: number; description: string; }
-export interface UgcDevote { count: number; points: number; yunbei: number; }
-export interface ListenTotal { duration: number; songCount: number; playCount: number; }
-export interface CreatorAuthInfo { authenticated: boolean; name: string; description: string; level: number; }
-export interface FansOverview { total: number; todayAdded: number; todayLost: number; growth: number; }
-export interface FansTrendPoint { date: string; count: number; }
-export interface ListenReport extends ListenTotal { startDate: string; endDate: string; }
-export interface ListenTodaySong { id: number; name: string; artists: string; count: number; coverUrl: string; }
-export interface VipTimeMachineEntry { date: string; songName: string; artistName: string; count: number; }
+export interface UgcResource {
+  kind: "song" | "album" | "artist" | "mv";
+  id: number;
+  name: string;
+  description: string;
+  coverUrl: string;
+  extra: string;
+}
+export interface UgcContribution {
+  id: string;
+  type: number;
+  title: string;
+  status: string;
+  createTime: number;
+  description: string;
+}
+export interface UgcDevote {
+  count: number;
+  points: number;
+  yunbei: number;
+}
+export interface ListenTotal {
+  duration: number;
+  songCount: number;
+  playCount: number;
+}
+export interface CreatorAuthInfo {
+  authenticated: boolean;
+  name: string;
+  description: string;
+  level: number;
+}
+export interface FansOverview {
+  total: number;
+  todayAdded: number;
+  todayLost: number;
+  growth: number;
+}
+export interface FansTrendPoint {
+  date: string;
+  count: number;
+}
+export interface ListenReport extends ListenTotal {
+  startDate: string;
+  endDate: string;
+}
+export interface ListenTodaySong {
+  id: number;
+  name: string;
+  artists: string;
+  count: number;
+  coverUrl: string;
+}
+export interface VipTimeMachineEntry {
+  date: string;
+  songName: string;
+  artistName: string;
+  count: number;
+}
 export interface CalendarEvent {
   id: string;
   title: string;

@@ -77,9 +77,14 @@ export default function AlbumPage() {
                   </span>
                 )}
                 {privileges.length > 0 && (
-                  <span className="album-quality-summary" title="专辑歌曲可用音质">
+                  <span
+                    className="album-quality-summary"
+                    title="专辑歌曲可用音质"
+                  >
                     <AudioLines size={13} />
-                    {highResCount > 0 ? `Hi-Res ${highResCount}` : `无损 ${losslessCount}`}
+                    {highResCount > 0
+                      ? `Hi-Res ${highResCount}`
+                      : `无损 ${losslessCount}`}
                   </span>
                 )}
               </div>
