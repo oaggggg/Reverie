@@ -11,7 +11,10 @@ if (!existsSync(anonymousTokenPath)) {
   writeFileSync(anonymousTokenPath, "", "utf8");
 }
 
-const { serveNcmApi, getModulesDefinitions } = require("NeteaseCloudMusicApi/server");
+const {
+  serveNcmApi,
+  getModulesDefinitions,
+} = require("NeteaseCloudMusicApi/server");
 const path = require("node:path");
 
 const port = Number(process.env.PORT || 3939);
@@ -126,7 +129,9 @@ const EXCLUDED_MODULES = new Set([
 
 async function loadModuleDefs() {
   try {
-    const serverDir = path.dirname(require.resolve("NeteaseCloudMusicApi/server"));
+    const serverDir = path.dirname(
+      require.resolve("NeteaseCloudMusicApi/server"),
+    );
     const moduleDir = path.join(serverDir, "module");
     const special = {
       "daily_signin.js": "/daily_signin",
@@ -134,7 +139,9 @@ async function loadModuleDefs() {
       "personal_fm.js": "/personal_fm",
     };
     const defs = await getModulesDefinitions(moduleDir, special);
-    const filtered = defs.filter((def) => !EXCLUDED_MODULES.has(def.identifier));
+    const filtered = defs.filter(
+      (def) => !EXCLUDED_MODULES.has(def.identifier),
+    );
     console.log(
       `[reverie] modules registered: ${filtered.length} (${defs.length - filtered.length} excluded)`,
     );
@@ -143,7 +150,10 @@ async function loadModuleDefs() {
     // Never fall back to the upstream full registry: that would re-expose the
     // login/profile mutation endpoints explicitly excluded above. Failing
     // closed is safer than starting an API with an unreviewed surface.
-    console.error("[reverie] failed to build the filtered module registry:", error);
+    console.error(
+      "[reverie] failed to build the filtered module registry:",
+      error,
+    );
     throw error;
   }
 }
@@ -158,25 +168,43 @@ function normalizeProvince(value) {
     );
 }
 
-function normalizeCity(value) {
+const MUNICIPALITY_PROVINCES = new Set([
+  "北京",
+  "上海",
+  "天津",
+  "重庆",
+  "香港",
+  "澳门",
+]);
+
+// 仅用于同名比较，不改动城市原文，保留“自治州/盟/地区”等后缀。
+function stripCitySuffix(value) {
   return String(value || "")
     .trim()
-    .replace(/(市|地区|盟|自治州|特别行政区)$/, "");
+    .replace(/(?:自治州|[市区])$|(?:地区|盟)$/, "");
 }
 
 function cleanLocation(raw) {
   const country = String(raw.country || "").trim();
   const province = normalizeProvince(raw.province);
-  const city = normalizeCity(raw.city);
+  const city = String(raw.city || "").trim();
+  // 直辖市/特别行政区的“城市”字段与省级区域重名时丢弃，避免展示重复；
+  // 其余同名情形（如吉林省吉林市）必须保留城市，否则位置退化为仅省级。
+  const dropRedundantCity =
+    MUNICIPALITY_PROVINCES.has(province) && stripCitySuffix(city) === province;
   return {
     country,
     province,
-    city: city && city !== province ? city : "",
+    city: city && !dropRedundantCity ? city : "",
   };
 }
 
 function chooseLocation(candidates) {
   const clean = candidates
+    // 非中国（含港澳台以外地区）的候选不参与省市投票：
+    // 它们的省/市字段是海外地名，混入后会拼出“xxx省xxx市”式的错误文本。
+    // 全部落选时返回 null，由前端走带国家前缀的备用数据源。
+    .filter((item) => !item.country || /中国|China/i.test(String(item.country)))
     .map(cleanLocation)
     .filter((item) => item.province || item.city);
   if (!clean.length) return null;

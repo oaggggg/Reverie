@@ -10,13 +10,13 @@ import {
   getHomepageDragonBall,
   type HomepageEntry,
 } from "../api/homepage";
+import { hasProvinceAndCity, normalizeRegion } from "../utils/location";
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 const LOCATION_CACHE_KEY = "reverie_home_location";
 const LOCATION_CACHE_AT_KEY = "reverie_home_location_at";
 const LOCATION_CACHE_TTL = 2 * 60 * 60 * 1000;
-const MUNICIPALITIES = new Set(["北京", "上海", "天津", "重庆"]);
 
 function readCachedLocation(): string {
   try {
@@ -43,27 +43,6 @@ function cacheLocation(value: string) {
   } catch {
     /* ignore */
   }
-}
-
-function normalizeRegion(province: string, city: string): string {
-  if (!province && !city) return "";
-  if (!province) return city.endsWith("市") ? city : `${city}市`;
-  const unit = /(省|市|自治区|特别行政区)$/.test(province);
-  const p = unit
-    ? province
-    : `${province}${MUNICIPALITIES.has(province) ? "市" : "省"}`;
-  if (!city) return p;
-  if (city === province || city.replace(/市$/, "") === p.replace(/省|市$/, ""))
-    return p;
-  const c = city.endsWith("市") ? city : `${city}市`;
-  return `${p}${c}`;
-}
-
-function hasProvinceAndCity(value: string): boolean {
-  return (
-    /(?:省|自治区|特别行政区).+(?:市|地区|盟|自治州)$/.test(value) ||
-    /^(?:北京|上海|天津|重庆)市$/.test(value)
-  );
 }
 
 // WebView 直连公网 IP 服务会被 CORS 拦截，由本地 sidecar 代理；优先展示省市级结果。
