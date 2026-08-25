@@ -731,6 +731,16 @@ function previewDurationForSong(song: Song): number | null {
     : null;
 }
 
+/**
+ * 统一播放地址协议：部分歌曲解析出的 CDN 地址是 http，在安全上下文里
+ * 会被拦截或静默失败，媒体管线报错后 play() 拒绝并提示「音频启动失败」。
+ * 网易云 CDN 均支持 https，这里统一升级（本地地址除外）。
+ */
+function normalizePlaybackUrl(url: string): string {
+  if (/^http:\/\/(127\.|localhost)/i.test(url)) return url;
+  return url.replace(/^http:\/\//i, "https://");
+}
+
 function reasonFromApi(code: number, message: string): string {
   const text = message.toLowerCase();
   if (
@@ -785,7 +795,7 @@ async function resolveUrl(
       const result = await getSongUrl(song.id, level);
       if (result.url) {
         return {
-          url: result.url,
+          url: normalizePlaybackUrl(result.url),
           reason: "",
           // 试听总时长固定 60s：不跟随接口 freeTrialInfo 的窗口
           // （个别曲目会返回 30s 或中段摘录），统一从开头起播。
@@ -802,7 +812,7 @@ async function resolveUrl(
     const result = await getLegacySongUrl(song.id);
     if (result.url) {
       return {
-        url: result.url,
+        url: normalizePlaybackUrl(result.url),
         reason: "",
         previewEnd: previewOnly ? PREVIEW_DURATION_MS : undefined,
       };
@@ -993,10 +1003,21 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const request = audioEl.play();
     set({ playing: true });
     void request.catch(() => {
-      if (get().currentUrl === currentUrl) {
-        set({ playing: false });
-        get().toast("音频启动失败，请点击播放重试", "error");
-      }
+      if (get().currentUrl !== currentUrl) return;
+      // 常见于 CDN 节点瞬断或加载竞态：重置媒体管线后自动重试一次，
+      // 不再让用户手动多点一次播放。
+      audioEl.pause();
+      audioEl.load();
+      audioEl.play().then(
+        () => {
+          if (get().currentUrl === currentUrl) set({ playing: true });
+        },
+        () => {
+          if (get().currentUrl !== currentUrl || !get().playing) return;
+          set({ playing: false });
+          get().toast("音频启动失败，请点击播放重试", "error");
+        },
+      );
     });
   },
   next: () => {

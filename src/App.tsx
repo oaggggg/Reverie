@@ -512,8 +512,17 @@ export default function App() {
         skipNextFadeInRef.current = false;
         a.volume = target;
         if (a.paused) {
-          a.play().catch(() => {
+          a.play().catch(async () => {
             a.volume = target;
+            // 瞬时媒体管线故障：重置解码器后自动重试一次再报错。
+            try {
+              a.pause();
+              a.load();
+              await a.play();
+              return;
+            } catch {
+              /* 走下方失败提示 */
+            }
             const state = usePlayerStore.getState();
             if (state.currentUrl === currentUrl && state.playing) {
               usePlayerStore.setState({ playing: false });
@@ -539,18 +548,41 @@ export default function App() {
             }
             return fadeAudioVolume(a, target, AUDIO_FADE_IN_MS);
           })
-          .catch(() => {
+          .catch(async () => {
             a.volume = target;
             // 过期轮次的 play 被新一轮 load() 打断属正常现象；
             // 只有当前轮次失败才代表真的无法播放。
             const state = usePlayerStore.getState();
             if (
+              syncToken !== playbackSyncRef.current ||
+              state.currentUrl !== currentUrl ||
+              !state.playing
+            )
+              return;
+            // 瞬时媒体管线故障：重置解码器后自动重试一次。
+            try {
+              a.pause();
+              a.load();
+              await a.play();
+              if (syncToken !== playbackSyncRef.current) return;
+              const latest = usePlayerStore.getState();
+              if (!latest.playing) {
+                a.pause();
+                return;
+              }
+              await fadeAudioVolume(a, target, AUDIO_FADE_IN_MS);
+              return;
+            } catch {
+              /* 重试仍失败才提示 */
+            }
+            const latest = usePlayerStore.getState();
+            if (
               syncToken === playbackSyncRef.current &&
-              state.currentUrl === currentUrl &&
-              state.playing
+              latest.currentUrl === currentUrl &&
+              latest.playing
             ) {
               usePlayerStore.setState({ playing: false });
-              state.toast("音频启动失败，请点击播放重试", "error");
+              latest.toast("音频启动失败，请点击播放重试", "error");
             }
           });
       }
