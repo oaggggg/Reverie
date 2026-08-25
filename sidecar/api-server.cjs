@@ -19,6 +19,10 @@ const host = process.env.HOST || "127.0.0.1";
 const parentPid = Number(process.env.PARENT_PID || 0);
 // 每次由宿主应用随机生成的共享密钥；未设置时仅限本机开发调试。
 const authToken = process.env.REVERIE_AUTH_TOKEN || "";
+// The Vite browser used during `tauri dev` cannot invoke the native token
+// command. Allow that browser-only path in debug builds; packaged builds keep
+// mandatory shared-secret protection.
+const allowUnauthenticatedDev = process.env.REVERIE_ALLOW_UNAUTH === "1";
 
 function timingSafeEqual(a, b) {
   const bufA = Buffer.from(String(a));
@@ -41,6 +45,19 @@ function wrapServer(server) {
   const originalListeners = server.listeners("request").slice();
   server.removeAllListeners("request");
   server.on("request", (req, res) => {
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, {
+        "Access-Control-Allow-Origin": req.headers.origin || "*",
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers":
+          req.headers["access-control-request-headers"] ||
+          "content-type,x-reverie-auth,x-ncm-cookie",
+        "Access-Control-Max-Age": "600",
+      });
+      res.end();
+      return;
+    }
+
     const finishUnauthorized = () => {
       res.writeHead(403, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ code: 403, msg: "unauthorized" }));
@@ -48,7 +65,11 @@ function wrapServer(server) {
 
     // 健康检查同样要求密钥：能通过即证明占用端口的是本实例的 sidecar。
     if (req.url && req.url.startsWith("/reverie/health")) {
-      if (!authToken || !timingSafeEqual(req.headers["x-reverie-auth"] || "", authToken)) {
+      if (
+        !allowUnauthenticatedDev &&
+        (!authToken ||
+          !timingSafeEqual(req.headers["x-reverie-auth"] || "", authToken))
+      ) {
         finishUnauthorized();
         return;
       }
@@ -57,7 +78,11 @@ function wrapServer(server) {
       return;
     }
 
-    if (authToken && !timingSafeEqual(req.headers["x-reverie-auth"] || "", authToken)) {
+    if (
+      authToken &&
+      !allowUnauthenticatedDev &&
+      !timingSafeEqual(req.headers["x-reverie-auth"] || "", authToken)
+    ) {
       finishUnauthorized();
       return;
     }
@@ -286,9 +311,9 @@ if (Number.isInteger(parentPid) && parentPid > 0) {
         process.exit(1);
       });
     }
-    if (!authToken) {
+    if (!authToken || allowUnauthenticatedDev) {
       console.warn(
-        "[reverie] REVERIE_AUTH_TOKEN is not set; the local API accepts unauthenticated requests (development only).",
+        "[reverie] local API accepts unauthenticated requests (development only).",
       );
     }
   })
