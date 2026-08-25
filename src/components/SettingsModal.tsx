@@ -4,14 +4,15 @@ import {
   ChevronRight,
   Info,
   MonitorCog,
-  Music2,
   Palette,
   ServerCog,
   ShieldCheck,
   X,
 } from "lucide-react";
+import appIconUrl from "../../src-tauri/icons/icon.png";
 import { usePlayerStore } from "../store/playerStore";
 import type {
+  AnimationSpeed,
   GlassBlur,
   GlassContrast,
   GlassOpacity,
@@ -26,6 +27,13 @@ const APP_THEMES: Array<{ id: ThemePreference; name: string }> = [
   { id: "system", name: "跟随系统" },
   { id: "light", name: "浅色" },
   { id: "dark", name: "深色" },
+];
+
+const ANIMATION_SPEEDS: Array<{ id: AnimationSpeed; name: string }> = [
+  { id: "relaxed", name: "舒缓" },
+  { id: "normal", name: "标准" },
+  { id: "swift", name: "快速" },
+  { id: "instant", name: "极速" },
 ];
 
 const PRIVACY_TEXT = `隐私说明
@@ -121,6 +129,8 @@ export default function SettingsModal() {
   const setGlassBlur = usePlayerStore((s) => s.setGlassBlur);
   const glassContrast = usePlayerStore((s) => s.glassContrast);
   const setGlassContrast = usePlayerStore((s) => s.setGlassContrast);
+  const animationSpeed = usePlayerStore((s) => s.animationSpeed);
+  const setAnimationSpeed = usePlayerStore((s) => s.setAnimationSpeed);
   const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setReducedMotion = usePlayerStore((s) => s.setReducedMotion);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
@@ -323,6 +333,19 @@ export default function SettingsModal() {
                       ))}
                     </div>
                   </SettingRow>
+                  <SettingRow title="动画速度" hint="调节播放器内过渡、弹窗、卡片和播放控件的动画节奏">
+                    <div className="opt-group">
+                      {ANIMATION_SPEEDS.map((item) => (
+                        <button
+                          key={item.id}
+                          className={`opt-btn ${animationSpeed === item.id ? "active" : ""}`}
+                          onClick={() => setAnimationSpeed(item.id)}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </SettingRow>
                   <SettingRow
                     title="减少动画效果"
                     hint="关闭大多数过渡、浮动和入场动画"
@@ -427,7 +450,7 @@ export default function SettingsModal() {
                 <h3>应用</h3>
                 <div className="about-identity">
                   <div className="about-app-icon" aria-hidden="true">
-                    <Music2 size={24} />
+                    <img src={appIconUrl} alt="" />
                   </div>
                   <div className="about-app-copy">
                     <strong>Reverie</strong>

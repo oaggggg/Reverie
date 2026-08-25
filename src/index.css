@@ -71,9 +71,13 @@
    type, glass) stays in the theme tokens above; everything below only
    describes where structural surfaces sit. */
 :root {
-  --motion-fast: 160ms;
-  --motion-normal: 220ms;
-  --motion-slow: 320ms;
+  --motion-speed-factor: 1;
+  --motion-fast: calc(160ms * var(--motion-speed-factor));
+  --motion-normal: calc(220ms * var(--motion-speed-factor));
+  --motion-slow: calc(320ms * var(--motion-speed-factor));
+  --motion-player: calc(240ms * var(--motion-speed-factor));
+  --motion-spinner: calc(0.8s * var(--motion-speed-factor));
+  --motion-cover-spin: calc(14s * var(--motion-speed-factor));
   --motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
   --motion-exit: cubic-bezier(0.4, 0, 0.8, 0.2);
   /* Single glass contract: every transient surface matches the condensed nav. */
@@ -122,6 +126,18 @@
   --gap-md: 8px;
   --gap-lg: 12px;
   --gap-xl: 16px;
+}
+
+:root[data-animation-speed="relaxed"] {
+  --motion-speed-factor: 1.35;
+}
+
+:root[data-animation-speed="swift"] {
+  --motion-speed-factor: 0.72;
+}
+
+:root[data-animation-speed="instant"] {
+  --motion-speed-factor: 0.38;
 }
 
 /* Appearance settings override the shared glass tokens in one place so every
@@ -2572,7 +2588,7 @@ textarea {
   line-height: 0;
   border-radius: 50%;
   will-change: transform;
-  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--motion-player) cubic-bezier(0.22, 1, 0.36, 1);
 }
 .pb-cover:hover {
   transform: translateY(-2px) scale(1.06);
@@ -2600,7 +2616,7 @@ textarea {
 .pb-cover img,
 .pb-cover.spinning img,
 .pb-cover.paused img {
-  animation: pb-cover-rotation 14s linear infinite;
+  animation: pb-cover-rotation var(--motion-cover-spin) linear infinite;
 }
 .pb-cover.spinning img {
   animation-play-state: running;
@@ -4864,6 +4880,13 @@ textarea {
   color: var(--text-on-accent);
   box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 24%, transparent);
 }
+.about-app-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  object-fit: cover;
+}
 .about-app-copy {
   display: grid;
   min-width: 0;
@@ -5712,7 +5735,7 @@ textarea {
   border: 2px solid color-mix(in srgb, var(--border) 80%, transparent);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.72s linear infinite;
+  animation: spin var(--motion-spinner) linear infinite;
 }
 
 .loading-hint::before {

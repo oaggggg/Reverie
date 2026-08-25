@@ -138,6 +138,7 @@ export default function App() {
   const glassOpacity = usePlayerStore((s) => s.glassOpacity);
   const glassBlur = usePlayerStore((s) => s.glassBlur);
   const glassContrast = usePlayerStore((s) => s.glassContrast);
+  const animationSpeed = usePlayerStore((s) => s.animationSpeed);
   const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setAudioEl = usePlayerStore((s) => s.setAudioEl);
   const commitQualitySwitch = usePlayerStore((s) => s.commitQualitySwitch);
@@ -393,7 +394,8 @@ export default function App() {
     root.setAttribute("data-glass-opacity", glassOpacity);
     root.setAttribute("data-glass-blur", glassBlur);
     root.setAttribute("data-glass-contrast", glassContrast);
-  }, [glassBlur, glassContrast, glassOpacity]);
+    root.setAttribute("data-animation-speed", animationSpeed);
+  }, [animationSpeed, glassBlur, glassContrast, glassOpacity]);
 
   // keyboard shortcuts
   useEffect(() => {
