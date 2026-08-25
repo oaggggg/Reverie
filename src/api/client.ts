@@ -21,6 +21,7 @@ const API_BASE: string =
 const COOKIE_KEY = "ncm_player_cookie";
 
 let cookie: string = "";
+let authGeneration = 0;
 try {
   cookie = localStorage.getItem(COOKIE_KEY) || "";
 } catch {
@@ -32,6 +33,10 @@ export function getCookie(): string {
 }
 
 export function setCookie(c: string): void {
+  if (cookie !== c) {
+    authGeneration += 1;
+    clearResponseCache();
+  }
   cookie = c;
   try {
     localStorage.setItem(COOKIE_KEY, c);
@@ -41,6 +46,10 @@ export function setCookie(c: string): void {
 }
 
 export function clearCookie(): void {
+  if (cookie) {
+    authGeneration += 1;
+    clearResponseCache();
+  }
   cookie = "";
   try {
     localStorage.removeItem(COOKIE_KEY);
@@ -73,7 +82,7 @@ function cacheKey(path: string, params: Record<string, unknown>): string {
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
   }
-  return `${path}?${q.toString()}`;
+  return `${authGeneration}:${path}?${q.toString()}`;
 }
 
 /**

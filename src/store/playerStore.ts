@@ -662,13 +662,16 @@ function hasVipAccess(state: {
   vipInfo: VipInfo | null;
 }): boolean {
   if (!state.loggedIn) return false;
+  // login/status is the freshest account-level permission signal. Do not let
+  // a stale or partially populated /vip/info cache downgrade an active member.
+  if (Number(state.profile?.vipType ?? 0) > 0) return true;
   if (state.vipInfo) {
     return (
       state.vipInfo.vipType > 0 &&
       (state.vipInfo.expireTime <= 0 || state.vipInfo.expireTime > Date.now())
     );
   }
-  return (state.profile?.vipType ?? 0) > 0;
+  return false;
 }
 
 function previewDurationForSong(song: Song): number | null {
