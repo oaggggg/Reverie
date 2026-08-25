@@ -608,6 +608,8 @@ interface PlayerState {
   toast: (text: string, type?: ToastMsg["type"]) => void;
   dismissToast: (id: number) => void;
   togglePlay: () => void;
+  /** 未登录返回 false 并弹出登录引导；已登录返回 true。 */
+  requireLoginForPlayback: () => boolean;
   next: () => void;
   prev: () => void;
   seek: (ms: number) => void;
@@ -955,6 +957,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   // --- playback ---
   togglePlay: () => {
+    if (!get().requireLoginForPlayback()) return;
     const {
       playing,
       currentUrl,
@@ -1529,6 +1532,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
   },
   setShowLogin: (v) => set({ showLogin: v }),
+  // 未登录时一切播放入口统一拦截：弹出扫码登录引导。
+  requireLoginForPlayback: () => {
+    if (usePlayerStore.getState().loggedIn) return true;
+    usePlayerStore.getState().setShowLogin(true);
+    return false;
+  },
   setShowSettings: (v) =>
     set({ showSettings: v, ...(v ? { showPlayerComments: false } : {}) }),
   setShowPlayerComments: (v) =>
@@ -1771,6 +1780,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   // --- core play ---
   playSong: async (song, queue, source, options) => {
+    // 未登录统一拦截：所有播放入口（点歌、下一首/上一首、私人FM、
+    // 搜索结果等）最终都会经过这里。
+    if (!get().requireLoginForPlayback()) return;
     const st = get();
     const quality = options?.quality ?? st.playbackQuality;
     const autoplay = options?.autoplay ?? true;
