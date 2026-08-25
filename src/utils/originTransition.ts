@@ -12,6 +12,18 @@ interface OriginRect {
   height: number;
 }
 
+function rectForOrigin(element: Element): OriginRect {
+  // Return to the visible control glyph, rather than the button's hit area.
+  const visual = element.querySelector("svg, img") ?? element;
+  const rect = visual.getBoundingClientRect();
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: Math.max(1, rect.width),
+    height: Math.max(1, rect.height),
+  };
+}
+
 const origins = new Map<string, OriginRect>();
 const originGlobal = globalThis as typeof globalThis & {
   __reverieOriginCaptureInstalled?: boolean;
@@ -33,13 +45,7 @@ if (
             )
           : null;
       if (!target) return;
-      const rect = target.getBoundingClientRect();
-      const origin = {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-      };
+      const origin = rectForOrigin(target);
       originGlobal.__reverieLastInteractionOrigin = origin;
       const key = target.getAttribute("data-origin-key");
       if (key) origins.set(key, origin);
@@ -49,13 +55,7 @@ if (
 }
 
 export function captureInteractionOrigin(key: string, element: Element) {
-  const rect = element.getBoundingClientRect();
-  const origin = {
-    left: rect.left,
-    top: rect.top,
-    width: rect.width,
-    height: rect.height,
-  };
+  const origin = rectForOrigin(element);
   origins.set(key, origin);
   originGlobal.__reverieLastInteractionOrigin = origin;
 }

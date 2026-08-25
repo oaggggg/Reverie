@@ -4330,22 +4330,15 @@ textarea {
   background: var(--glass-popup);
   box-shadow: 0 16px 36px var(--shadow);
   backdrop-filter: blur(26px) saturate(1.35);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  z-index: 8;
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease,
-    visibility 0.16s;
-}
-.vol-wrap:hover .volume-popover,
-.vol-wrap:focus-within .volume-popover {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translate(-50%, 0);
+  z-index: 8;
 }
+.volume-popover.origin-opening { animation: player-anchor-in var(--origin-duration, 180ms) var(--motion-enter) both; }
+.volume-popover.origin-closing { animation: player-anchor-out var(--origin-duration, 180ms) var(--motion-exit) both; pointer-events: none; }
+.volume-popover.origin-open { transform: translate(-50%, 0); }
+.volume-popover.origin-closing { pointer-events: none; }
 .volume-value {
   min-width: 28px;
   text-align: center;
@@ -5420,11 +5413,6 @@ textarea {
   box-shadow: 0 24px 68px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(26px) saturate(1.35);
   transform-origin: top right;
-  animation: visual-panel-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.np-visual-panel.is-closing {
-  animation: visual-panel-out 0.18s ease both;
 }
 
 .np-visual-panel > header {
@@ -5536,28 +5524,6 @@ textarea {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes visual-panel-in {
-  from {
-    opacity: 0;
-    transform: translate(14px, -12px) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-}
-
-@keyframes visual-panel-out {
-  from {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translate(14px, -12px) scale(0.92);
   }
 }
 
@@ -6379,13 +6345,20 @@ textarea {
 .pb-quality-btn span { white-space: nowrap; }
 .pb-quality-btn:hover, .pb-quality-btn.active { border-color: var(--glass-popup-border); background: var(--glass-popup-hover); color: var(--text); }
 .pb-quality-menu { position: absolute; left: 50%; right: auto; bottom: 34px; z-index: 20; display: grid; width: max-content; min-width: calc(100% + 12px); max-width: 220px; transform: translateX(-50%); transform-origin: bottom center; padding: 4px; border: 1px solid var(--glass-popup-border); border-radius: 8px; background: var(--glass-popup); box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(26px) saturate(1.35); }
-.pb-quality-menu.origin-opening { animation: quality-origin-in .16s cubic-bezier(.22,1,.36,1) both; }
-.pb-quality-menu.origin-closing { animation: quality-origin-out .16s ease both; }
-@keyframes quality-origin-in { from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.86); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
-@keyframes quality-origin-out { from { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } to { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.86); } }
+.pb-quality-menu.origin-opening { animation: player-anchor-in var(--origin-duration, 160ms) var(--motion-enter) both; }
+.pb-quality-menu.origin-closing { animation: player-anchor-out var(--origin-duration, 160ms) var(--motion-exit) both; pointer-events: none; }
 .pb-quality-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--text); font: inherit; font-size: 11px; text-align: left; white-space: nowrap; cursor: pointer; }
 .pb-quality-menu button:hover, .pb-quality-menu button.active { background: var(--glass-popup-hover); color: var(--text); }
 .pb-quality-menu button.active { font-weight: 600; }
+
+@keyframes player-anchor-in {
+  from { opacity: 0; transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 8px)) scale(var(--origin-scale-x, .72), var(--origin-scale-y, .72)); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes player-anchor-out {
+  from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  to { opacity: 0; transform: translate(calc(-50% + var(--origin-x, 0px)), var(--origin-y, 8px)) scale(var(--origin-scale-x, .72), var(--origin-scale-y, .72)); }
+}
 
 /* Above sidebars (70), drawers/modals (100) and the search overlay (110),
    but below toasts (200). The base .modal-backdrop rule is z-index:100;
