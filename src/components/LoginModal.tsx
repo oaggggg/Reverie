@@ -141,7 +141,7 @@ export default function LoginModal() {
         aria-label="扫码登录"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 style={{ textAlign: "center" }}>扫码登录</h2>
+        <h2 style={{ textAlign: "center", marginBottom: 20 }}>扫码登录</h2>
         <div className="qr-box">
           {qrimg ? (
             <img
