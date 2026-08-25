@@ -14,7 +14,10 @@
 
 let ctx: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
-let connectedEl: HTMLAudioElement | null = null;
+const analyserByElement = new WeakMap<
+  HTMLAudioElement,
+  { analyser: AnalyserNode; data: Uint8Array<ArrayBuffer> }
+>();
 // Explicit ArrayBuffer generic: getByteFrequencyData rejects ArrayBufferLike.
 let data: Uint8Array<ArrayBuffer> | null = null;
 
@@ -28,26 +31,34 @@ export interface Bands {
 }
 
 /**
- * Route `el` through an analyser, reusing the existing graph.
+ * Route `el` through an analyser, reusing the existing graph. Both player
+ * elements need their own source node because the app swaps decoders during
+ * preloading; otherwise the promoted decoder can advance silently.
  * Returns false when Web Audio is unavailable in this environment.
  */
 export function ensureAnalyser(el: HTMLAudioElement): boolean {
-  if (connectedEl === el) return analyser !== null;
-  // A different element can never be re-sourced; keep whatever we already have.
-  if (connectedEl) return analyser !== null;
+  const existing = analyserByElement.get(el);
+  if (existing) {
+    analyser = existing.analyser;
+    data = existing.data;
+    return true;
+  }
   try {
-    ctx = new AudioContext();
+    ctx ??= new AudioContext();
     const source = ctx.createMediaElementSource(el);
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 128;
-    analyser.smoothingTimeConstant = 0.75;
-    source.connect(analyser);
-    analyser.connect(ctx.destination);
-    connectedEl = el;
-    data = new Uint8Array(analyser.frequencyBinCount);
+    const elementAnalyser = ctx.createAnalyser();
+    elementAnalyser.fftSize = 128;
+    elementAnalyser.smoothingTimeConstant = 0.75;
+    source.connect(elementAnalyser);
+    elementAnalyser.connect(ctx.destination);
+    const elementData = new Uint8Array(
+      elementAnalyser.frequencyBinCount,
+    ) as Uint8Array<ArrayBuffer>;
+    analyserByElement.set(el, { analyser: elementAnalyser, data: elementData });
+    analyser = elementAnalyser;
+    data = elementData;
     return true;
   } catch {
-    analyser = null;
     return false;
   }
 }
