@@ -141,11 +141,7 @@ export default function LoginModal() {
         aria-label="扫码登录"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2>扫码登录</h2>
-        <p className="sub">
-          使用「网易云音乐」手机 App
-          扫描二维码完成登录，畅享高品质音乐与每日推荐
-        </p>
+        <h2 style={{ textAlign: "center" }}>扫码登录</h2>
         <div className="qr-box">
           {qrimg ? (
             <img
