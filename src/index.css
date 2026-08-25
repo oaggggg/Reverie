@@ -8514,6 +8514,14 @@ textarea {
   display: grid;
   gap: 8px;
 }
+/* 「我的评论」弹窗：列表在弹窗内独立滚动 */
+.modal.comment-history-modal {
+  width: min(520px, 92vw);
+}
+.comment-history-list.in-modal {
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+}
 .comment-history-list article {
   display: flex;
   gap: 10px;
