@@ -410,10 +410,11 @@ export default function ParticleAlbumCover({
       renderer.forceContextLoss();
       renderer.dispose();
 
-      // 手动清空 TypedArray 引用，帮助 GC 回收
-      (geometry.attributes.position.array as any) = null;
-      (geometry.attributes.aColor.array as any) = null;
-      (geometry.attributes.aSeed.array as any) = null;
+      // Remove attribute references after disposal so the CPU-side buffers can
+      // be collected without bypassing Three.js types.
+      geometry.deleteAttribute("position");
+      geometry.deleteAttribute("aColor");
+      geometry.deleteAttribute("aSeed");
     };
     // grid changes the buffer layout, so rebuilding on it is correct.
   }, [imageUrl, grid]);
