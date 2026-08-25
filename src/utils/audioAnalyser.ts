@@ -43,9 +43,10 @@ export function ensureAnalyser(el: HTMLAudioElement): boolean {
     data = existing.data;
     return true;
   }
+  let source: MediaElementAudioSourceNode | null = null;
   try {
     ctx ??= new AudioContext();
-    const source = ctx.createMediaElementSource(el);
+    source = ctx.createMediaElementSource(el);
     const elementAnalyser = ctx.createAnalyser();
     elementAnalyser.fftSize = 128;
     elementAnalyser.smoothingTimeConstant = 0.75;
@@ -59,6 +60,14 @@ export function ensureAnalyser(el: HTMLAudioElement): boolean {
     data = elementData;
     return true;
   } catch {
+    // createMediaElementSource reroutes the element away from its native
+    // output immediately. If analyser setup fails afterwards, restore a
+    // direct output path instead of leaving the player silent.
+    try {
+      if (source && ctx) source.connect(ctx.destination);
+    } catch {
+      // The browser may reject reconnecting a failed or closed context.
+    }
     return false;
   }
 }

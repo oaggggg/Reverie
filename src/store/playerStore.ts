@@ -920,7 +920,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       get().playSong(currentSong, queue, queueSource);
       return;
     }
-    if (playing) {
+    const audioIsPlaying = Boolean(audioEl && !audioEl.paused);
+    if (playing && audioIsPlaying) {
       audioEl?.pause();
       set({ playing: false });
       return;
