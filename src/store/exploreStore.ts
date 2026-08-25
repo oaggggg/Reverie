@@ -43,9 +43,11 @@ import { usePlayerStore } from "./playerStore";
 
 type CommentSort = "hot" | "new";
 type SocialTab = "events" | "myEvents" | "follows" | "followers";
+type FollowListType = "follows" | "followers";
 
 interface ExploreState {
   loading: boolean;
+  followListLoading: boolean;
   album: AlbumInfo | null;
   albumSongs: Song[];
   artist: ArtistInfo | null;
@@ -86,6 +88,7 @@ interface ExploreState {
   setSocialTab: (tab: SocialTab) => void;
   setFollowScene: (scene: FollowScene) => Promise<void>;
   checkMutualFollow: (userId: number) => Promise<boolean>;
+  loadFollowList: (type: FollowListType) => Promise<void>;
   loadSocial: (navigate?: boolean) => Promise<void>;
   toggleFollow: (user: SocialUser) => Promise<void>;
   toggleEventLike: (event: SocialEvent) => Promise<void>;
@@ -122,6 +125,7 @@ function toastError(message: string) {
 
 export const useExploreStore = create<ExploreState>()((set, get) => ({
   loading: false,
+  followListLoading: false,
   album: null,
   albumSongs: [],
   artist: null,
@@ -416,6 +420,20 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
     } catch {
       toastError("查询互相关注失败");
       return false;
+    }
+  },
+  loadFollowList: async (type) => {
+    const uid = usePlayerStore.getState().profile?.userId;
+    if (!uid) return;
+    set({ followListLoading: true });
+    try {
+      const users =
+        type === "follows" ? await getFollows(uid) : await getFollowers(uid);
+      set(type === "follows" ? { follows: users } : { followers: users });
+    } catch {
+      toastError(type === "follows" ? "加载关注列表失败" : "加载粉丝列表失败");
+    } finally {
+      set({ followListLoading: false });
     }
   },
   loadSocial: async (navigate = true) => {
