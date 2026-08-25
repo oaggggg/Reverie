@@ -232,12 +232,25 @@ export default function App() {
   const loadHomeQuote = usePlayerStore((s) => s.loadHomeQuote);
   const next = usePlayerStore((s) => s.next);
 
-  // register audio element
-  useEffect(() => {
+  // Register the active decoder before paint so the play button never holds
+  // the previous decoder for one render after a seamless promotion.
+  useLayoutEffect(() => {
     const active =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (active) setAudioEl(active);
   }, [activeAudio, setAudioEl]);
+
+  // A suspended Web Audio context is allowed to make an otherwise healthy
+  // media element advance silently. Resume it from the next real user gesture.
+  useEffect(() => {
+    const resume = () => resumeAnalyser();
+    document.addEventListener("pointerdown", resume, true);
+    document.addEventListener("keydown", resume, true);
+    return () => {
+      document.removeEventListener("pointerdown", resume, true);
+      document.removeEventListener("keydown", resume, true);
+    };
+  }, []);
 
   // 禁用播放器内的鼠标右键菜单
   useEffect(() => {
@@ -684,7 +697,15 @@ export default function App() {
       st.seek(0);
       const active =
         activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
-      active?.play().catch(() => {});
+      if (active) {
+        resumeAnalyser();
+        void active.play().catch(() => {
+          usePlayerStore.setState({ playing: false });
+          usePlayerStore
+            .getState()
+            .toast("音频循环启动失败，请点击播放重试", "error");
+        });
+      }
       return;
     }
     if (mode === "sequence" && index >= queue.length - 1) {
@@ -766,8 +787,23 @@ export default function App() {
     const position = active ? Math.max(0, active.currentTime * 1000) : 0;
     inactive.currentTime = position / 1000;
     active?.pause();
-    if (usePlayerStore.getState().playing) void inactive.play().catch(() => {});
-    commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
+    if (!usePlayerStore.getState().playing) {
+      commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
+      return;
+    }
+    resumeAnalyser();
+    void inactive
+      .play()
+      .then(() => {
+        commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
+      })
+      .catch(() => {
+        inactive.pause();
+        cancelQualitySwitch();
+        usePlayerStore
+          .getState()
+          .toast("音质切换启动失败，已保留当前播放", "info");
+      });
   };
 
   const handleAudioError = (event: SyntheticEvent<HTMLAudioElement>) => {
