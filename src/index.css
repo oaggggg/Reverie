@@ -5606,6 +5606,23 @@ textarea {
 .player-bar .icon-btn:not(.primary):hover {
   background: var(--glass-popup-hover);
 }
+
+.player-bar :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
+.player-bar :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus-visible,
+.pb-queue-menu :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
+.pb-queue-menu :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus-visible,
+.pb-quality-menu :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
+.pb-quality-menu :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus-visible,
+.player-comments-drawer :is(button, input, textarea, [role="button"], [role="tab"]):focus,
+.player-comments-drawer :is(button, input, textarea, [role="button"], [role="tab"]):focus-visible,
+.share-dialog :is(button, input, textarea, [role="button"]):focus,
+.share-dialog :is(button, input, textarea, [role="button"]):focus-visible,
+.np-visual-panel :is(button, input, textarea, [role="button"]):focus,
+.np-visual-panel :is(button, input, textarea, [role="button"]):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .topnav .topnav-item.active {
   background: linear-gradient(
     135deg,
