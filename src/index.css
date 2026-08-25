@@ -2980,23 +2980,26 @@ textarea {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  /* 仅导航栏与播放栏保留磨砂玻璃效果，弹窗遮罩不使用 */
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--glass-popup-scrim);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.15);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
 }
 .modal {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-surface-border);
   border-radius: 20px;
   padding: 26px;
   width: 400px;
   max-width: 92vw;
   max-height: 88vh;
   overflow-y: auto;
-  box-shadow: 0 24px 80px var(--shadow);
+  box-shadow: var(--glass-surface-shadow);
+  -webkit-backdrop-filter: var(--glass-surface-filter);
+  backdrop-filter: var(--glass-surface-filter);
 }
 .origin-backdrop.origin-opening { animation: origin-backdrop-in var(--origin-duration, var(--motion-normal)) ease both; }
 .origin-backdrop.origin-closing { animation: origin-backdrop-out var(--origin-duration, var(--motion-normal)) ease both; pointer-events: none; }
@@ -7054,34 +7057,6 @@ textarea {
   background: var(--glass-popup-scrim);
   -webkit-backdrop-filter: blur(12px) saturate(1.15);
   backdrop-filter: blur(12px) saturate(1.15);
-}
-
-/* 弹窗保留透明材质，但不对背后的页面内容做模糊处理。 */
-.search-dropdown,
-.user-dropdown,
-.modal,
-.settings-modal,
-.volume-popover,
-.player-comments-drawer,
-.share-dialog-backdrop .share-dialog,
-.np-visual-panel,
-.pb-quality-menu,
-.song-card-context-menu,
-.media-detail-dialog,
-.media-video-volume-pop,
-.media-video-rate-menu,
-.media-video-quality-menu,
-.voice-detail-dialog,
-.playlist-import-modal,
-.broadcast-detail-dialog,
-.podcast-program-dialog,
-.toast,
-.modal-backdrop,
-.confirm-backdrop,
-.player-comments-scrim,
-.share-dialog-backdrop {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
 }
 
 /* 弹窗和下拉层提高底色不透明度，避免透明背景削弱文字对比度。 */
