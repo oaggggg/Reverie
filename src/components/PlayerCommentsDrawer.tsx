@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Disc3, X } from "lucide-react";
+import { CircleX, UserRound } from "lucide-react";
 import { useCommentStore } from "../store/commentStore";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
@@ -49,7 +49,7 @@ export default function PlayerCommentsDrawer() {
               <img src={sizedImage(currentSong.picUrl, 96)} alt="" />
             ) : (
               <span className="player-comments-cover-ph">
-                <Disc3 size={18} />
+                <UserRound size={18} />
               </span>
             )}
             <div>
@@ -68,7 +68,7 @@ export default function PlayerCommentsDrawer() {
             onClick={() => setOpen(false)}
             title="关闭评论"
           >
-            <X size={18} />
+            <CircleX size={18} />
           </button>
         </header>
         <CommentPanel compact />

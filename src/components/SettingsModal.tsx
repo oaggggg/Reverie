@@ -3,6 +3,7 @@ import {
   CircleUserRound,
   ChevronRight,
   Bug,
+  FolderOpen,
   Info,
   MonitorCog,
   Palette,
@@ -134,6 +135,14 @@ export default function SettingsModal() {
     () =>
       localStorage.getItem("reverie_download_path") || "D:\\Reverie\\Downloads",
   );
+  // 仅桌面（Tauri）环境提供系统文件夹选择器；纯浏览器降级为手填路径。
+  const canPickFolder = typeof window !== "undefined" && !!window.ncm;
+  const pickDownloadFolder = async () => {
+    const picked = await window.ncm?.pickFolder(downloadPath || undefined);
+    if (!picked) return;
+    setDownloadPath(picked);
+    localStorage.setItem("reverie_download_path", picked);
+  };
   const showSettings = usePlayerStore((s) => s.showSettings);
   const setShowSettings = usePlayerStore((s) => s.setShowSettings);
   const theme = usePlayerStore((s) => s.theme);
@@ -411,20 +420,38 @@ export default function SettingsModal() {
                   <h3>播放</h3>
                   <SettingRow
                     title="歌曲下载路径"
-                    hint="浏览器环境无法直接选择系统目录，将使用该路径作为首选设置"
+                    hint={
+                      canPickFolder
+                        ? "点击“浏览…”打开系统文件夹选择器，也可以手动输入"
+                        : "浏览器环境无法直接选择系统目录，将使用该路径作为首选设置"
+                    }
                   >
-                    <input
-                      className="settings-input"
-                      value={downloadPath}
-                      onChange={(event) => {
-                        setDownloadPath(event.target.value);
-                        localStorage.setItem(
-                          "reverie_download_path",
-                          event.target.value,
-                        );
-                      }}
-                      placeholder="例如 D:\\Music\\Downloads"
-                    />
+                    <div className="settings-path-field">
+                      <input
+                        className="settings-path-input"
+                        value={downloadPath}
+                        onChange={(event) => {
+                          setDownloadPath(event.target.value);
+                          localStorage.setItem(
+                            "reverie_download_path",
+                            event.target.value,
+                          );
+                        }}
+                        placeholder="例如 D:\\Music\\Downloads"
+                        spellCheck={false}
+                      />
+                      {canPickFolder && (
+                        <button
+                          type="button"
+                          className="settings-path-btn"
+                          onClick={() => void pickDownloadFolder()}
+                          title="打开文件夹选择器"
+                        >
+                          <FolderOpen size={15} />
+                          浏览…
+                        </button>
+                      )}
+                    </div>
                   </SettingRow>
                   <SettingRow title="歌词翻译" hint="在歌词页同时显示译文">
                     <div className="opt-group">

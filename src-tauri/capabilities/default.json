@@ -14,6 +14,7 @@
     "core:window:allow-is-maximized",
     "shell:allow-open",
     "updater:default",
-    "process:allow-restart"
+    "process:allow-restart",
+    "dialog:allow-open"
   ]
 }

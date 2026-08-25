@@ -268,7 +268,10 @@ textarea {
   flex: 1;
   height: 100%;
 }
-/* Window title: Reverie wordmark with a sweeping sheen (reverie-sheen). */
+/* Window title: Reverie wordmark. 光效与跳动深度重构：
+   一条高光带每个周期从最左端出发、匀速扫到最右端后立即从头再来（只向右，
+   绝不回扫）；字母跳动与光带的到达时刻由同一周期方程推算，波形沿
+   “R→e→v→e→r→i→e”自左向右传播，无限循环。 */
 .titlebar-name {
   position: absolute;
   left: 50%;
@@ -282,6 +285,14 @@ textarea {
   font-size: 16.5px;
   font-weight: 800;
   letter-spacing: 0.2em;
+  /* —— 编排参数 ——
+     --brand-cycle     光带完整走一遍的周期；
+     --brand-letters   字标字母数；
+     --brand-sweep-end 光带在周期的这一比例时刻抵达最右端，
+                       其余时间停在画外等待下一轮。 */
+  --brand-cycle: 4.8s;
+  --brand-letters: 7;
+  --brand-sweep-end: 0.56;
   --brand-sheen-gradient: linear-gradient(
     100deg,
     transparent 34%,
@@ -293,7 +304,7 @@ textarea {
   position: relative;
   color: color-mix(in srgb, var(--text-dim) 82%, var(--accent-2) 18%);
   background: none;
-  animation: reverie-glow 5.6s ease-in-out infinite;
+  animation: reverie-glow var(--brand-cycle) linear infinite;
   /* 提升渐变文字的抗锯齿锐度 */
   -webkit-font-smoothing: antialiased;
 }
@@ -310,71 +321,70 @@ textarea {
   inset: 0;
   pointer-events: none;
 }
+/* 字母跳动的相位：第 i 个字母在光带扫过它的那一刻起跳。
+   光带按 --brand-sweep-end 匀速跨越整行，故到达第 i 个字母的时刻是
+   cycle * (i + 0.5) / N * sweep-end；减去单次跳跃的上升段（4.5%），
+   让跳起的最高点恰好落在光带到达的瞬间。所有字母共享同一周期，
+   循环无缝且永远自左向右。 */
 .titlebar-letter {
   display: inline-block;
   color: inherit;
   transform-origin: 50% 100%;
-  animation: reverie-letter-bounce 5.6s cubic-bezier(0.32, 0.72, 0.24, 1)
-    infinite;
+  animation-name: reverie-letter-bounce;
+  animation-duration: var(--brand-cycle);
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1);
+  animation-iteration-count: infinite;
+  animation-delay: calc(
+    var(--brand-cycle) * ((var(--letter-i, 0) + 0.5) / var(--brand-letters) *
+          var(--brand-sweep-end) - 0.045)
+  );
 }
-.titlebar-letter:nth-child(1) {
-  animation-delay: 0ms;
-}
-.titlebar-letter:nth-child(2) {
-  animation-delay: 70ms;
-}
-.titlebar-letter:nth-child(3) {
-  animation-delay: 140ms;
-}
-.titlebar-letter:nth-child(4) {
-  animation-delay: 210ms;
-}
-.titlebar-letter:nth-child(5) {
-  animation-delay: 280ms;
-}
-.titlebar-letter:nth-child(6) {
-  animation-delay: 350ms;
-}
-.titlebar-letter:nth-child(7) {
-  animation-delay: 420ms;
-}
-/* 一道共享高光从整段品牌名扫过 */
+/* 一道共享高光从左端出发扫到右端：行程段线性匀速（与字母相位精确同步），
+   抵达右端后停驻在画外直到下一周期，方向恒为从左到右。
+   注意：keyframes 选择器不能用 var()，下面的 56% 必须与
+   .titlebar-name-text 的 --brand-sweep-end: 0.56 手工保持一致。 */
 @keyframes reverie-sheen {
-  from {
-    background-position: -30% 50%;
+  0% {
+    background-position: -45% 50%;
   }
-  to {
-    background-position: 130% 50%;
+  56% {
+    background-position: 145% 50%;
+  }
+  100% {
+    background-position: 145% 50%;
   }
 }
-/* 光晕随扫光呼吸同步脉动：暖绯色调，静息态也保留一抹微光 */
+/* 光晕跟随光带位置脉动：暖绯色光晕随高光一起从左向右平移，
+   到达右端后熄灭等待下一轮 —— 呼吸感有了方向性。 */
 @keyframes reverie-glow {
-  0%,
-  100% {
-    filter: drop-shadow(
-      0 0 6px color-mix(in srgb, var(--accent-2) 22%, transparent)
-    );
+  0% {
+    filter: drop-shadow(-5px 0 7px
+        color-mix(in srgb, var(--accent-2) 16%, transparent));
   }
-  50% {
-    filter: drop-shadow(
-      0 0 12px color-mix(in srgb, var(--accent-2) 38%, transparent)
-    );
+  28% {
+    filter: drop-shadow(0 0 13px
+        color-mix(in srgb, var(--accent-2) 40%, transparent));
+  }
+  56%,
+  100% {
+    filter: drop-shadow(5px 0 7px
+        color-mix(in srgb, var(--accent-2) 14%, transparent));
   }
 }
-/* 光效扫过时逐字弹起，形成轻快但克制的字母级律动 */
+/* 单次跳跃压缩在周期的前 11%（≈0.53s）：快速起落一次后完全静止，
+   等待自己的下一次光带到达；不会与相邻字母的运动相互拖泥带水。 */
 @keyframes reverie-letter-bounce {
-  0%,
-  68%,
-  100% {
+  0% {
     transform: translateY(0) scale(1) rotate(0deg);
   }
-  34% {
-    transform: translateY(-2.5px) scale(1.035) rotate(-1deg);
+  4.5% {
+    transform: translateY(-3px) scale(1.06) rotate(-1.2deg);
   }
-  42% {
-    transform: translateY(-1px) scale(1.012) rotate(0.5deg);
+  8% {
+    transform: translateY(0.6px) scale(0.995) rotate(0.6deg);
   }
-  50% {
+  11%,
+  100% {
     transform: translateY(0) scale(1) rotate(0deg);
   }
 }
@@ -383,12 +393,15 @@ textarea {
   color: transparent;
   background: var(--brand-sheen-gradient);
   background-size: 260% 100%;
-  background-position: 130% 50%;
+  background-position: -45% 50%;
   background-repeat: no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: reverie-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95) infinite;
+  animation-name: reverie-sheen;
+  animation-duration: var(--brand-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 .titlebar-controls {
   display: flex;
@@ -4897,6 +4910,53 @@ textarea {
   display: flex;
   justify-content: flex-end;
   min-width: 0;
+}
+/* 歌曲下载路径：手填输入框 + 系统“浏览…”文件夹选择器 */
+.settings-path-field {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+  max-width: 340px;
+  flex: 1;
+  justify-content: flex-end;
+}
+.settings-path-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--glass-bg, rgba(128, 128, 128, 0.08));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.14s ease;
+}
+.settings-path-input:focus {
+  border-color: var(--accent-2);
+}
+.settings-path-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--glass-bg, rgba(128, 128, 128, 0.08));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.14s ease,
+    color 0.14s ease,
+    background 0.14s ease;
+}
+.settings-path-btn:hover {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
 }
 .settings-section .opt-group {
   display: flex;

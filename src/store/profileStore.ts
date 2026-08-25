@@ -45,6 +45,22 @@ function showProfileView() {
 let profileToken = 0;
 let recordsToken = 0;
 
+/** 远端档案缺少身份字段（昵称/头像均为空）时，用本地登录资料补齐。 */
+export function mergeWithCachedIdentity(
+  detail: ProfileDetail,
+): ProfileDetail {
+  if (detail.nickname || detail.avatarUrl) return detail;
+  const cached = usePlayerStore.getState().profile;
+  if (!cached) return detail;
+  return {
+    ...detail,
+    userId: detail.userId || cached.userId,
+    nickname: cached.nickname,
+    avatarUrl: cached.avatarUrl || detail.avatarUrl,
+    signature: detail.signature || cached.signature || "",
+  };
+}
+
 export const useProfileStore = create<ProfileState>()((set, get) => ({
   detail: null,
   level: null,
@@ -75,7 +91,9 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
       ]);
       if (token !== profileToken) return;
       set({
-        detail: data.detail,
+        // 远端 /user/detail 偶发失败时 getProfileCenter 返回空档案；
+        // 叠加本地缓存的登录身份，页面至少展示头像/昵称而不是“没有数据”。
+        detail: mergeWithCachedIdentity(data.detail),
         level: data.level,
         subcount: data.subcount,
         records: data.records,

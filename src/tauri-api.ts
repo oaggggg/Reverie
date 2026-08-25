@@ -62,6 +62,22 @@ export const ncm: NativeBridge = {
     else await appWindow.maximize();
   },
   close: () => appWindow?.close(),
+  pickFolder: async (defaultPath?: string) => {
+    if (!hasTauriRuntime) return null;
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const picked = await open({
+        directory: true,
+        multiple: false,
+        title: "选择歌曲下载文件夹",
+        defaultPath: defaultPath || undefined,
+      });
+      return typeof picked === "string" && picked ? picked : null;
+    } catch {
+      // 权限缺失或对话框不可用时静默降级，由调用方保留手填路径。
+      return null;
+    }
+  },
   isMaximized: () => appWindow?.isMaximized() ?? Promise.resolve(false),
   onMaximized: (callback) => {
     if (!appWindow) return () => {};

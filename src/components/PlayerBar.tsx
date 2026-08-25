@@ -12,19 +12,19 @@ import { preloadNowPlayingAssets } from "../utils/nowPlayingPreload";
 import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
 import {
-  Disc3,
   Heart,
-  ListOrdered,
   ListMusic,
-  MessageCircle,
+  MessageCircleMore,
   Pause,
   Play,
-  Radio,
+  RadioTower,
+  Repeat,
   Repeat1,
   Shuffle,
-  Share2,
+  Share,
   SkipBack,
   SkipForward,
+  Turntable,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -47,7 +47,7 @@ const PLAYER_FOCUS_SCOPE_SELECTOR = [
 function ModeIcon({ mode }: { mode: PlayMode }) {
   if (mode === "shuffle") return <Shuffle size={18} />;
   if (mode === "one") return <Repeat1 size={18} />;
-  return <ListOrdered size={18} />;
+  return <Repeat size={18} />;
 }
 
 export default function PlayerBar() {
@@ -248,7 +248,7 @@ export default function PlayerBar() {
                 />
               ) : (
                 <div className="pb-cover-ph">
-                  <Disc3 size={21} />
+                  <Turntable size={21} />
                 </div>
               )}
             </div>
@@ -356,7 +356,7 @@ export default function PlayerBar() {
               onClick={() => void loadPersonalFm()}
               title="私人漫游"
             >
-              <Radio size={17} />
+              <RadioTower size={17} />
             </button>
             <div className="pb-quality-wrap">
               <button
@@ -423,7 +423,7 @@ export default function PlayerBar() {
               }}
               title="歌曲评论"
             >
-              <MessageCircle size={17} />
+              <MessageCircleMore size={17} />
             </button>
             <button
               className={`icon-btn ${shareOpen ? "active" : ""}`}
@@ -440,7 +440,7 @@ export default function PlayerBar() {
               }}
               title="分享歌曲"
             >
-              <Share2 size={17} />
+              <Share size={17} />
             </button>
             <button
               className={`icon-btn ${liked ? "active" : ""}`}
