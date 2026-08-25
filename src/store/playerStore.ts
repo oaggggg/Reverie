@@ -445,6 +445,10 @@ let fmBatchPromise: Promise<Song[]> | null = null;
 let fmRetryStreak = 0;
 let searchToken = 0;
 let playlistRequestToken = 0;
+// Incremented whenever the authenticated account/session changes. Async
+// responses from an older session must never overwrite the current account.
+let accountDataGeneration = 0;
+let homeRequestToken = 0;
 const searchCache = new Map<string, { at: number; songs: Song[] }>();
 const SEARCH_CACHE_TTL = 5 * 60 * 1000;
 const MAX_SEARCH_CACHE_ENTRIES = 24;
@@ -1550,6 +1554,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
   // --- home dashboard ---
   loadHome: async (refreshPlaylists = false) => {
+    const generation = accountDataGeneration;
+    const requestToken = ++homeRequestToken;
     set({ activeView: "home" });
     if (homeLoadPromise) {
       await homeLoadPromise;
@@ -1569,6 +1575,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
           refreshPlaylists ? Math.floor(Math.random() * 8) * 12 : 0,
         )
           .then((lists) => {
+            if (generation !== accountDataGeneration || requestToken !== homeRequestToken) return;
             set({ hotPlaylists: lists });
             writeJson(HOME_PLAYLISTS_CACHE_KEY, lists);
             touchCache(HOME_PLAYLISTS_CACHE_AT_KEY);
@@ -1584,6 +1591,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       tasks.push(
         getTopSongs(0, 10)
           .then((songs) => {
+            if (generation !== accountDataGeneration || requestToken !== homeRequestToken) return;
             set({ topSongs: songs });
             writeJson(HOME_TOP_CACHE_KEY, songs);
             touchCache(HOME_TOP_CACHE_AT_KEY);
@@ -1605,6 +1613,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       tasks.push(
         getRecommendSongs()
           .then((songs) => {
+            if (generation !== accountDataGeneration || requestToken !== homeRequestToken) return;
             set({ recommendSongs: songs });
             writeJson(recommendCacheKey(profile.userId), songs);
             touchCache(recommendCacheAtKey(profile.userId));
@@ -1688,6 +1697,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   loadUserPlaylists: async (navigate = true) => {
     const uid = get().profile?.userId;
+    const generation = accountDataGeneration;
     if (!uid) {
       get().toast("请先登录", "info");
       set({ showLogin: true });
@@ -1699,6 +1709,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     });
     try {
       const lists = await getUserPlaylists(uid);
+      if (generation !== accountDataGeneration || get().profile?.userId !== uid) return;
       set({ userPlaylists: lists });
     } catch {
       get().toast("加载我的歌单失败", "error");
@@ -2026,9 +2037,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   loadLiked: async () => {
     const uid = get().profile?.userId;
+    const generation = accountDataGeneration;
     if (!uid) return;
     try {
       const ids = await getLikedIds(uid);
+      if (generation !== accountDataGeneration || get().profile?.userId !== uid) return;
       set({ likedIds: ids });
       writeJson(likedIdsCacheKey(uid), ids);
     } catch {
@@ -2036,7 +2049,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
   },
   loadLikedSongs: async () => {
-    const { likedIds, likedAt } = get();
+    const { likedIds, likedAt, profile } = get();
+    const generation = accountDataGeneration;
+    const uid = profile?.userId ?? 0;
     if (!likedIds.length) {
       set({ likedSongs: [], likedSongsLoading: false });
       return;
@@ -2054,6 +2069,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       songs.sort(
         (a, b) => (likedAt[b.id] ?? -Infinity) - (likedAt[a.id] ?? -Infinity),
       );
+      if (generation !== accountDataGeneration || get().profile?.userId !== uid) return;
       set({ likedSongs: songs });
     } catch {
       /* ignore */
@@ -2063,9 +2079,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   loadVipInfo: async () => {
     const uid = get().profile?.userId;
+    const generation = accountDataGeneration;
     if (!uid) return;
     try {
       const info = await getVipInfo(uid);
+      if (generation !== accountDataGeneration || get().profile?.userId !== uid) return;
       set({ vipInfo: info });
       writeJson(vipCacheKey(uid), info);
     } catch {
@@ -2149,6 +2167,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     try {
       const profile = await loginStatusWithRetry();
       if (profile && profile.userId > 0) {
+        accountDataGeneration++;
         // Switching accounts: wipe the previous account's cached data first,
         // otherwise its likes / recommendations stay on screen.
         set({
@@ -2187,6 +2206,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
   },
   logout: () => {
+    accountDataGeneration++;
+    homeRequestToken++;
     void logoutFromNetease().catch(() => undefined);
     clearCookie();
     clearResponseCache();
@@ -2249,6 +2270,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       const profile = await loginStatusWithRetry();
       if (profile && profile.userId > 0) {
         const accountChanged = get().profile?.userId !== profile.userId;
+        if (accountChanged) {
+          accountDataGeneration++;
+          homeRequestToken++;
+        }
         set({
           loggedIn: true,
           authReady: true,

@@ -746,6 +746,7 @@ export async function getUserPlaylists(uid: number): Promise<PlaylistInfo[]> {
   const PAGE = 50;
   const MAX_PAGES = 20; // 上限 1000 个歌单，防御异常死循环
   const rows: unknown[] = [];
+  const seenIds = new Set<number>();
   for (let offset = 0; offset < MAX_PAGES * PAGE; offset += PAGE) {
     const res = await cachedRequest<{
       code?: number;
@@ -753,7 +754,18 @@ export async function getUserPlaylists(uid: number): Promise<PlaylistInfo[]> {
       more?: boolean;
     }>("/user/playlist", { uid, limit: PAGE, offset }, 2 * 60 * 1000);
     const page = res.playlist ?? [];
-    rows.push(...page);
+    let added = 0;
+    for (const item of page) {
+      const id = Number((item as Record<string, unknown>).id ?? 0);
+      if (id > 0 && !seenIds.has(id)) {
+        seenIds.add(id);
+        rows.push(item);
+        added++;
+      }
+    }
+    // Some sidecar/proxy versions ignore offset and repeat the first page.
+    // Stop instead of returning duplicated playlists or spinning to the cap.
+    if (page.length > 0 && added === 0) break;
     if (page.length < PAGE || res.more === false) break;
   }
   return rows
