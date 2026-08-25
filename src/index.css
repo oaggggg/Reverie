@@ -804,7 +804,8 @@ textarea {
   box-shadow: 0 20px 60px color-mix(in srgb, var(--shadow) 60%, transparent);
   padding: 8px;
   z-index: 70;
-  animation: toast-in 0.16s ease;
+  contain: layout paint style;
+  will-change: transform, opacity;
 }
 .user-dropdown-head {
   display: flex;
@@ -5238,8 +5239,7 @@ textarea {
   flex: none;
 }
 
-.search-dropdown,
-.user-dropdown {
+.search-dropdown {
   border-radius: 18px;
   transform-origin: top right;
   animation: popover-from-trigger 0.2s cubic-bezier(0.22, 1, 0.36, 1);
