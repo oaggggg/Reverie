@@ -7327,9 +7327,8 @@ textarea {
 .digital-album-board { max-width: 960px; margin: 0 auto 18px; padding: 14px 18px 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); }
 .digital-album-board .digital-album-section-head h2 { display: inline-flex; align-items: center; gap: 6px; }
 
-/* Player bar layout contract: keep the transport cluster stable while the
-   song and action regions absorb available width. Narrow windows reflow the
-   action controls below the song row instead of letting them collide. */
+/* Desktop player bar layout contract: keep the transport cluster stable while
+   the song and action regions absorb available window width. */
 .player-bar {
   --player-control-size: 36px;
   --player-primary-size: 42px;
@@ -7344,115 +7343,6 @@ textarea {
 }
 .player-bar .pb-right {
   overflow: visible;
-}
-
-@media (max-width: 900px) {
-  :root {
-    --bar-inset: 14px;
-    --bar-float: 14px;
-  }
-
-  .player-bar {
-    height: auto;
-    min-height: 122px;
-    max-height: none;
-    padding: 8px 12px 10px;
-    gap: 6px;
-  }
-
-  .pb-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: 48px auto;
-    height: auto;
-    min-height: 0;
-    gap: 6px 12px;
-  }
-
-  .pb-right {
-    grid-column: 1 / -1;
-    justify-self: stretch;
-    justify-content: flex-end;
-    gap: 2px;
-    min-height: 34px;
-  }
-
-  .pb-info {
-    max-width: none;
-  }
-
-  .pb-queue-menu {
-    right: -4px;
-    width: min(330px, calc(100vw - 28px));
-  }
-}
-
-@media (max-width: 560px) {
-  :root {
-    --bar-inset: 8px;
-    --bar-float: 8px;
-  }
-
-  .player-bar {
-    --player-control-size: 32px;
-    --player-primary-size: 38px;
-    border-radius: 20px;
-    padding: 7px 9px 8px;
-  }
-
-  .pb-progress {
-    gap: 6px;
-  }
-
-  .pb-time {
-    min-width: 30px;
-    font-size: 10px;
-  }
-
-  .pb-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 5px 8px;
-  }
-
-  .pb-left {
-    gap: 8px;
-  }
-
-  .pb-cover,
-  .pb-cover img,
-  .pb-cover-ph {
-    width: 40px;
-    height: 40px;
-  }
-
-  .pb-info .t {
-    font-size: 12px;
-  }
-
-  .pb-info .a {
-    margin-top: 1px;
-    font-size: 10px;
-  }
-
-  .pb-right {
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .pb-right::-webkit-scrollbar {
-    display: none;
-  }
-
-  .pb-quality-btn {
-    min-height: 28px;
-    padding-inline: 6px;
-    font-size: 10px;
-  }
-
-  .pb-queue-menu {
-    right: -2px;
-    width: min(320px, calc(100vw - 20px));
-  }
 }
 .digital-album-board-grid { display: grid; gap: 6px; }
 .digital-album-board-card { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 8px; border-radius: 6px; background: var(--bg-3); color: var(--text); text-align: left; }
