@@ -7219,17 +7219,6 @@ textarea {
   backdrop-filter: var(--glass-surface-filter) !important;
 }
 
-/* ConfirmModal still declares a legacy animation; keep it on the same
-   origin-timed path as every other modal to prevent a material flash. */
-.confirm-modal.origin-opening {
-  animation: origin-surface-in var(--origin-duration, var(--motion-normal))
-    var(--motion-enter) both !important;
-}
-.confirm-modal.origin-closing {
-  animation: origin-surface-out var(--origin-duration, var(--motion-normal))
-    var(--motion-exit) both !important;
-}
-
 /* Interaction feedback stays inside each control's footprint. Content cards
    keep their labels stationary; only their dedicated cover layer may travel. */
 .icon-btn,

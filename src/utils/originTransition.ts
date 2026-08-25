@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -81,7 +80,10 @@ export function useOriginTransition<T extends HTMLElement = HTMLDivElement>(
   );
   const surfaceRef = useRef<T>(null);
 
-  useEffect(() => {
+  // Resolve the visual phase before the browser paints. Using useEffect here
+  // lets one frame render with the stale `open`/`closing` class, which is the
+  // source of the intermittent flash when a dialog is opened quickly.
+  useLayoutEffect(() => {
     let timer = 0;
     if (open) {
       setRendered(true);
