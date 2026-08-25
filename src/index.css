@@ -306,33 +306,33 @@ textarea {
     infinite;
 }
 .titlebar-letter:nth-child(1) {
-  animation-delay: 420ms;
+  animation-delay: 0ms;
 }
 .titlebar-letter:nth-child(2) {
-  animation-delay: 350ms;
+  animation-delay: 70ms;
 }
 .titlebar-letter:nth-child(3) {
-  animation-delay: 280ms;
+  animation-delay: 140ms;
 }
 .titlebar-letter:nth-child(4) {
   animation-delay: 210ms;
 }
 .titlebar-letter:nth-child(5) {
-  animation-delay: 140ms;
+  animation-delay: 280ms;
 }
 .titlebar-letter:nth-child(6) {
-  animation-delay: 70ms;
+  animation-delay: 350ms;
 }
 .titlebar-letter:nth-child(7) {
-  animation-delay: 0ms;
+  animation-delay: 420ms;
 }
 /* 一道共享高光从整段品牌名扫过 */
 @keyframes reverie-sheen {
   from {
-    background-position: 130% 50%;
+    background-position: -30% 50%;
   }
   to {
-    background-position: -30% 50%;
+    background-position: 130% 50%;
   }
 }
 /* 光晕随扫光呼吸同步脉动：暖绯色调，静息态也保留一抹微光 */
@@ -377,7 +377,7 @@ textarea {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: reverie-sheen 5.6s cubic-bezier(0.45, 0.08, 0.3, 0.95)
-    infinite alternate;
+    infinite;
 }
 .titlebar-controls {
   display: flex;
