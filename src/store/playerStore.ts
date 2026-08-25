@@ -15,6 +15,7 @@ import {
   getTopSongs,
   getUserPlaylists,
   getVipInfo,
+  isCookieFreshlySet,
   likeSong,
   loginStatus,
   searchSongs,
@@ -2197,16 +2198,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({ authReady: false });
     // 新扫码的会话在服务端偶尔需要短暂同步：此窗口内 /login/status
     // 会按匿名会话应答（无 profile），不能据此断定 cookie 无效。
-    // 带退避重试若干次，仍拿不到真实档案才判失败。
+    // 带退避重试约 12 秒，仍拿不到真实档案才判失败。
     let profile: UserProfile | null = null;
-    for (let attempt = 0; attempt < 4; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       try {
         profile = await loginStatusWithRetry();
         if (profile && profile.userId > 0) break;
       } catch {
         /* 网络抖动：继续重试 */
       }
-      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(500 * 2 ** attempt, 4000)),
+      );
     }
     if (profile && profile.userId > 0) {
       accountDataGeneration++;
@@ -2235,10 +2238,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       void get().loadUserPlaylists(false);
       return true;
     }
-    clearCookie();
-    localStorage.removeItem(PROFILE_CACHE_KEY);
-    if (get().profile?.userId) {
-      localStorage.removeItem(vipCacheKey(get().profile!.userId));
+    // 宽限期内保留刚写入的凭证（服务端同步延迟），交给后续校验；
+    // 超出宽限期仍无档案才认定为无效扫码并清除。
+    if (!isCookieFreshlySet()) {
+      clearCookie();
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+      if (get().profile?.userId) {
+        localStorage.removeItem(vipCacheKey(get().profile!.userId));
+      }
     }
     set({ loggedIn: false, authReady: true, profile: null });
     return false;
@@ -2346,8 +2353,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         void get().loadVipInfo();
         void get().loadUserPlaylists(false);
       } else {
-        clearCookie();
-        localStorage.removeItem(PROFILE_CACHE_KEY);
+        // 刚扫码写入的会话凭证可能仍在服务端同步窗口内：
+        // 宽限期内不下判、不清除，留给后续校验重试。
+        if (!isCookieFreshlySet()) {
+          clearCookie();
+          localStorage.removeItem(PROFILE_CACHE_KEY);
+        }
         set({ loggedIn: false, authReady: true, profile: null });
       }
     } catch {
