@@ -8,10 +8,7 @@ import {
   type ComponentType,
   type SyntheticEvent,
 } from "react";
-import {
-  playbackFailureMessage,
-  usePlayerStore,
-} from "./store/playerStore";
+import { playbackFailureMessage, usePlayerStore } from "./store/playerStore";
 import { ensureAnalyser, resumeAnalyser } from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
 import TopNav from "./components/TopNav";
@@ -292,10 +289,13 @@ export default function App() {
   // when that effect is picked, and fall back if Web Audio is unavailable.
   useEffect(() => {
     if (particleEffect !== "audio") return;
-    const el = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
-    if (!el) return;
+    const active =
+      activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
+    const inactive =
+      activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
+    if (!active || !inactive) return;
     const st = usePlayerStore.getState();
-    if (ensureAnalyser(el)) {
+    if (ensureAnalyser(inactive) && ensureAnalyser(active)) {
       resumeAnalyser();
     } else {
       st.toast("当前环境不支持音频分析，已切换为波动效果", "error");
@@ -472,7 +472,16 @@ export default function App() {
       if (skipNextFadeInRef.current) {
         skipNextFadeInRef.current = false;
         a.volume = target;
-        if (a.paused) a.play().catch(() => {});
+        if (a.paused) {
+          a.play().catch(() => {
+            a.volume = target;
+            const state = usePlayerStore.getState();
+            if (state.currentUrl === currentUrl && state.playing) {
+              usePlayerStore.setState({ playing: false });
+              state.toast("音频启动失败，请点击播放重试", "error");
+            }
+          });
+        }
       } else {
         a.volume = 0;
         a.play()
@@ -487,7 +496,14 @@ export default function App() {
             }
             return fadeAudioVolume(a, target, AUDIO_FADE_IN_MS);
           })
-          .catch(() => {});
+          .catch(() => {
+            a.volume = target;
+            const state = usePlayerStore.getState();
+            if (state.currentUrl === currentUrl && state.playing) {
+              usePlayerStore.setState({ playing: false });
+              state.toast("音频启动失败，请点击播放重试", "error");
+            }
+          });
       }
     } else if (!a.paused) {
       void fadeAudioVolume(a, 0, AUDIO_FADE_OUT_MS).then(() => {
@@ -556,7 +572,12 @@ export default function App() {
           skipNextFadeInRef.current = true;
           usePlayerStore
             .getState()
-            .commitPreloaded(nextSong, state.queue, state.queueSource, preloadedUrl);
+            .commitPreloaded(
+              nextSong,
+              state.queue,
+              state.queueSource,
+              preloadedUrl,
+            );
           seamlessTransitionRef.current = false;
         })
         .catch(() => {
@@ -594,7 +615,13 @@ export default function App() {
     const a = activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!a || !currentUrl) return;
     if (playing && a.paused) {
-      a.play().catch(() => {});
+      a.play().catch(() => {
+        const state = usePlayerStore.getState();
+        if (state.currentUrl === currentUrl && state.playing) {
+          usePlayerStore.setState({ playing: false });
+          state.toast("音频启动失败，请点击播放重试", "error");
+        }
+      });
     }
   }, [activeAudio, playing, currentUrl]);
 
