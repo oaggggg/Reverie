@@ -139,7 +139,17 @@ export default function SongCards({
                   </span>
                 )}
               </div>
-              <div className="n">{song.name}</div>
+              <div className="n">
+                {song.name}
+                {song.fee === 1 && (
+                  <span
+                    className="vip-badge"
+                    title="需要网易云音乐会员，非会员可试听 60 秒（如资源支持）"
+                  >
+                    VIP
+                  </span>
+                )}
+              </div>
               <div className="a">{song.artists}</div>
             </article>
           );

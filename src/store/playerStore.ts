@@ -468,6 +468,8 @@ interface PlayerState {
   activeAudio: 0 | 1;
   currentSong: Song | null;
   currentUrl: string | null;
+  /** End position for the current non-member VIP preview, in milliseconds. */
+  previewEnd: number | null;
   preloadedSongId: number | null;
   preloadedUrl: string | null;
   qualitySwitchUrl: string | null;
@@ -649,7 +651,31 @@ interface PlayerState {
 type PlaybackUrlResult = {
   url: string | null;
   reason: string;
+  previewEnd?: number;
 };
+
+export const PREVIEW_DURATION_MS = 60_000;
+
+function hasVipAccess(state: {
+  loggedIn: boolean;
+  profile: UserProfile | null;
+  vipInfo: VipInfo | null;
+}): boolean {
+  if (!state.loggedIn) return false;
+  if (state.vipInfo) {
+    return (
+      state.vipInfo.vipType > 0 &&
+      (state.vipInfo.expireTime <= 0 || state.vipInfo.expireTime > Date.now())
+    );
+  }
+  return (state.profile?.vipType ?? 0) > 0;
+}
+
+function previewDurationForSong(song: Song): number | null {
+  return song.fee === 1 && !hasVipAccess(usePlayerStore.getState())
+    ? PREVIEW_DURATION_MS
+    : null;
+}
 
 function reasonFromApi(code: number, message: string): string {
   const text = message.toLowerCase();
@@ -676,8 +702,7 @@ export function playbackFailureMessage(
     String(detail?.message ?? ""),
   );
   if (apiReason) return apiReason;
-  const loggedIn = usePlayerStore.getState().loggedIn;
-  if (song?.fee === 1 && !loggedIn)
+  if (song?.fee === 1 && !hasVipAccess(usePlayerStore.getState()))
     return "该歌曲为 VIP 歌曲，请登录并开通网易云音乐会员后播放";
   if (song?.fee === 1) return "该歌曲需要网易云音乐会员或更高账号权限";
   return "该歌曲暂无可用播放资源，可能受版权、地区或账号权限限制";
@@ -687,8 +712,10 @@ async function resolveUrl(
   song: Song,
   preferredQuality: PlaybackQuality,
 ): Promise<PlaybackUrlResult> {
-  // VIP songs without login fail on every level; only try standard once to stay fast.
-  const loggedIn = usePlayerStore.getState().loggedIn;
+  // Non-member VIP songs use the standard endpoint, which returns a preview
+  // segment when one is available instead of a full playback URL.
+  const state = usePlayerStore.getState();
+  const previewOnly = song.fee === 1 && !hasVipAccess(state);
   const requestedLevels: PlaybackQuality[] =
     preferredQuality === "standard"
       ? ["standard"]
@@ -697,13 +724,20 @@ async function resolveUrl(
         : preferredQuality === "exhigh"
           ? ["exhigh", "higher", "standard"]
           : [preferredQuality, "lossless", "exhigh", "higher", "standard"];
-  const levels =
-    song.fee === 1 && !loggedIn ? (["standard"] as const) : requestedLevels;
+  const levels = previewOnly ? (["standard"] as const) : requestedLevels;
   let lastReason = "";
   for (const level of levels) {
     try {
       const result = await getSongUrl(song.id, level);
-      if (result.url) return { url: result.url, reason: "" };
+      if (result.url) {
+        return {
+          url: result.url,
+          reason: "",
+          previewEnd: previewOnly
+            ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
+            : undefined,
+        };
+      }
       const reason = reasonFromApi(result.code ?? 0, result.message ?? "");
       if (reason) lastReason = reason;
     } catch {
@@ -712,7 +746,15 @@ async function resolveUrl(
   }
   try {
     const result = await getLegacySongUrl(song.id);
-    if (result.url) return { url: result.url, reason: "" };
+    if (result.url) {
+      return {
+        url: result.url,
+        reason: "",
+        previewEnd: previewOnly
+          ? Math.min(result.previewEnd ?? PREVIEW_DURATION_MS, PREVIEW_DURATION_MS)
+          : undefined,
+      };
+    }
     const reason = reasonFromApi(result.code ?? 0, result.message ?? "");
     if (reason) lastReason = reason;
   } catch {
@@ -741,6 +783,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   audioEl: null,
   currentSong: restoredSession.currentSong,
   currentUrl: null,
+  previewEnd: null,
   activeAudio: 0,
   preloadedSongId: null,
   preloadedUrl: null,
@@ -1039,6 +1082,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       queueSource: source,
       currentSong: song,
       currentUrl: url,
+      previewEnd: previewDurationForSong(song),
       preloadedSongId: null,
       preloadedUrl: null,
       loadingUrl: false,
@@ -1644,6 +1688,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       queueSource: source ?? (queue ? "list" : st.queueSource),
       currentSong: song,
       currentUrl: promotedUrl,
+      previewEnd: promotedUrl ? previewDurationForSong(song) : null,
       preloadedSongId: null,
       preloadedUrl: null,
       qualitySwitchUrl: null,
@@ -1695,7 +1740,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       get().failCurrent(resolution.reason);
       return;
     }
-    set({ currentUrl: resolution.url, loadingUrl: false, playing: autoplay });
+    set({
+      currentUrl: resolution.url,
+      previewEnd: resolution.previewEnd ?? null,
+      loadingUrl: false,
+      playing: autoplay,
+    });
 
     // Prefetch the next track's URL while the current one plays; it lands in
     // the song-url cache and makes the next playSong near-instant.
@@ -2053,6 +2103,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       fmSongs: [],
       currentSong: null,
       currentUrl: null,
+      previewEnd: null,
       playing: false,
       progress: 0,
       duration: 0,

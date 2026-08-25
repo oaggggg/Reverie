@@ -296,6 +296,27 @@ export async function searchSongs(
 /** Song URLs stay valid for hours upstream; reuse them instead of re-asking. */
 const SONG_URL_CACHE_TTL = 30 * 60 * 1000;
 
+function freeTrialDuration(
+  info:
+    | {
+        start?: number;
+        end?: number;
+        startTime?: number;
+        endTime?: number;
+      }
+    | null
+    | undefined,
+): number | undefined {
+  if (!info || typeof info !== "object") return undefined;
+  const value = info as Record<string, unknown>;
+  const start = Number(value.start ?? value.startTime ?? 0);
+  const end = Number(value.end ?? value.endTime ?? 0);
+  if (!Number.isFinite(end) || end <= 0) return undefined;
+  const rawDuration = end > start ? end - start : end;
+  if (!Number.isFinite(rawDuration) || rawDuration <= 0) return undefined;
+  return rawDuration < 1000 ? rawDuration * 1000 : rawDuration;
+}
+
 export async function getSongUrl(
   id: number,
   level: PlaybackQuality = "exhigh",
@@ -304,6 +325,7 @@ export async function getSongUrl(
   br: number;
   code?: number;
   message?: string;
+  previewEnd?: number;
 }> {
   const key = cacheKey("/song/url/v1", { id, level });
   const hit = responseCache.get(key);
@@ -320,6 +342,7 @@ export async function getSongUrl(
         br: d?.br ?? 0,
         code: Number(d?.code ?? res.code ?? 0),
         message: String(d?.message ?? d?.msg ?? ""),
+        previewEnd: freeTrialDuration(d?.freeTrialInfo),
       };
       // Only cache playable results; a null url may become available later
       // (e.g. right after login).
@@ -385,6 +408,7 @@ export async function getLegacySongUrl(
   br: number;
   code?: number;
   message?: string;
+  previewEnd?: number;
 }> {
   const res = await request<SongUrlResponse>("/song/url", {
     id,
@@ -396,6 +420,7 @@ export async function getLegacySongUrl(
     br: d?.br ?? 0,
     code: Number(d?.code ?? res.code ?? 0),
     message: String(d?.message ?? d?.msg ?? ""),
+    previewEnd: freeTrialDuration(d?.freeTrialInfo),
   };
 }
 

@@ -62,6 +62,7 @@ export default function PlayerBar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const qualityTransition = useOriginTransition<HTMLDivElement>(qualityOpen, "player-quality", 160);
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const previewEnd = usePlayerStore((s) => s.previewEnd);
   const playing = usePlayerStore((s) => s.playing);
   const loadingUrl = usePlayerStore((s) => s.loadingUrl);
   const progress = usePlayerStore((s) => s.progress);
@@ -215,7 +216,15 @@ export default function PlayerBar() {
             )}
           </div>
           <div className="pb-info">
-            <div className="t">{currentSong?.name ?? "未在播放"}</div>
+            <div className="t">
+              {currentSong?.name ?? "未在播放"}
+              {currentSong?.fee === 1 && <span className="vip-badge">VIP</span>}
+              {previewEnd !== null && (
+                <span className="preview-badge" title="当前为 60 秒试听">
+                  试听
+                </span>
+              )}
+            </div>
             <div className="a">
               {currentSong?.artists ?? "选择一首歌开始播放"}
             </div>

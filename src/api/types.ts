@@ -741,6 +741,12 @@ export interface SongUrlResponse {
     code?: number;
     message?: string;
     msg?: string;
+    freeTrialInfo?: {
+      start?: number;
+      end?: number;
+      startTime?: number;
+      endTime?: number;
+    } | null;
   }>;
 }
 

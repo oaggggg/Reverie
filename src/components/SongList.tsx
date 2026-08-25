@@ -106,7 +106,14 @@ export default function SongList({
                 <div className="meta">
                   <div className={`t ${isCur ? "playing-text" : ""}`}>
                     {song.name}
-                    {song.fee === 1 && <span className="vip-badge">VIP</span>}
+                    {song.fee === 1 && (
+                      <span
+                        className="vip-badge"
+                        title="需要网易云音乐会员，非会员可试听 60 秒（如资源支持）"
+                      >
+                        VIP
+                      </span>
+                    )}
                   </div>
                   <div className="a">
                     {song.artists}
