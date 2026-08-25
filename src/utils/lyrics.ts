@@ -85,13 +85,49 @@ const METADATA_RE =
 const NONLYRIC_RE =
   /^[（(](男|女|合|独|齐|对白|旁白|说唱)[）)]|[:：]\s*(女|男|合|独|对白|旁白|说唱|合唱)|^[\u4e00-\u9fa5]{1,6}[:：]/i;
 
-/** Whether a lyric line is a real lyric (not metadata/credit/empty). */
+/** 合唱/署名前缀："李硕、达布希勒图、张鑫：…" 这类多名单（顿号/逗号/空格相连）
+ *  后跟冒号的行 —— 实测会从 Live 版歌词里漏进首页文案。 */
+const DUET_NAME_PREFIX_RE =
+  /^[A-Za-z0-9\u4e00-\u9fa5·]{1,16}(?:[、,，\s]+[A-Za-z0-9\u4e00-\u9fa5·]{1,16}){0,5}[:：]\s*\S/;
+
+/** 社交提及/站外引导："@IceTeeth"、"关注公众号" 一类非歌词行。 */
+const MENTION_RE = /@[A-Za-z0-9_\u4e00-\u9fa5]|关注(我们|公众号|订阅)|点赞|转发/;
+
+/** 无信息量的语气词：纯拉丁行若全部由它们构成则不作为首页文案。 */
+const VOCABLES = new Set([
+  "yeah", "yea", "oh", "ooh", "oooh", "ooooh", "ohh", "woow", "woo",
+  "wooo", "wu", "ha", "la", "na", "hey", "ho", "uh", "um", "ah", "ahh",
+  "hmm", "mm", "oo", "hoo",
+]);
+
+/** 语气词判定允许常见的拖长变体（yeahhh / ohhh / laaa…）。 */
+function isVocable(word: string): boolean {
+  if (VOCABLES.has(word)) return true;
+  const stem = word.replace(/([a-z])\1{1,}$/, "$1");
+  return VOCABLES.has(stem) || (stem.length >= 2 && VOCABLES.has(stem + "h"));
+}
+
+/**
+ * Whether a lyric line is a real lyric (not metadata/credit/empty).
+ */
 export function isLyricLine(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
   if (t.length < 4) return false;
   if (METADATA_RE.test(t)) return false;
   if (NONLYRIC_RE.test(t)) return false;
+  // 多人名连排 + 冒号（Live 版合唱标注）
+  if (DUET_NAME_PREFIX_RE.test(t)) return false;
+  if (MENTION_RE.test(t)) return false;
+  // 剥掉括号舞台指示后再判断语气词堆砌
+  const stripped = t.replace(/[（(][^（）()]*[）)]/g, " ").trim();
+  if (!stripped) return false;
+  if (!/[\u4e00-\u9fa5]/.test(stripped)) {
+    const words = stripped.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+    if (words.length > 0 && words.every(isVocable)) return false;
+  }
+  // 行尾孤立的中转英截断残片（如 "brand new的stu"）——真实歌词极少这样收尾
+  if (/[\u4e00-\u9fa5]["')）]?\s*[A-Za-z]{2,4}$/.test(stripped)) return false;
   return true;
 }
 

@@ -51,7 +51,12 @@ function ModeIcon({ mode }: { mode: PlayMode }) {
 }
 
 export default function PlayerBar() {
-  const [failedCover, setFailedCover] = useState("");
+  // 封面渐显渐隐：front 层是新封面（加载完成后淡入），back 层是旧封面
+  // （在新层完全显示前保持可见），配合 rotor 容器统一旋转实现丝滑过渡。
+  const [coverLayers, setCoverLayers] = useState<
+    Array<{ url: string; ready: boolean }>
+  >([]);
+  const [failedCovers, setFailedCovers] = useState<string[]>([]);
   const [shareOpen, setShareOpen] = useState(false);
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
@@ -131,10 +136,8 @@ export default function PlayerBar() {
     setDynamicCover("");
     setRemoteLiked(null);
     if (!currentSong) return;
-    // 预热播放栏 120px 缩略图：切歌瞬间 <img> 换 src 时直接命中缓存，
-    // 配合下方不重建元素的写法，封面不再闪动。
+    // 预热播放栏 120px 缩略图与队列下一曲：封面在真正挂载前已进缓存。
     warmCoverImage(currentSong.picUrl, 120);
-    // 预热队列中的下一曲，提前把它的封面拉进缓存。
     const nextSong = queue[queueIndex + 1];
     if (nextSong && nextSong.id !== currentSong.id) {
       warmCoverImage(nextSong.picUrl, 120);
@@ -156,6 +159,50 @@ export default function PlayerBar() {
       alive = false;
     };
   }, [currentSong?.id, loggedIn]);
+
+  const coverUrl = dynamicCover || currentSong?.picUrl || "";
+  const visibleCover =
+    coverUrl && !failedCovers.includes(coverUrl) ? coverUrl : "";
+
+  // 封面层编排：新封面作为 front 层入栈（未加载完成前透明），
+  // 旧封面保留为 back 层垫底，淡入完成后由 prune effect 移除。
+  useEffect(() => {
+    if (!visibleCover) {
+      setCoverLayers([]);
+      return;
+    }
+    setCoverLayers((prev) => {
+      if (prev[0]?.url === visibleCover) return prev;
+      const reused = prev.find((layer) => layer.url === visibleCover);
+      const rest = prev
+        .filter((layer) => layer.url !== visibleCover)
+        .slice(0, 1);
+      return [{ url: visibleCover, ready: reused?.ready ?? false }, ...rest];
+    });
+  }, [visibleCover]);
+
+  useEffect(() => {
+    if (coverLayers.length < 2 || !coverLayers[0]?.ready) return;
+    const timer = window.setTimeout(
+      () => setCoverLayers((current) => current.slice(0, 1)),
+      460,
+    );
+    return () => window.clearTimeout(timer);
+  }, [coverLayers]);
+
+  const handleCoverLoad = (url: string) => {
+    setCoverLayers((current) =>
+      current.map((layer) =>
+        layer.url === url ? { ...layer, ready: true } : layer,
+      ),
+    );
+  };
+  const handleCoverError = (url: string) => {
+    setFailedCovers((current) =>
+      current.includes(url) ? current : [...current, url],
+    );
+    setCoverLayers((current) => current.filter((layer) => layer.url !== url));
+  };
 
   useEffect(() => {
     if (!qualityOpen && !queueOpen) return;
@@ -207,10 +254,6 @@ export default function PlayerBar() {
   const liked = currentSong
     ? (remoteLiked ?? likedIds.includes(currentSong.id))
     : false;
-  const coverUrl = dynamicCover || currentSong?.picUrl || "";
-  const showCover = Boolean(
-    currentSong && coverUrl && failedCover !== coverUrl,
-  );
 
   return (
     <>
@@ -247,21 +290,26 @@ export default function PlayerBar() {
               title="打开播放页"
               style={{ cursor: "pointer" }}
             >
-              {showCover && currentSong ? (
-                /* 故意不设 key：切歌时复用同一个 <img> 元素原地换 src，
-                   浏览器会保留旧封面直到新图解码完成，不会闪一下；
-                   加 key 会强制卸载重挂，加载期露出占位底色。 */
-                <img
-                  src={sizedImage(coverUrl, 120)}
-                  alt=""
-                  decoding="async"
-                  onError={() => setFailedCover(coverUrl)}
-                />
-              ) : (
-                <div className="pb-cover-ph">
-                  <Turntable size={21} />
-                </div>
-              )}
+              {/* 渐显渐隐封面：rotor 统一旋转，front 层加载完成后淡入、
+                  旧封面垫底淡出；占位唱片垫在最底层，首载时也无缝衔接。 */}
+              <div className="pb-cover-rotor">
+                {!coverLayers.some((layer) => layer.ready) && (
+                  <div className="pb-cover-ph">
+                    <Turntable size={21} />
+                  </div>
+                )}
+                {coverLayers.map((layer, index) => (
+                  <img
+                    key={layer.url}
+                    className={`pb-cover-layer${index === 0 && layer.ready ? " on" : ""}`}
+                    src={sizedImage(layer.url, 120)}
+                    alt=""
+                    decoding="async"
+                    onLoad={() => handleCoverLoad(layer.url)}
+                    onError={() => handleCoverError(layer.url)}
+                  />
+                ))}
+              </div>
             </div>
             <div className="pb-info">
               <div className="t">

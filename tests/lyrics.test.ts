@@ -42,3 +42,22 @@ test("lyric quote helpers reject credits and retain meaningful lines", () => {
     "风吹过安静的街道",
   );
 });
+
+test("lyric quote rejects multi-singer credit prefixes from live recordings", () => {
+  // Live 版歌词里实测泄漏的三人合唱行
+  assert.equal(isLyricLine("李硕、达布希勒图、张鑫：你要离开"), false);
+  assert.equal(isLyricLine("周杰伦：看着你"), false);
+  assert.equal(isLyricLine("Taylor Jay: standing here"), false);
+});
+
+test("lyric quote rejects mentions, vocable spam and truncated fragments", () => {
+  assert.equal(isLyricLine("@IceTeeth"), false);
+  assert.equal(isLyricLine("关注公众号看更多幕后"), false);
+  assert.equal(isLyricLine("Yeah yeah yeah yeah yeah"), false);
+  assert.equal(isLyricLine("Oooh yeah（疯狂地生长）"), false);
+  // 中转英截断残句
+  assert.equal(isLyricLine("brand new的stu"), false);
+  // 正常歌词不受影响
+  assert.equal(isLyricLine("可会变 (谁没在变)"), true);
+  assert.equal(isLyricLine("原谅我这一生不羁放纵爱自由"), true);
+});

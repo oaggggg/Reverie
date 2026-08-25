@@ -35,6 +35,14 @@ export async function getAccountOverview(): Promise<AccountOverview> {
   // 因此以它优先，detail 仅作补充。
   const accountData = obj(account.account ?? account.data ?? account);
   const accountProfile = obj(account.profile);
+  // 匿名会话（游客 type=1000、无 profile）不算已登录：
+  // 抛错让设置页显示“暂不可用”，而不是渲染全 0 的空壳概览。
+  if (
+    !Object.keys(accountProfile).length &&
+    Number(accountData.type) === 1000
+  ) {
+    throw new Error("anonymous session");
+  }
   const detailProfile = obj(detail.profile ?? detail.data ?? detail);
   const mergedProfile: Obj = { ...detailProfile };
   for (const [key, value] of Object.entries(accountProfile)) {
