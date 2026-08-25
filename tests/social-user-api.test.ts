@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getEvents,
+  getFollowers,
+  getFollows,
   getMixedFollows,
   getMutualFollow,
   getSocialStatusRecommendations,
@@ -12,6 +14,36 @@ import {
   deleteEvent,
   getUserEvents,
 } from "../src/api/extended.ts";
+
+test("follow lists normalize nested and wrapped user records", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/user/follows") {
+        return Response.json({
+          data: {
+            list: [
+              { user: { userId: 8, nickname: "关注用户", avatarUrl: "a" } },
+            ],
+          },
+        });
+      }
+      assert.equal(url.pathname, "/user/followeds");
+      return Response.json({
+        result: { users: [{ id: 9, nickname: "粉丝用户", signature: "简介" }] },
+      });
+    };
+    const follows = await getFollows(42);
+    const followers = await getFollowers(42);
+    assert.equal(follows[0]?.userId, 8);
+    assert.equal(follows[0]?.nickname, "关注用户");
+    assert.equal(followers[0]?.userId, 9);
+    assert.equal(followers[0]?.signature, "简介");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("getEvents normalizes activity resources and interaction counts", async () => {
   const originalFetch = globalThis.fetch;

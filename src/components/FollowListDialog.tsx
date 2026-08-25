@@ -17,15 +17,15 @@ export default function FollowListDialog({
   const users = useExploreStore((state) =>
     type === "follows" ? state.follows : state.followers,
   );
-  const loading = useExploreStore((state) => state.loading);
-  const loadSocial = useExploreStore((state) => state.loadSocial);
+  const loading = useExploreStore((state) => state.followListLoading);
+  const loadFollowList = useExploreStore((state) => state.loadFollowList);
   const toggleFollow = useExploreStore((state) => state.toggleFollow);
   const surfaceRef = useRef<HTMLElement>(null);
   useModalBehavior(true, surfaceRef, onClose);
 
   useEffect(() => {
-    void loadSocial(false);
-  }, [loadSocial]);
+    void loadFollowList(type);
+  }, [loadFollowList, type]);
 
   return createPortal(
     <div className="modal-backdrop follow-list-backdrop" onMouseDown={onClose}>

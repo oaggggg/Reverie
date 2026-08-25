@@ -113,15 +113,16 @@ function normalizeRadio(raw: unknown): RadioInfo {
 }
 
 function normalizeUser(raw: unknown): SocialUser {
-  const u = obj(raw);
+  const value = obj(raw);
+  const u = obj(value.user ?? value.profile ?? value);
   return {
-    userId: Number(u.userId ?? u.id ?? 0),
-    nickname: String(u.nickname ?? "网易云用户"),
-    avatarUrl: String(u.avatarUrl ?? ""),
-    signature: String(u.signature ?? ""),
-    followed: Boolean(u.followed ?? u.mutual),
-    follows: Number(u.follows ?? 0),
-    followeds: Number(u.followeds ?? 0),
+    userId: Number(u.userId ?? u.id ?? value.userId ?? value.id ?? 0),
+    nickname: String(u.nickname ?? value.nickname ?? "网易云用户"),
+    avatarUrl: String(u.avatarUrl ?? value.avatarUrl ?? ""),
+    signature: String(u.signature ?? value.signature ?? ""),
+    followed: Boolean(u.followed ?? value.followed ?? u.mutual ?? value.mutual),
+    follows: Number(u.follows ?? value.follows ?? 0),
+    followeds: Number(u.followeds ?? value.followeds ?? 0),
   };
 }
 
@@ -413,12 +414,28 @@ export async function subscribeRadio(
 
 export async function getFollows(uid: number): Promise<SocialUser[]> {
   const res = await request<Obj>("/user/follows", { uid, limit: 100 }, true);
-  return arr(res.follow).map(normalizeUser);
+  const data = obj(res.data ?? res.result);
+  const rows =
+    res.follow ??
+    res.users ??
+    res.list ??
+    data.follow ??
+    data.users ??
+    data.list;
+  return arr(rows).map(normalizeUser).filter((user) => user.userId > 0);
 }
 
 export async function getFollowers(uid: number): Promise<SocialUser[]> {
   const res = await request<Obj>("/user/followeds", { uid, limit: 100 }, true);
-  return arr(res.followeds).map(normalizeUser);
+  const data = obj(res.data ?? res.result);
+  const rows =
+    res.followeds ??
+    res.users ??
+    res.list ??
+    data.followeds ??
+    data.users ??
+    data.list;
+  return arr(rows).map(normalizeUser).filter((user) => user.userId > 0);
 }
 
 export type FollowScene = 0 | 1 | 2;
