@@ -63,6 +63,7 @@ export type ThemePreference = "system" | "light" | "dark";
 export type GlassOpacity = "subtle" | "balanced" | "solid";
 export type GlassBlur = "none" | "soft" | "strong";
 export type GlassContrast = "standard" | "high";
+export type AnimationSpeed = "relaxed" | "normal" | "swift" | "instant";
 
 /** Where the current queue came from; "fm" keeps roaming auto-advancing. */
 export type QueueSource = "list" | "fm";
@@ -137,6 +138,13 @@ function readGlassContrast(): GlassContrast {
   return readStr("reverie_glass_contrast", "standard") === "high"
     ? "high"
     : "standard";
+}
+
+function readAnimationSpeed(): AnimationSpeed {
+  const value = readStr("reverie_animation_speed", "normal");
+  return value === "relaxed" || value === "swift" || value === "instant"
+    ? value
+    : "normal";
 }
 
 /** Motion applied to the 3D particle album cover on the now-playing page. */
@@ -505,6 +513,7 @@ interface PlayerState {
   glassOpacity: GlassOpacity;
   glassBlur: GlassBlur;
   glassContrast: GlassContrast;
+  animationSpeed: AnimationSpeed;
   reducedMotion: boolean;
   lyricTheme: string;
   lyricFontSize: number;
@@ -585,6 +594,7 @@ interface PlayerState {
   setGlassOpacity: (v: GlassOpacity) => void;
   setGlassBlur: (v: GlassBlur) => void;
   setGlassContrast: (v: GlassContrast) => void;
+  setAnimationSpeed: (v: AnimationSpeed) => void;
   setReducedMotion: (v: boolean) => void;
   setLyricTheme: (t: string) => void;
   setLyricFontSize: (s: number) => void;
@@ -776,6 +786,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   glassOpacity: readGlassOpacity(),
   glassBlur: readGlassBlur(),
   glassContrast: readGlassContrast(),
+  animationSpeed: readAnimationSpeed(),
   reducedMotion: readBool("reverie_reduced_motion", false),
   lyricTheme: readStr("reverie_lyrictheme", "neon"),
   lyricFontSize: readNum("reverie_lyricfont", 22),
@@ -1319,6 +1330,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setGlassContrast: (v) => {
     set({ glassContrast: v });
     write("reverie_glass_contrast", v);
+  },
+  setAnimationSpeed: (v) => {
+    set({ animationSpeed: v });
+    write("reverie_animation_speed", v);
   },
   setReducedMotion: (v) => {
     set({ reducedMotion: v });

@@ -397,7 +397,7 @@ export default function PlayerBar() {
           width: 16px; height: 16px; border-radius: 50%;
           border: 2px solid rgba(255,255,255,0.35);
           border-top-color: #fff;
-          animation: spin 0.8s linear infinite;
+          animation: spin var(--motion-spinner) linear infinite;
         }
       `}</style>
     </footer>
