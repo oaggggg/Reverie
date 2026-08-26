@@ -8,7 +8,11 @@ import {
   type ComponentType,
   type SyntheticEvent,
 } from "react";
-import { playbackFailureMessage, usePlayerStore } from "./store/playerStore";
+import {
+  flushScrobble,
+  playbackFailureMessage,
+  usePlayerStore,
+} from "./store/playerStore";
 import {
   audioGraphState,
   ensureAnalyser,
@@ -470,11 +474,24 @@ export default function App() {
     };
   }, []);
 
+  // 将当前播放结算到网易云官方记录：切到后台或窗口关闭时补记一次，
+  // 避免播放过半就关闭应用导致的漏记（试听片段自动排除）。
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") flushScrobble();
+    };
+    document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("pagehide", flushScrobble);
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("pagehide", flushScrobble);
+    };
+  }, []);
+
   // theme: follow system / light / dark
   useEffect(() => {
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () => {
-      const effective =
+    const apply = () => {      const effective =
         theme === "system" ? (mql.matches ? "dark" : "light") : theme;
       document.documentElement.setAttribute("data-theme", effective);
     };
