@@ -20,6 +20,10 @@ interface DiscoveryState {
   load: () => Promise<void>;
 }
 
+/** 已有数据的静默刷新节流：窗口内重复挂载首页不重复打接口。 */
+const DISCOVERY_REFRESH_TTL = 10 * 60 * 1000;
+let lastLoadedAt = 0;
+
 export const useDiscoveryStore = create<DiscoveryState>()((set) => ({
   newSongs: [],
   mvs: [],
@@ -40,7 +44,17 @@ export const useDiscoveryStore = create<DiscoveryState>()((set) => ({
       });
       return;
     }
-    set({ loading: true });
+    // 已有数据时节流 + 静默刷新：不置 loading，避免每次进入首页
+    // 都用骨架屏替换已有内容造成白闪；只有空数据才显示加载态。
+    const hasData = Boolean(
+      useDiscoveryStore.getState().recommendResources.length ||
+        useDiscoveryStore.getState().newSongs.length,
+    );
+    if (hasData && Date.now() - lastLoadedAt < DISCOVERY_REFRESH_TTL) {
+      return;
+    }
+    const silent = hasData;
+    if (!silent) set({ loading: true });
     const [
       newSongs,
       mvs,
@@ -77,5 +91,6 @@ export const useDiscoveryStore = create<DiscoveryState>()((set) => ({
         starpickComments.status === "fulfilled" ? starpickComments.value : [],
       loading: false,
     });
+    lastLoadedAt = Date.now();
   },
 }));
