@@ -637,6 +637,8 @@ interface PlayerState {
   artistModalSeq: number;
   albumModalSeq: number;
   showPlayerComments: boolean;
+  /** 资源评论弹窗（如专辑弹窗内继续打开的评论区），叠加在详情弹窗之上。 */
+  showCommentsModal: boolean;
   toasts: ToastMsg[];
 
   // --- actions ---
@@ -700,6 +702,7 @@ interface PlayerState {
   setShowArtistModal: (v: boolean) => void;
   setShowAlbumModal: (v: boolean) => void;
   setShowPlayerComments: (v: boolean) => void;
+  setShowCommentsModal: (v: boolean) => void;
   setActiveView: (v: View) => void;
   setPage: (p: "browse" | "nowplaying") => void;
   setSearchOpen: (v: boolean) => void;
@@ -980,6 +983,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   artistModalSeq: 0,
   albumModalSeq: 0,
   showPlayerComments: false,
+  showCommentsModal: false,
   toasts: [],
 
   // --- toast ---
@@ -1635,6 +1639,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({ showSettings: v, ...(v ? { showPlayerComments: false } : {}) }),
   setShowPlayerComments: (v) =>
     set({ showPlayerComments: v, ...(v ? { showSettings: false } : {}) }),
+  setShowCommentsModal: (v) => set({ showCommentsModal: v }),
   setActiveView: (v) => set({ activeView: v }),
   setPage: (p) => set({ currentPage: p }),
   setSearchOpen: (v) => {
@@ -2392,6 +2397,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       lyricLines: [],
       lyricSongId: null,
       showPlayerComments: false,
+      showCommentsModal: false,
     });
     try {
       localStorage.removeItem(SESSION_KEY);
