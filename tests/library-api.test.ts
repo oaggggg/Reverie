@@ -48,6 +48,7 @@ test("album privilege API normalizes available quality flags", async () => {
     assert.deepEqual(privileges[0], {
       songId: 8,
       maxBitrate: 999000,
+      playableLevel: "jyeffect",
       maxLevel: "jymaster",
       standard: true,
       lossless: true,
