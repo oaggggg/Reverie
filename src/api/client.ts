@@ -344,18 +344,49 @@ export async function request<T = unknown>(
 /* ------------------------------------------------------------------ */
 
 /**
- * 官方数据判定「当前账号可播的超清母带」（对齐官方客户端展示口径）：
- * plLevel/dlLevel 是账号∩歌曲后的实际可达档——实测 SVIP 账号下大量
- * maxBrLevel="jymaster" 的热歌 plLevel 只有 jyeffect，官方并不展示
- * 母带标；只有可达档真正到 jymaster 才打标。行内 jm/jymaster 布尔兜底。
+ * 歌曲本身支持的最好音质等级（账号无关，用于列表音质标识）：
+ * maxBrLevel / playMaxBrLevel / downloadMaxBrLevel 是官方下发的
+ * 曲目最高支持档；行内布尔 jm/jymaster 作兜底映射为 jymaster。
  */
-function privilegeSupportsMaster(
+const LEVEL_RANK: Record<string, number> = {
+  standard: 0,
+  higher: 1,
+  exhigh: 2,
+  lossless: 3,
+  hires: 4,
+  dolby: 5,
+  jyeffect: 6,
+  jymaster: 7,
+  sky: 8,
+  vivid: 9,
+};
+
+function privilegeMaxLevel(
   p: Record<string, unknown> | null | undefined,
-): boolean {
-  if (!p || typeof p !== "object") return false;
-  const reachable = [p.plLevel, p.dlLevel];
-  if (reachable.some((l) => l === "jymaster")) return true;
-  return Boolean(p.jm ?? p.jymaster ?? p.master);
+): string | null {
+  if (!p || typeof p !== "object") return null;
+  const candidates = [
+    String(p.maxBrLevel ?? ""),
+    String(p.playMaxBrLevel ?? ""),
+    String(p.downloadMaxBrLevel ?? ""),
+  ].filter((l) => l in LEVEL_RANK);
+  if (candidates.length) {
+    return candidates.reduce((a, b) =>
+      LEVEL_RANK[b] > LEVEL_RANK[a] ? b : a,
+    );
+  }
+  if (p.jm ?? p.jymaster ?? p.master) return "jymaster";
+  return null;
+}
+
+/** 用特权数据补全歌曲的「最好支持音质」标识字段（取两路较高者）。 */
+function songWithMaxLevel(song: Song, p?: Record<string, unknown>): Song {
+  if (!p) return song;
+  const lvl = privilegeMaxLevel(p);
+  if (!lvl) return song;
+  const cur = song.maxLevel ? (LEVEL_RANK[song.maxLevel] ?? -1) : -1;
+  if (LEVEL_RANK[lvl] <= cur) return song;
+  return { ...song, master: lvl === "jymaster", maxLevel: lvl };
 }
 
 export function normalizeSong(raw: unknown): Song | null {
@@ -415,12 +446,16 @@ export function normalizeSong(raw: unknown): Song | null {
           ? s.mvid
           : undefined,
     alias: alias.length ? alias : undefined,
-    // 行内自带 privilege（/playlist/detail 的 tracks 等）时直接判定母带
-    ...(privilegeSupportsMaster(
-      s.privilege as Record<string, unknown> | null | undefined,
-    )
-      ? { master: true }
-      : {}),
+    // 行内自带 privilege（/playlist/detail 的 tracks 等）时直接取
+    // 歌曲最好支持音质作为标识。
+    ...(() => {
+      const lvl = privilegeMaxLevel(
+        s.privilege as Record<string, unknown> | null | undefined,
+      );
+      return lvl
+        ? { master: lvl === "jymaster" || undefined, maxLevel: lvl }
+        : {};
+    })(),
   };
 }
 
@@ -440,10 +475,7 @@ async function enrichSongs(ids: number[]): Promise<Map<number, Song>> {
   for (const raw of res.songs ?? []) {
     const song = normalizeSong(raw);
     if (!song) continue;
-    const p = privs.get(song.id);
-    const master =
-      song.master || (p ? privilegeSupportsMaster(p) : false);
-    map.set(song.id, master && !song.master ? { ...song, master } : song);
+    map.set(song.id, songWithMaxLevel(song, privs.get(song.id)));
   }
   return map;
 }
@@ -479,11 +511,9 @@ export async function searchSongs(
     const pid = Number(o?.id ?? 0);
     if (pid > 0) searchPrivs.set(pid, o);
   }
-  const withMaster = normalized.map((song) => {
-    if (song.master) return song;
-    const p = searchPrivs.get(song.id);
-    return p && privilegeSupportsMaster(p) ? { ...song, master: true } : song;
-  });
+  const withLevel = normalized.map((song) =>
+    songWithMaxLevel(song, searchPrivs.get(song.id)),
+  );
 
   // Search responses usually include album art. Only fetch details for the
   // missing covers instead of delaying every result behind a second request.
@@ -494,11 +524,11 @@ export async function searchSongs(
   const enriched = await enrichSongs(missingCoverIds).catch(
     () => new Map<number, Song>(),
   );
-  // 补封面时以 enrich 结果覆盖，母带标取两路判定的或。
-  const songs = withMaster.map((song) => {
+  // 补封面时以 enrich 结果覆盖，最好音质标识取两路较高者。
+  const songs = withLevel.map((song) => {
     const e = enriched.get(song.id);
     if (!e) return song;
-    return song.master || e.master ? { ...e, master: true } : e;
+    return songWithMaxLevel(e, song.maxLevel ? { maxBrLevel: song.maxLevel } : undefined);
   });
 
   const normalizeTerm = (value: string) =>
@@ -1307,11 +1337,7 @@ export async function getSongsByIds(ids: number[]): Promise<Song[]> {
     .map((r) => {
       const song = normalizeSong(r);
       if (!song) return null;
-      if (!song.master) {
-        const p = privs.get(song.id);
-        if (p && privilegeSupportsMaster(p)) return { ...song, master: true };
-      }
-      return song;
+      return songWithMaxLevel(song, privs.get(song.id));
     })
     .filter((s): s is Song => s !== null);
 }

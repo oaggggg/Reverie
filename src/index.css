@@ -1377,9 +1377,16 @@ textarea {
   text-overflow: ellipsis;
   margin-top: 2px;
 }
-/* 歌曲行仅保留官方数据标识：VIP（标题行 vip-badge）与超清母带。
-   版本标识（原唱/翻唱/Live 等）样式已随功能一并移除。 */
-.song-tag.master {
+/* 歌曲行仅保留官方数据标识：VIP（标题行 vip-badge）与该曲支持的
+   最好音质（无损及以上，.song-tag.<level>）。版本标识（原唱/翻唱/
+   Live 等）样式已随功能一并移除。 */
+.song-tag.master,
+.song-tag.sky,
+.song-tag.vivid,
+.song-tag.surround,
+.song-tag.dolby,
+.song-tag.hires,
+.song-tag.lossless {
   display: inline-block;
   flex: none;
   font-size: 10px;
