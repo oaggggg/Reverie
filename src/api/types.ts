@@ -155,6 +155,8 @@ export interface AlbumInfo {
 export interface AlbumPrivilege {
   songId: number;
   maxBitrate: number;
+  /** 歌曲本身最高支持音质等级（官方 maxBrLevel/playMaxBrLevel）。 */
+  maxLevel?: string;
   standard: boolean;
   lossless: boolean;
   highRes: boolean;
