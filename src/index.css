@@ -323,6 +323,22 @@ textarea {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* 一条完整光带铺满整个字标图层：渐变通过 background-clip:text
+     裁进所有字母，随 background-position 位移动画自左向右扫过——
+     是横贯整词的一道连续高光，而不是每个字母各亮各的分片光 */
+  background: var(--brand-sheen-gradient);
+  background-size: 260% 100%;
+  /* 静止停靠位与周期结束帧一致（画外右端），首帧前不露光 */
+  background-position: -45% 50%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation-name: reverie-sheen;
+  animation-duration: var(--brand-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 /* 字母跳动的相位：第 i 个字母在光带扫过它的那一刻起跳。
    光带按 --brand-sweep-end 匀速跨越整行，故到达第 i 个字母的时刻是
@@ -402,22 +418,6 @@ textarea {
     transform: translateY(0) scale(1) rotate(0deg);
     filter: brightness(1);
   }
-}
-.titlebar-sheen-letter {
-  display: inline-block;
-  color: transparent;
-  background: var(--brand-sheen-gradient);
-  background-size: 260% 100%;
-  /* 静止停靠位与周期结束帧一致（画外右端），首帧前不露光 */
-  background-position: -45% 50%;
-  background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation-name: reverie-sheen;
-  animation-duration: var(--brand-cycle);
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
 }
 .titlebar-controls {
   display: flex;
@@ -6580,7 +6580,7 @@ textarea {
   .titlebar-name,
   .titlebar-name-text,
   .titlebar-letter,
-  .titlebar-sheen-letter,
+  .titlebar-sheen-layer,
   .toast,
   .np-visual-panel,
   .card-cover,
