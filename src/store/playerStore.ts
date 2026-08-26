@@ -479,6 +479,7 @@ clearLegacyKeys();
 let toastSeq = 0;
 let homeLoadPromise: Promise<void> | null = null;
 let homeQuoteLoadPromise: Promise<void> | null = null;
+let vipInfoLoadedAt = 0;
 let fmBatchPromise: Promise<Song[]> | null = null;
 let fmRetryStreak = 0;
 let searchToken = 0;
@@ -2218,6 +2219,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const uid = get().profile?.userId;
     const generation = accountDataGeneration;
     if (!uid) return;
+    // 10 分钟节流：会员标识/装扮可能随时更换，打开菜单即静默刷新
+    // （保留旧值渲染），但短时间内不重复请求。
+    if (get().vipInfo && Date.now() - vipInfoLoadedAt < 10 * 60 * 1000) {
+      return;
+    }
+    vipInfoLoadedAt = Date.now();
     try {
       const info = await getVipInfo(uid);
       if (generation !== accountDataGeneration || get().profile?.userId !== uid) return;
