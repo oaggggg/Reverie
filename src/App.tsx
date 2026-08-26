@@ -60,6 +60,8 @@ const CommentHistoryModal = lazy(
 );
 const LikesModal = lazy(() => import("./components/LikesModal"));
 const RecentModal = lazy(() => import("./components/RecentModal"));
+const ArtistModal = lazy(() => import("./components/ArtistModal"));
+const AlbumModal = lazy(() => import("./components/AlbumModal"));
 const ListenTogetherPage = lazy(
   () => import("./components/ListenTogetherPage"),
 );
@@ -167,6 +169,8 @@ export default function App() {
   const showCommentHistory = usePlayerStore((s) => s.showCommentHistory);
   const showLikes = usePlayerStore((s) => s.showLikes);
   const showRecent = usePlayerStore((s) => s.showRecent);
+  const showArtistModal = usePlayerStore((s) => s.showArtistModal);
+  const showAlbumModal = usePlayerStore((s) => s.showAlbumModal);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
@@ -182,6 +186,8 @@ export default function App() {
     commentHistory: showCommentHistory,
     likes: showLikes,
     recent: showRecent,
+    artistDetail: showArtistModal,
+    albumDetail: showAlbumModal,
   });
 
   useEffect(() => {
@@ -205,7 +211,9 @@ export default function App() {
       !showNotifications &&
       !showCommentHistory &&
       !showLikes &&
-      !showRecent
+      !showRecent &&
+      !showArtistModal &&
+      !showAlbumModal
     )
       return;
     setMountedOverlays((current) => ({
@@ -216,6 +224,8 @@ export default function App() {
       commentHistory: current.commentHistory || showCommentHistory,
       likes: current.likes || showLikes,
       recent: current.recent || showRecent,
+      artistDetail: current.artistDetail || showArtistModal,
+      albumDetail: current.albumDetail || showAlbumModal,
     }));
   }, [
     showLogin,
@@ -225,6 +235,8 @@ export default function App() {
     showCommentHistory,
     showLikes,
     showRecent,
+    showArtistModal,
+    showAlbumModal,
   ]);
 
   useLayoutEffect(() => {
@@ -1148,6 +1160,16 @@ export default function App() {
       {mountedOverlays.recent && (
         <Suspense fallback={null}>
           <RecentModal />
+        </Suspense>
+      )}
+      {mountedOverlays.artistDetail && (
+        <Suspense fallback={null}>
+          <ArtistModal />
+        </Suspense>
+      )}
+      {mountedOverlays.albumDetail && (
+        <Suspense fallback={null}>
+          <AlbumModal />
         </Suspense>
       )}
       <SettingsModal />

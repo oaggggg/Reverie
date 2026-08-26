@@ -8569,6 +8569,33 @@ textarea {
   min-height: 0;
   overflow-y: auto;
 }
+/* 歌手 / 专辑详情弹窗壳：内嵌对应页面组件，重置页面级留白与返回钮 */
+.modal.detail-modal {
+  width: min(880px, 94vw);
+  height: min(660px, 86vh);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.detail-modal .detail-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 5;
+  background: var(--glass-popup-control, var(--bg-2));
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.detail-modal .page {
+  flex: 1;
+  min-height: 0;
+}
+.detail-modal .page-scroll {
+  padding: 18px 20px 20px;
+}
+.detail-modal .detail-back {
+  display: none;
+}
 .comment-history-list article {
   display: flex;
   gap: 10px;
