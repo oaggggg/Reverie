@@ -432,9 +432,19 @@ async function enrichSongs(ids: number[]): Promise<Map<number, Song>> {
   const res = await request<SongDetailResponse>("/song/detail", {
     ids: ids.join(","),
   });
+  const privs = new Map<number, Record<string, unknown>>();
+  for (const p of (res as { privileges?: unknown[] }).privileges ?? []) {
+    const o = p as Record<string, unknown>;
+    const pid = Number(o?.id ?? 0);
+    if (pid > 0) privs.set(pid, o);
+  }
   for (const raw of res.songs ?? []) {
     const song = normalizeSong(raw);
-    if (song) map.set(song.id, song);
+    if (!song) continue;
+    const p = privs.get(song.id);
+    const master =
+      song.master || (p ? privilegeSupportsMaster(p) : false);
+    map.set(song.id, master && !song.master ? { ...song, master } : song);
   }
   return map;
 }
@@ -461,6 +471,20 @@ export async function searchSongs(
   const normalized = raws
     .map((r) => normalizeSong(r))
     .filter((s): s is Song => s !== null);
+  // cloudsearch 的特权在 result.privileges 平级数组里，按 id 合并出母带标。
+  const searchPrivs = new Map<number, Record<string, unknown>>();
+  for (const p of ((res.result as Record<string, unknown> | undefined)?.[
+    "privileges"
+  ] ?? []) as unknown[]) {
+    const o = p as Record<string, unknown>;
+    const pid = Number(o?.id ?? 0);
+    if (pid > 0) searchPrivs.set(pid, o);
+  }
+  const withMaster = normalized.map((song) => {
+    if (song.master) return song;
+    const p = searchPrivs.get(song.id);
+    return p && privilegeSupportsMaster(p) ? { ...song, master: true } : song;
+  });
 
   // Search responses usually include album art. Only fetch details for the
   // missing covers instead of delaying every result behind a second request.
@@ -471,7 +495,12 @@ export async function searchSongs(
   const enriched = await enrichSongs(missingCoverIds).catch(
     () => new Map<number, Song>(),
   );
-  const songs = normalized.map((song) => enriched.get(song.id) ?? song);
+  // 补封面时以 enrich 结果覆盖，母带标取两路判定的或。
+  const songs = withMaster.map((song) => {
+    const e = enriched.get(song.id);
+    if (!e) return song;
+    return song.master || e.master ? { ...e, master: true } : e;
+  });
 
   const normalizeTerm = (value: string) =>
     value.toLocaleLowerCase("zh-CN").replace(/[\s·・_\-—/\\]+/g, "");

@@ -918,6 +918,15 @@ function reasonFromApi(code: number, message: string): string {
   return message.trim();
 }
 
+/**
+ * VIP 歌曲标识口径：fee 1 = 整首 VIP（非会员试听）；fee 8 = 非会员
+ * 仅可免费听低音质、高音质需会员——官方列表对这两类都打 VIP 标。
+ */
+export function isVipSong(song: Song | null | undefined): boolean {
+  if (!song) return false;
+  return song.fee === 1 || song.fee === 8;
+}
+
 export function playbackFailureMessage(
   song: Song | null,
   detail?: { code?: number; message?: string },

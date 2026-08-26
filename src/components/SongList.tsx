@@ -13,7 +13,7 @@ import {
 import { useState } from "react";
 import type { Song } from "../api/types";
 import { useMediaStore } from "../store/mediaStore";
-import { usePlayerStore } from "../store/playerStore";
+import { isVipSong, usePlayerStore } from "../store/playerStore";
 import { downloadSongFile } from "../api/client";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
@@ -119,10 +119,14 @@ export default function SongList({
                 <div className="meta">
                   <div className={`t ${isCur ? "playing-text" : ""}`}>
                     {song.name}
-                    {song.fee === 1 && (
+                    {isVipSong(song) && (
                       <span
                         className="vip-badge"
-                        title="需要网易云音乐会员，非会员可试听 60 秒（如资源支持）"
+                        title={
+                          song.fee === 1
+                            ? "需要网易云音乐会员，非会员可试听 60 秒（如资源支持）"
+                            : "非会员可免费试听标准音质，高音质需要会员"
+                        }
                       >
                         VIP
                       </span>
