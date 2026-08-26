@@ -171,6 +171,8 @@ export default function App() {
   const showRecent = usePlayerStore((s) => s.showRecent);
   const showArtistModal = usePlayerStore((s) => s.showArtistModal);
   const showAlbumModal = usePlayerStore((s) => s.showAlbumModal);
+  const artistModalSeq = usePlayerStore((s) => s.artistModalSeq);
+  const albumModalSeq = usePlayerStore((s) => s.albumModalSeq);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
@@ -1162,15 +1164,33 @@ export default function App() {
           <RecentModal />
         </Suspense>
       )}
-      {mountedOverlays.artistDetail && (
-        <Suspense fallback={null}>
-          <ArtistModal />
-        </Suspense>
-      )}
-      {mountedOverlays.albumDetail && (
-        <Suspense fallback={null}>
-          <AlbumModal />
-        </Suspense>
+      {/* 歌手/专辑详情弹窗可互相叠加：后打开的渲染在后（视觉在上层） */}
+      {artistModalSeq >= albumModalSeq ? (
+        <>
+          {mountedOverlays.artistDetail && (
+            <Suspense fallback={null}>
+              <ArtistModal />
+            </Suspense>
+          )}
+          {mountedOverlays.albumDetail && (
+            <Suspense fallback={null}>
+              <AlbumModal />
+            </Suspense>
+          )}
+        </>
+      ) : (
+        <>
+          {mountedOverlays.albumDetail && (
+            <Suspense fallback={null}>
+              <AlbumModal />
+            </Suspense>
+          )}
+          {mountedOverlays.artistDetail && (
+            <Suspense fallback={null}>
+              <ArtistModal />
+            </Suspense>
+          )}
+        </>
       )}
       <SettingsModal />
       {mountedOverlays.update && (

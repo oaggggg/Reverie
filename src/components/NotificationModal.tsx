@@ -407,9 +407,8 @@ export default function NotificationModal() {
 
   if (!transition.rendered) return null;
 
-  // 「我的评论」同样是弹窗：收起消息中心后原地打开评论弹窗，不切换页面。
+  // 「我的评论」弹窗叠加在消息中心之上：二级弹窗不关闭一级弹窗。
   const openCommentHistory = () => {
-    setShowNotifications(false);
     usePlayerStore.getState().setShowCommentHistory(true);
   };
 
