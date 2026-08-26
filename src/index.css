@@ -8522,6 +8522,29 @@ textarea {
   max-height: min(60vh, 520px);
   overflow-y: auto;
 }
+/* 我的喜欢 / 最近播放弹窗 */
+.modal.likes-modal {
+  width: min(560px, 92vw);
+}
+.likes-modal-body {
+  max-height: min(64vh, 560px);
+  overflow-y: auto;
+}
+.modal.recent-modal {
+  width: min(860px, 94vw);
+  height: min(640px, 84vh);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 16px;
+}
+.recent-modal .collection-tabs.recent-tabs {
+  margin-top: 0;
+}
+.recent-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 .comment-history-list article {
   display: flex;
   gap: 10px;

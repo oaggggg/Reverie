@@ -603,6 +603,8 @@ interface PlayerState {
   showSettings: boolean;
   showNotifications: boolean;
   showCommentHistory: boolean;
+  showLikes: boolean;
+  showRecent: boolean;
   showPlayerComments: boolean;
   toasts: ToastMsg[];
 
@@ -661,6 +663,8 @@ interface PlayerState {
   setShowSettings: (v: boolean) => void;
   setShowNotifications: (v: boolean) => void;
   setShowCommentHistory: (v: boolean) => void;
+  setShowLikes: (v: boolean) => void;
+  setShowRecent: (v: boolean) => void;
   setShowPlayerComments: (v: boolean) => void;
   setActiveView: (v: View) => void;
   setPage: (p: "browse" | "nowplaying") => void;
@@ -934,6 +938,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   showSettings: false,
   showNotifications: false,
   showCommentHistory: false,
+  showLikes: false,
+  showRecent: false,
   showPlayerComments: false,
   toasts: [],
 
@@ -1562,6 +1568,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setShowLogin: (v) => set({ showLogin: v }),
   setShowNotifications: (v) => set({ showNotifications: v }),
   setShowCommentHistory: (v) => set({ showCommentHistory: v }),
+  setShowLikes: (v) => set({ showLikes: v }),
+  setShowRecent: (v) => set({ showRecent: v }),
   // 未登录时一切播放入口统一拦截：弹出扫码登录引导。
   requireLoginForPlayback: () => {
     if (usePlayerStore.getState().loggedIn) return true;

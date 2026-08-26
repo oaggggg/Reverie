@@ -107,10 +107,6 @@ const preloadView = (view: View) => {
       return import("./CalendarPage");
     case "privateDj":
       return import("./PrivateDjPage");
-    case "likes":
-      return import("./LikesPage");
-    case "recent":
-      return import("./RecentPage");
     default:
       return Promise.resolve();
   }
@@ -131,6 +127,8 @@ export default function TopNav() {
   const setSearchOpen = usePlayerStore((s) => s.setSearchOpen);
   const doSearch = usePlayerStore((s) => s.doSearch);
   const setShowLogin = usePlayerStore((s) => s.setShowLogin);
+  const setShowLikes = usePlayerStore((s) => s.setShowLikes);
+  const setShowRecent = usePlayerStore((s) => s.setShowRecent);
   const loadTopSongs = usePlayerStore((s) => s.loadTopSongs);
   const loadUserPlaylists = usePlayerStore((s) => s.loadUserPlaylists);
   const loadHome = usePlayerStore((s) => s.loadHome);
@@ -455,7 +453,6 @@ export default function TopNav() {
 
         <button
           className="topnav-icon-btn"
-          onPointerEnter={() => void preloadView("likes")}
           onClick={cycleTheme}
           title={`主题：${THEME_LABEL[theme]}`}
         >
@@ -464,11 +461,8 @@ export default function TopNav() {
 
         <button
           className="topnav-icon-btn"
-          onPointerEnter={() => void preloadView("recent")}
-          onClick={() => {
-            setPage("browse");
-            setActiveView("likes");
-          }}
+          onPointerEnter={() => void import("./LikesModal")}
+          onClick={() => setShowLikes(true)}
           title="我的喜欢"
         >
           <Heart size={17} />
@@ -476,10 +470,8 @@ export default function TopNav() {
 
         <button
           className="topnav-icon-btn"
-          onClick={() => {
-            setPage("browse");
-            setActiveView("recent");
-          }}
+          onPointerEnter={() => void import("./RecentModal")}
+          onClick={() => setShowRecent(true)}
           title="最近播放"
         >
           <History size={17} />
