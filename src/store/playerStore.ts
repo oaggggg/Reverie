@@ -930,6 +930,25 @@ export function isVipSong(song: Song | null | undefined): boolean {
   return song.fee === 1 || song.fee === 8;
 }
 
+/** 列表音质标识：只标无损及以上，免费档（标准/较高/极高）不打标。 */
+const SONG_LEVEL_BADGES: Record<string, { label: string; cls: string }> = {
+  jymaster: { label: "超清母带", cls: "master" },
+  sky: { label: "沉浸环绕声", cls: "sky" },
+  vivid: { label: "全景声", cls: "vivid" },
+  jyeffect: { label: "高清环绕声", cls: "surround" },
+  dolby: { label: "杜比全景声", cls: "dolby" },
+  hires: { label: "Hi-Res", cls: "hires" },
+  lossless: { label: "无损", cls: "lossless" },
+};
+
+/** 当前歌曲支持的最好音质标识（无则返回 null，即不打音质标）。 */
+export function songQualityBadge(
+  song: Song | null | undefined,
+): { label: string; cls: string } | null {
+  if (!song?.maxLevel) return null;
+  return SONG_LEVEL_BADGES[song.maxLevel] ?? null;
+}
+
 export function playbackFailureMessage(
   song: Song | null,
   detail?: { code?: number; message?: string },

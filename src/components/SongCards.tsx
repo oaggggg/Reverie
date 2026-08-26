@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Song } from "../api/types";
-import { isVipSong, usePlayerStore } from "../store/playerStore";
+import {
+  isVipSong,
+  songQualityBadge,
+  usePlayerStore,
+} from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { Disc3, ThumbsDown } from "lucide-react";
 import { LoadingState } from "./Page";
@@ -162,11 +166,17 @@ export default function SongCards({
                     VIP
                   </span>
                 )}
-                {song.master && (
-                  <span className="song-tag master" title="支持超清母带音质">
-                    超清母带
-                  </span>
-                )}
+                {(() => {
+                  const badge = songQualityBadge(song);
+                  return badge ? (
+                    <span
+                      className={`song-tag ${badge.cls}`}
+                      title={`支持${badge.label}音质`}
+                    >
+                      {badge.label}
+                    </span>
+                  ) : null;
+                })()}
               </div>
               <div className="a">{song.artists}</div>
             </article>

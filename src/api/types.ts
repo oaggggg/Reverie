@@ -12,8 +12,10 @@ export interface Song {
   duration: number;
   /** 0 = free, 1 = VIP, 4/8 = digital album etc. */
   fee: number;
-  /** 支持超清母带音质（官方 privilege 判定：jymaster 等级或母带码率档）。 */
+  /** 支持超清母带音质（歌曲最高支持档为 jymaster 时置位）。 */
   master?: boolean;
+  /** 歌曲本身支持的最好音质等级（官方 maxBrLevel/playMaxBrLevel）。 */
+  maxLevel?: string;
   mvId?: number;
   /** Present when the playable song represents a podcast program. */
   programId?: number;
