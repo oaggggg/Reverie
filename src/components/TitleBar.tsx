@@ -48,15 +48,9 @@ export default function TitleBar() {
             ))}
           </span>
           <span className="titlebar-sheen-layer" aria-hidden="true">
-            {BRAND_LETTERS.map((letter, index) => (
-              <span
-                className="titlebar-sheen-letter"
-                key={index}
-                style={{ "--letter-i": index } as CSSProperties}
-              >
-                {letter}
-              </span>
-            ))}
+            {/* 一条连续光带铺在整个字标图层上（background-clip:text），
+                随背景位移动画自左向右扫过，不做逐字母分片 */}
+            Reverie
           </span>
         </span>
       </div>
