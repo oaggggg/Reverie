@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Disc3, LoaderCircle, Search, X } from "lucide-react";
 import { searchSongs } from "../api/client.ts";
 import type { Song } from "../api/types.ts";
+import { isVipSong } from "../store/playerStore";
 import { useOriginTransition } from "../utils/originTransition";
 import { useModalBehavior } from "../utils/modalBehavior";
 import { sizedImage } from "../utils/image";
@@ -156,7 +157,7 @@ export default function PlaylistTrackPicker({
                     {song.artists} · {song.album}
                   </small>
                 </span>
-                {song.fee === 1 && <span className="vip-badge">VIP</span>}
+                {isVipSong(song) && <span className="vip-badge">VIP</span>}
                 {song.master && (
                   <span className="song-tag master">超清母带</span>
                 )}

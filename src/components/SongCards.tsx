@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Song } from "../api/types";
-import { usePlayerStore } from "../store/playerStore";
+import { isVipSong, usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { Disc3, ThumbsDown } from "lucide-react";
 import { LoadingState } from "./Page";
@@ -150,10 +150,14 @@ export default function SongCards({
               </div>
               <div className="n">
                 {song.name}
-                {song.fee === 1 && (
+                {isVipSong(song) && (
                   <span
                     className="vip-badge"
-                    title="需要网易云音乐会员，非会员可试听 60 秒（如资源支持）"
+                    title={
+                      song.fee === 1
+                        ? "需要网易云音乐会员，非会员可试听 60 秒（如资源支持）"
+                        : "非会员可免费试听标准音质，高音质需要会员"
+                    }
                   >
                     VIP
                   </span>

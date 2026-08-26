@@ -4,6 +4,7 @@ import {
   ALL_PLAYBACK_QUALITIES,
   PLAYBACK_QUALITY_LABELS,
   PLAYBACK_QUALITY_TIER,
+  isVipSong,
   qualityAllowedFor,
   userQualityTier,
   usePlayerStore,
@@ -337,7 +338,7 @@ export default function PlayerBar() {
                 <span className="pb-title">
                   {currentSong?.name ?? "未在播放"}
                 </span>
-                {currentSong?.fee === 1 && (
+                {isVipSong(currentSong) && (
                   <span className="vip-badge">VIP</span>
                 )}
                 {previewEnd !== null && (
