@@ -555,6 +555,10 @@ function settleScrobble(): void {
   lastScrobbleAt = now;
   reportSongPlayed(currentSong.id, playedMs).catch(() => {});
 }
+/** 供 App 在页面隐藏/卸载时结算当前播放（导出给 pagehide/visibilitychange）。 */
+export function flushScrobble(): void {
+  settleScrobble();
+}
 let fmBatchPromise: Promise<Song[]> | null = null;
 let fmRetryStreak = 0;
 let searchToken = 0;
@@ -600,6 +604,8 @@ let playToken = 0;
 
 /** Consecutive unplayable tracks; bounds the auto-skip so it cannot loop. */
 let failStreak = 0;
+/** requestPreloadNext 的在飞标志：进度采样每帧调用，防重复解析。 */
+let preloadInFlight = false;
 
 interface PlayerState {
   // --- auth ---
@@ -1389,6 +1395,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
    * 进度采样在剩余时间进入窗口后调用；动作内部多重早退保证幂等廉价。
    */
   requestPreloadNext: async () => {
+    // 进度采样每帧都会调用：in-flight 期间直接忽略，避免同一首
+    // 歌并发发起多个相同的地址解析请求。
+    if (preloadInFlight) return;
     const s = get();
     if (!s.currentSong || s.pendingPlayToken !== 0 || s.loadingUrl) return;
     if (s.preloadedSongId !== null || s.preloadedUrl) return;
@@ -1404,6 +1413,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
     const ns = ni >= 0 ? q[ni] : null;
     if (!ns || ns.id === s.currentSong.id) return;
+    preloadInFlight = true;
     try {
       const r = await resolveUrl(ns, s.playbackQuality);
       const l = get();
@@ -1416,9 +1426,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       if (r.url) set({ preloadedSongId: ns.id, preloadedUrl: r.url });
     } catch {
       /* ignore */
+    } finally {
+      preloadInFlight = false;
     }
   },
-  commitQualitySwitch: (url, quality, position) => {    const state = get();
+  commitQualitySwitch: (url, quality, position) => {
+    const state = get();
     if (
       !state.currentSong ||
       state.qualitySwitchUrl !== url ||
