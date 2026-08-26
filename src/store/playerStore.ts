@@ -2221,7 +2221,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (!uid) return;
     // 10 分钟节流：会员标识/装扮可能随时更换，打开菜单即静默刷新
     // （保留旧值渲染），但短时间内不重复请求。
-    if (get().vipInfo && Date.now() - vipInfoLoadedAt < 10 * 60 * 1000) {
+    // 当前缓存里没有任何可用图标时绕过节流——否则旧的无图标缓存会
+    // 在整个节流窗口内挡住重试，胶囊上一直显示不出会员标识。
+    const cached = get().vipInfo;
+    if (cached?.badgeUrl && Date.now() - vipInfoLoadedAt < 10 * 60 * 1000) {
       return;
     }
     vipInfoLoadedAt = Date.now();
