@@ -21,8 +21,8 @@ import {
   reportSongPlayed,
   searchSongs,
   setCookie,
-} from "../api/client";
-import { getAlbumPrivileges } from "../api/library";
+} from "../api/client.ts";
+import { getAlbumPrivileges } from "../api/library.ts";
 import type {
   LyricLine,
   PlaybackQuality,
@@ -32,19 +32,19 @@ import type {
   Song,
   UserProfile,
   View,
-} from "../api/types";
-import type { VipInfo } from "../api/client";
-import { getPersonalFm } from "../api/extended";
-import { logoutFromNetease } from "../api/auth";
-import { parseLyrics, pickRandomLyricLine } from "../utils/lyrics";
+} from "../api/types.ts";
+import type { VipInfo } from "../api/client.ts";
+import { getPersonalFm } from "../api/extended.ts";
+import { logoutFromNetease } from "../api/auth.ts";
+import { parseLyrics, pickRandomLyricLine } from "../utils/lyrics.ts";
 import {
   benchmarkCoverQuality,
   hasWebGL,
   QUALITY_GRID,
   QUALITY_LABEL,
-} from "../utils/gpuBenchmark";
-import type { CoverQuality } from "../utils/gpuBenchmark";
-import { recordDiagnostic } from "../utils/diagnostics";
+} from "../utils/gpuBenchmark.ts";
+import type { CoverQuality } from "../utils/gpuBenchmark.ts";
+import { recordDiagnostic } from "../utils/diagnostics.ts";
 
 export type UpdatePhase =
   | "idle"
@@ -846,16 +846,18 @@ function hasVipAccess(state: {
   vipInfo: VipInfo | null;
 }): boolean {
   if (!state.loggedIn) return false;
-  // login/status is the freshest account-level permission signal. Do not let
-  // a stale or partially populated /vip/info cache downgrade an active member.
-  if (Number(state.profile?.vipType ?? 0) > 0) return true;
-  if (state.vipInfo) {
+  // 身份档位以官方 /vip/info 的包体生效状态为准：login/status 的
+  // vipType 在会员过期后仍 >0，不能单独作为会员依据；vipType>0 且
+  // 未过期（或无过期时间）才算有效会员，过期即降级为非会员口径。
+  const v = state.vipInfo;
+  if (v) {
     return (
-      state.vipInfo.vipType > 0 &&
-      (state.vipInfo.expireTime <= 0 || state.vipInfo.expireTime > Date.now())
+      v.vipType > 0 &&
+      (v.expireTime <= 0 || v.expireTime > Date.now())
     );
   }
-  return false;
+  // 无 /vip/info 数据时的兜底（登录后尚未拉取到会员信息）。
+  return Number(state.profile?.vipType ?? 0) > 0;
 }
 
 function previewDurationForSong(song: Song): number | null {
