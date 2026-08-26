@@ -1051,6 +1051,8 @@ textarea {
   line-height: 1.75;
   color: var(--text);
   font-style: italic;
+  /* 超长无空格串（URL/乱码）也不得撑破 hero 布局 */
+  overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
