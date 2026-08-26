@@ -745,6 +745,7 @@ interface PlayerState {
   setPlayMode: (m: PlayMode) => void;
   setPlaybackQuality: (quality: PlaybackQuality) => Promise<void>;
   loadPlaybackQualities: (song: Song) => Promise<void>;
+  requestPreloadNext: () => Promise<void>;
   commitQualitySwitch: (
     url: string,
     quality: PlaybackQuality,
@@ -1342,8 +1343,42 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         set({ availablePlaybackQualities: ["standard"] });
     }
   },
-  commitQualitySwitch: (url, quality, position) => {
-    const state = get();
+  /**
+   * 临近曲目结束时才预取下一首地址：高音质（无损/Hi-Res/母带）文件
+   * 大，起播即并发预取会与当前曲抢带宽，造成卡顿与起播慢。由播放
+   * 进度采样在剩余时间进入窗口后调用；动作内部多重早退保证幂等廉价。
+   */
+  requestPreloadNext: async () => {
+    const s = get();
+    if (!s.currentSong || s.pendingPlayToken !== 0 || s.loadingUrl) return;
+    if (s.preloadedSongId !== null || s.preloadedUrl) return;
+    if (s.queueSource === "fm") return; // FM 由漫游批次自行补充队列
+    const q = s.queue;
+    if (!q.length) return;
+    let ni = -1;
+    if (s.playMode === "shuffle" && q.length > 1) {
+      ni = Math.floor(Math.random() * q.length);
+      if (ni === s.index) ni = (s.index + 1) % q.length;
+    } else if (s.index + 1 < q.length) {
+      ni = s.index + 1;
+    }
+    const ns = ni >= 0 ? q[ni] : null;
+    if (!ns || ns.id === s.currentSong.id) return;
+    try {
+      const r = await resolveUrl(ns, s.playbackQuality);
+      const l = get();
+      if (
+        l.currentSong?.id !== s.currentSong.id ||
+        l.preloadedSongId !== null ||
+        l.pendingPlayToken !== 0
+      )
+        return;
+      if (r.url) set({ preloadedSongId: ns.id, preloadedUrl: r.url });
+    } catch {
+      /* ignore */
+    }
+  },
+  commitQualitySwitch: (url, quality, position) => {    const state = get();
     if (
       !state.currentSong ||
       state.qualitySwitchUrl !== url ||
@@ -1405,39 +1440,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     void get().loadPlaybackQualities(song);
     get().loadLyrics(song);
     get().trackRecent(song);
-
-    let nextIndex = index + 1;
-    if (state.playMode === "shuffle" && queue.length > 1) {
-      nextIndex = Math.floor(Math.random() * queue.length);
-      if (nextIndex === index) nextIndex = (index + 1) % queue.length;
-    }
-    const nextSong = queue[nextIndex];
-    if (nextSong && nextSong.id !== song.id) {
-      void resolveUrl(nextSong, state.playbackQuality)
-        .then((resolution) => {
-          const latest = get();
-          if (
-            latest.currentSong?.id === song.id &&
-            latest.currentUrl === url &&
-            resolution.url
-          ) {
-            set({
-              preloadedSongId: nextSong.id,
-              preloadedUrl: resolution.url,
-            });
-          }
-        })
-        .catch(() => {});
-    }
-    // Warm the following URL in the API cache as well. This keeps a rapid
-    // second skip from waiting on another sequential URL lookup while the
-    // single inactive decoder remains reserved for the immediate next song.
-    // `queue`/`index` are post-commit values, so the warm target is one past
-    // the immediate next song.
-    const warmSong = queue[nextIndex + 1];
-    if (warmSong && warmSong.id !== song.id && warmSong.id !== nextSong?.id) {
-      void resolveUrl(warmSong, state.playbackQuality).catch(() => {});
-    }
+    // 下一首地址改为临近结束才预取（requestPreloadNext，由播放进度
+    // 采样触发）：高音质文件大，起播即并发预取会与当前曲抢带宽。
   },
   cyclePlayMode: () => {
     const order: PlayMode[] = ["sequence", "one", "shuffle"];
@@ -2141,40 +2145,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playing: autoplay,
       pendingPlayToken: 0,
     });
-
-    // Prefetch the next track's URL while the current one plays; it lands in
-    // the song-url cache and makes the next playSong near-instant.
-    const state = get();
-    let nextIdx = -1;
-    if (state.playMode === "shuffle" && state.queue.length > 1) {
-      nextIdx = Math.floor(Math.random() * state.queue.length);
-      if (nextIdx === state.index)
-        nextIdx = (state.index + 1) % state.queue.length;
-    } else if (state.index + 1 < state.queue.length) {
-      nextIdx = state.index + 1;
-    }
-    const nextSong = nextIdx >= 0 ? state.queue[nextIdx] : null;
-    if (nextSong && nextSong.id !== song.id) {
-      void resolveUrl(nextSong, quality)
-        .then((resolution) => {
-          const latest = get();
-          if (
-            token === playToken &&
-            latest.currentSong?.id === song.id &&
-            resolution.url
-          ) {
-            set({
-              preloadedSongId: nextSong.id,
-              preloadedUrl: resolution.url,
-            });
-          }
-        })
-        .catch(() => {});
-    }
-    const warmSong = nextIdx >= 0 ? state.queue[nextIdx + 1] : null;
-    if (warmSong && warmSong.id !== song.id && warmSong.id !== nextSong?.id) {
-      void resolveUrl(warmSong, quality).catch(() => {});
-    }
+    // 下一首地址同样改为临近结束才预取（见 requestPreloadNext）。
   },
   /**
    * The current track cannot be played. Move on to the next one, but stop once

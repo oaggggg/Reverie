@@ -157,6 +157,8 @@ export interface AlbumPrivilege {
   maxBitrate: number;
   /** 歌曲本身最高支持音质等级（官方 maxBrLevel/playMaxBrLevel）。 */
   maxLevel?: string;
+  /** 账号∩歌曲后实际可播的最高等级（官方 plLevel）。 */
+  playableLevel?: string;
   standard: boolean;
   lossless: boolean;
   highRes: boolean;

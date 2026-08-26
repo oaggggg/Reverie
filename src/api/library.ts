@@ -152,22 +152,27 @@ export async function getAlbumPrivileges(
       const item = obj(raw);
       const songId = Number(item.id ?? item.songId ?? 0);
       const maxBitrate = Number(item.maxbr ?? item.maxBitrate ?? item.br ?? 0);
-      // 权威信号：歌曲最高支持等级字符串（账号无关）。
+      // 账号可达档：plLevel 是账号∩歌曲后实际可播的最高等级，
+      // 音质菜单的「支持」以此为准（对齐官方客户端展示口径）；
+      // maxBrLevel 仅作缺失时的兜底。
+      const playableLevel = String(item.plLevel ?? "");
       const maxLevel = String(item.maxBrLevel ?? item.playMaxBrLevel ?? "");
-      const rank =
-        maxLevel in LEVEL_RANK ? LEVEL_RANK[maxLevel] : -2;
+      const rankStr = playableLevel || maxLevel;
+      const rank = rankStr in LEVEL_RANK ? LEVEL_RANK[rankStr] : -2;
       const atLeast = (level: string): boolean =>
         rank >= LEVEL_RANK[level] ||
         // 只有数值码率时的降级路径：999k 视为到无损，320k 到极高。
         (rank === -2 && maxBitrate >= 999000 && LEVEL_RANK[level] <= 3) ||
         (rank === -2 && maxBitrate >= 192000 && LEVEL_RANK[level] <= 2);
       // 权限位图（官方客户端同款位定义）：14 dolby / 16 jymaster /
-      // 17 jyeffect / 18 sky / 21 vivid / 12 hires。
+      // 17 jyeffect / 18 sky / 21 vivid / 12 hires——这些能力不随
+      // plLevel 单调递增（需单独编码/权益），用独立位判定。
       const flag = Number(item.flag ?? 0);
       const bit = (n: number): boolean => ((flag >> n) & 1) === 1;
       return {
         songId,
         maxBitrate,
+        playableLevel: playableLevel || undefined,
         maxLevel: maxLevel || undefined,
         standard:
           rank >= -1 ||

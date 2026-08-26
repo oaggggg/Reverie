@@ -775,6 +775,16 @@ export default function App() {
       if (now - lastPaint >= interval && !document.hidden) {
         lastPaint = now;
         const progress = Math.floor(audio.currentTime * 1000);
+        // 临近结束（<150s）才预取下一首地址，避免高音质下与当前曲抢带宽
+        const durationMs = Math.floor(audio.duration * 1000) || state.duration;
+        if (
+          durationMs > 0 &&
+          !audio.paused &&
+          durationMs - progress > 0 &&
+          durationMs - progress < 150_000
+        ) {
+          void usePlayerStore.getState().requestPreloadNext();
+        }
         // ── 静音自愈看门狗 ──────────────────────────────────────────
         // 症状：进度条正常前进，但听不到声音。两个已知成因：
         // 1) Web Audio 图被系统挂起（设备切换/休眠唤醒/autoplay 策略），

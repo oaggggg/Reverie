@@ -467,33 +467,32 @@ export default function PlayerBar() {
                   className={`pb-quality-menu ${qualityTransition.surfaceClassName}`}
                   role="menu"
                 >
-                  {ALL_PLAYBACK_QUALITIES.map((quality) => {
-                    const supported =
-                      availablePlaybackQualities.includes(quality);
+                  {/* 只列出当前歌曲支持的音质（官方 plLevel/位图推导），
+                      身份不够的仍显示但锁定并标注所需会员 */}
+                  {ALL_PLAYBACK_QUALITIES.filter((q) =>
+                    availablePlaybackQualities.includes(q),
+                  ).map((quality) => {
                     const tier = userQualityTier(usePlayerStore.getState());
                     const allowed = qualityAllowedFor(quality, tier);
-                    const usable = supported && allowed;
                     const need = PLAYBACK_QUALITY_TIER[quality];
                     return (
                       <button
                         key={quality}
                         className={[
                           quality === playbackQuality ? "active" : "",
-                          !usable ? "locked" : "",
+                          !allowed ? "locked" : "",
                         ]
                           .filter(Boolean)
                           .join(" ")}
                         role="menuitemradio"
                         aria-checked={quality === playbackQuality}
-                        disabled={!usable}
+                        disabled={!allowed}
                         title={
-                          !supported
-                            ? "当前歌曲不支持此音质"
-                            : !allowed
-                              ? need === "svip"
-                                ? "需要黑胶超级会员（SVIP）"
-                                : "需要网易云音乐会员（VIP）"
-                              : undefined
+                          !allowed
+                            ? need === "svip"
+                              ? "需要黑胶超级会员（SVIP）"
+                              : "需要网易云音乐会员（VIP）"
+                            : undefined
                         }
                         onClick={() => {
                           setQualityOpen(false);
