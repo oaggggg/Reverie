@@ -13,3 +13,7 @@ src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
 src-tauri/target/
 .mimosa/
+
+# 外部工具原子写入的瞬态文件
+*.tmpdir/
+*.tmp

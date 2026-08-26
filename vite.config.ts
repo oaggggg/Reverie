@@ -23,7 +23,15 @@ export default defineConfig({
     strictPort: true,
     watch: {
       // 排除 Tauri 构建目录，避免文件锁定
-      ignored: ["**/src-tauri/**"],
+      ignored: [
+        "**/src-tauri/**",
+        // 外部工具原子写入源码时的瞬态路径（先建 .name.pid.uuid.tmpdir/
+        // xxx.tmp 再改名替换）。chokidar 若对它们建立 fs.watch，Windows 上
+        // 会因文件同时被改名/删除抛 EBUSY 且未捕获，导致 dev server 崩溃。
+        "**/.*.tmpdir",
+        "**/.*.tmpdir/**",
+        "**/*.tmp",
+      ],
     },
   },
 });
