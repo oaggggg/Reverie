@@ -48,8 +48,6 @@ const NotificationModal = lazy(
 const CommentPage = lazy(() => import("./components/CommentPage"));
 const PlaylistPage = lazy(() => import("./components/PlaylistPage"));
 const UserListPage = lazy(() => import("./components/UserListPage"));
-const LikesPage = lazy(() => import("./components/LikesPage"));
-const RecentPage = lazy(() => import("./components/RecentPage"));
 const AlbumPage = lazy(() => import("./components/AlbumPage"));
 const ArtistPage = lazy(() => import("./components/ArtistPage"));
 const RadioPage = lazy(() => import("./components/RadioPage"));
@@ -60,6 +58,8 @@ const YunbeiPage = lazy(() => import("./components/YunbeiPage"));
 const CommentHistoryModal = lazy(
   () => import("./components/CommentHistoryModal"),
 );
+const LikesModal = lazy(() => import("./components/LikesModal"));
+const RecentModal = lazy(() => import("./components/RecentModal"));
 const ListenTogetherPage = lazy(
   () => import("./components/ListenTogetherPage"),
 );
@@ -165,6 +165,8 @@ export default function App() {
   const showUpdate = usePlayerStore((s) => s.showUpdate);
   const showNotifications = usePlayerStore((s) => s.showNotifications);
   const showCommentHistory = usePlayerStore((s) => s.showCommentHistory);
+  const showLikes = usePlayerStore((s) => s.showLikes);
+  const showRecent = usePlayerStore((s) => s.showRecent);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
@@ -178,6 +180,8 @@ export default function App() {
     update: showUpdate,
     notifications: showNotifications,
     commentHistory: showCommentHistory,
+    likes: showLikes,
+    recent: showRecent,
   });
 
   useEffect(() => {
@@ -199,7 +203,9 @@ export default function App() {
       !showLogin &&
       !showUpdate &&
       !showNotifications &&
-      !showCommentHistory
+      !showCommentHistory &&
+      !showLikes &&
+      !showRecent
     )
       return;
     setMountedOverlays((current) => ({
@@ -208,6 +214,8 @@ export default function App() {
       update: current.update || showUpdate,
       notifications: current.notifications || showNotifications,
       commentHistory: current.commentHistory || showCommentHistory,
+      likes: current.likes || showLikes,
+      recent: current.recent || showRecent,
     }));
   }, [
     showLogin,
@@ -215,6 +223,8 @@ export default function App() {
     showUpdate,
     showNotifications,
     showCommentHistory,
+    showLikes,
+    showRecent,
   ]);
 
   useLayoutEffect(() => {
@@ -1037,10 +1047,6 @@ export default function App() {
         return <PlaylistPage />;
       case "userlist":
         return <UserListPage />;
-      case "likes":
-        return <LikesPage />;
-      case "recent":
-        return <RecentPage />;
       case "album":
         return <AlbumPage />;
       case "artist":
@@ -1132,6 +1138,16 @@ export default function App() {
       {mountedOverlays.commentHistory && (
         <Suspense fallback={null}>
           <CommentHistoryModal />
+        </Suspense>
+      )}
+      {mountedOverlays.likes && (
+        <Suspense fallback={null}>
+          <LikesModal />
+        </Suspense>
+      )}
+      {mountedOverlays.recent && (
+        <Suspense fallback={null}>
+          <RecentModal />
         </Suspense>
       )}
       <SettingsModal />

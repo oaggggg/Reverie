@@ -244,8 +244,6 @@ export type View =
   | "fm"
   | "userlist"
   | "playlist"
-  | "likes"
-  | "recent"
   | "album"
   | "artist"
   | "comments"
