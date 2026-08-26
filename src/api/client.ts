@@ -974,6 +974,47 @@ function deepFindBadgeUrl(obj: unknown): string {
   return best;
 }
 
+/**
+ * 取「当前正在生效」的官方动态会员图标：/vip/info 会同时返回多个会员包
+ * （associator 黑胶会员、musicPackage 畅听包等），每个都带自己的
+ * dynamicIconUrl 与过期时间——已过期的包仍会残留旧图标，直接按字段名
+ * 挑最优可能拿到失效的。此函数按官方展示优先级（黑胶 > 畅听包）逐个
+ * 检查有效期，只返回仍在生效中的那个包的动态图标。
+ */
+function pickActiveDynamicBadge(data: Record<string, unknown>): string {
+  const now = Date.now();
+  const sections: unknown[] = [
+    data.associator,
+    data.musicPackage,
+    data.redVip ?? data.vipData,
+  ];
+  for (const section of sections) {
+    if (!section || typeof section !== "object") continue;
+    const o = section as Record<string, unknown>;
+    // 生效判定：包内没有任何过期字段视为生效；否则取最大过期时间与现在比对
+    const expires: number[] = [];
+    for (const [k, v] of Object.entries(o)) {
+      if (/expire|endtime|end_time|deadline/i.test(k)) {
+        const n = parseEpoch(v);
+        if (n > 0) expires.push(n);
+      }
+    }
+    const active =
+      expires.length === 0 || Math.max(...expires) > now;
+    if (!active) continue;
+    for (const [k, v] of Object.entries(o)) {
+      if (
+        typeof v === "string" &&
+        /^https?:\/\//i.test(v) &&
+        /dynamicicon/i.test(k)
+      ) {
+        return v;
+      }
+    }
+  }
+  return "";
+}
+
 export async function getVipInfo(uid: number): Promise<VipInfo> {
   let d: Record<string, unknown> = {};
   // /vip/info (v1) carries the official member badge icons — including the
@@ -999,7 +1040,9 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     d.vipType ?? d.redVipType ?? d.vipStatus ?? (redLevel > 0 ? 10 : 0),
   );
   const expireTime = deepFindExpireMs(d);
-  let badgeUrl = deepFindBadgeUrl(d);
+  // 优先取「当前生效」的官方动态会员图标；拿不到再退回全局择优，
+  // 最后才尝试用户资料里的自定义徽标。
+  let badgeUrl = pickActiveDynamicBadge(d) || deepFindBadgeUrl(d);
   // the custom member badge lives in the user profile
   if (!badgeUrl) {
     try {
