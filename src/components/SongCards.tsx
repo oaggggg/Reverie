@@ -160,7 +160,7 @@ export default function SongCards({
                 )}
                 {song.master && (
                   <span className="song-tag master" title="支持超清母带音质">
-                    母带
+                    超清母带
                   </span>
                 )}
               </div>

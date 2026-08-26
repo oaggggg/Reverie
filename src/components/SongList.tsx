@@ -131,7 +131,7 @@ export default function SongList({
                   <div className="a">
                     {song.master && (
                       <span className="song-tag master" title="支持超清母带音质">
-                        母带
+                        超清母带
                       </span>
                     )}
                     {song.artists}
