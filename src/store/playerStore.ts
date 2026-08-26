@@ -417,6 +417,24 @@ function clearLegacyKeys() {
   }
 }
 
+/**
+ * 首页歌词文案的形状与内容校验：localStorage 里的缓存可能来自旧版本
+ * 或已损坏，直接展示会出现空串、超长行、控制字符等显示异常。
+ */
+function isValidHomeQuote(
+  value: unknown,
+): value is { text: string; source: string } {
+  if (!value || typeof value !== "object") return false;
+  const { text, source } = value as { text?: unknown; source?: unknown };
+  if (typeof text !== "string" || typeof source !== "string") return false;
+  const t = text.trim();
+  const s = source.trim();
+  if (t.length < 6 || t.length > 80 || !s || s.length > 60) return false;
+  // 控制字符视为损坏数据
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(t + s)) return false;
+  return true;
+}
+
 const restoredSession = readSession();
 const cachedProfile = readCachedProfile();
 const cachedHotPlaylists = readJson<PlaylistInfo[]>(
@@ -424,10 +442,14 @@ const cachedHotPlaylists = readJson<PlaylistInfo[]>(
   [],
 );
 const cachedTopSongs = readJson<Song[]>(HOME_TOP_CACHE_KEY, []);
-const cachedHomeQuote = readJson<{ text: string; source: string } | null>(
+const cachedHomeQuoteRaw = readJson<{ text: string; source: string } | null>(
   HOME_QUOTE_CACHE_KEY,
   null,
 );
+// 旧版本或损坏的缓存可能包含任意内容，展示前必须校验。
+const cachedHomeQuote = isValidHomeQuote(cachedHomeQuoteRaw)
+  ? cachedHomeQuoteRaw
+  : null;
 const cachedRecommendSongs = cachedProfile
   ? readJson<Song[]>(recommendCacheKey(cachedProfile.userId), [])
   : [];
@@ -2205,6 +2227,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
               text: line,
               source: `《${song.name}》· ${song.artists}`,
             };
+            // 兜底校验：不合格的候选直接换下一首。
+            if (!isValidHomeQuote(quote)) continue;
             set({ homeQuote: quote });
             writeJson(HOME_QUOTE_CACHE_KEY, quote);
             touchCache(HOME_QUOTE_CACHE_AT_KEY);

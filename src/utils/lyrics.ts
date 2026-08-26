@@ -131,12 +131,45 @@ export function isLyricLine(text: string): boolean {
   return true;
 }
 
-/** Pick a random meaningful lyric line from raw LRC. */
+/**
+ * Pick a random meaningful lyric line from raw LRC.
+ *
+ * 显示异常的两个来源在此处理：
+ * 1) 行内中英混排——很多 LRC 把译文拼在同一行（“中文 / english”），直接
+ *    展示会显得破碎，这里剥掉纯拉丁的尾部只留原文；
+ * 2) 候选池里只有英文填充行——优先返回含中文的行，避免首页文案变成
+ *    无信息量的英文残句。
+ */
+const INLINE_TRANSLATION_SPLIT_RE = /\s*(?:\/\/|[/／|｜])\s*/;
+
+function stripInlineTranslation(text: string): string {
+  const parts = text
+    .split(INLINE_TRANSLATION_SPLIT_RE)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return text;
+  const tailIsTranslation = parts
+    .slice(1)
+    .every((part) => !/[\u4e00-\u9fa5]/.test(part));
+  return tailIsTranslation ? parts[0] : text;
+}
+
 export function pickRandomLyricLine(lrc: string): string | null {
-  const lines = lrc
-    .split(/\r?\n/)
-    .map((raw) => raw.replace(/\[[^\]]*\]/g, "").trim())
-    .filter((t) => isLyricLine(t) && t.length >= 6 && t.length <= 60);
+  const cjkLines: string[] = [];
+  const latinLines: string[] = [];
+  for (const raw of lrc.split(/\r?\n/)) {
+    const stripped = stripInlineTranslation(
+      raw.replace(/\[[^\]]*\]/g, "").trim(),
+    );
+    if (!isLyricLine(stripped) || stripped.length > 60) continue;
+    // 中文行允许 4 字短句（“爱你一万年”这类完整短句是优质文案）；
+    // 纯拉丁行要求更长，避免英文填充词残句混入。
+    const isCjk = /[\u4e00-\u9fa5]/.test(stripped);
+    if (stripped.length < (isCjk ? 4 : 8)) continue;
+    if (isCjk) cjkLines.push(stripped);
+    else latinLines.push(stripped);
+  }
+  const lines = cjkLines.length ? cjkLines : latinLines;
   if (!lines.length) return null;
   return lines[Math.floor(Math.random() * lines.length)];
 }

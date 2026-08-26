@@ -61,3 +61,21 @@ test("lyric quote rejects mentions, vocable spam and truncated fragments", () =>
   assert.equal(isLyricLine("可会变 (谁没在变)"), true);
   assert.equal(isLyricLine("原谅我这一生不羁放纵爱自由"), true);
 });
+
+test("lyric quote strips inline translation tails from bilingual lines", () => {
+  const lrc = "[00:01]爱你一万年 / love you for ten thousand years";
+  assert.equal(pickRandomLyricLine(lrc), "爱你一万年");
+  const slash = "[00:01]月光洒在each街上／moonlight on the street";
+  assert.equal(pickRandomLyricLine(slash), "月光洒在each街上");
+});
+
+test("lyric quote prefers CJK lines over pure-Latin filler", () => {
+  const lrc =
+    "[00:01]la la la la la la\n" +
+    "[00:02]风吹过安静的街道\n" +
+    "[00:03]standing here alone with you my love";
+  for (let i = 0; i < 20; i++) {
+    assert.notEqual(pickRandomLyricLine(lrc), "standing here alone with you");
+    assert.notEqual(pickRandomLyricLine(lrc), "la la la la la la");
+  }
+});
