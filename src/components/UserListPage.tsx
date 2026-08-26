@@ -28,6 +28,7 @@ export default function UserListPage() {
   const openPlaylist = usePlayerStore((s) => s.openPlaylist);
   const userPlaylistsLoading = usePlayerStore((s) => s.userPlaylistsLoading);
   const uid = usePlayerStore((s) => s.profile?.userId ?? 0);
+  const loggedIn = usePlayerStore((s) => s.loggedIn);
   const deletePlaylist = useExploreStore((s) => s.deletePlaylist);
   const toggleSubscription = useExploreStore(
     (s) => s.togglePlaylistSubscription,
@@ -164,7 +165,15 @@ export default function UserListPage() {
             playlists={minePlaylists}
             onOpen={openPlaylist}
             loading={accountLoading || userPlaylistsLoading}
-            emptyText="登录后查看「我创建 / 收藏的歌单」"
+            emptyText={
+              !loggedIn
+                ? "登录后查看「我创建 / 收藏的歌单」"
+                : accountListMode === "created"
+                  ? "还没有创建歌单，点右上角「创建歌单」试试"
+                  : accountListMode === "collected"
+                    ? "还没有收藏歌单，去发现页逛逛吧"
+                    : "暂无歌单"
+            }
             renderActions={(playlist) =>
               playlist.creatorId === uid ? (
                 <>

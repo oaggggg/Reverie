@@ -1,4 +1,9 @@
-import { invalidateResponseCache, normalizeSong, request } from "./client.ts";
+import {
+  getUserPlaylists,
+  invalidateResponseCache,
+  normalizeSong,
+  request,
+} from "./client.ts";
 import type {
   AlbumInfo,
   ArtistInfo,
@@ -575,34 +580,21 @@ export async function getUserEvents(
 
 export async function getUserCreatedPlaylists(
   uid: number,
-  limit = 100,
-  offset = 0,
 ): Promise<PlaylistInfo[]> {
   if (!uid) return [];
-  const response = await request<Obj>(
-    "/user/playlist/create",
-    { uid, limit, offset },
-    false,
-  );
-  return arr(response.playlist ?? response.playlists ?? response.data)
-    .map(normalizePlaylist)
-    .filter((playlist) => playlist.id > 0);
+  // 网易云没有独立的「我创建」接口（/user/playlist/create 不存在，
+  // 请求必然失败导致页面一直显示登录提示）。复用已验证的
+  // /user/playlist 全量分页拉取，再按创建者拆分。
+  const all = await getUserPlaylists(uid);
+  return all.filter((playlist) => playlist.creatorId === uid);
 }
 
 export async function getUserCollectedPlaylists(
   uid: number,
-  limit = 100,
-  offset = 0,
 ): Promise<PlaylistInfo[]> {
   if (!uid) return [];
-  const response = await request<Obj>(
-    "/user/playlist/collect",
-    { uid, limit, offset },
-    false,
-  );
-  return arr(response.playlist ?? response.playlists ?? response.data)
-    .map(normalizePlaylist)
-    .filter((playlist) => playlist.id > 0);
+  const all = await getUserPlaylists(uid);
+  return all.filter((playlist) => playlist.creatorId !== uid);
 }
 
 export async function getUserSocialStatus(uid: number): Promise<string> {
