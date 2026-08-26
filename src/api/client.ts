@@ -1066,6 +1066,40 @@ function pickActiveDynamicBadge(data: Record<string, unknown>): string {
   return "";
 }
 
+/**
+ * 读取用户「当前佩戴」的装扮图标：/user/detail 的
+ * profile.avatarDetail.identityIconUrl。官方客户端里昵称旁的会员铭牌、
+ * 佩戴的个性化装扮都通过这个字段下发（佩戴自定义铭牌时它指向铭牌图，
+ * 未佩戴时可能是默认会员标或为空）。login/status 的 profile 常被精简
+ * 掉该字段，因此必须走 /user/detail。
+ */
+async function fetchWornDecoration(uid: number): Promise<string> {
+  if (!uid) return "";
+  for (const ep of ["/user/detail", "/user/detail/new"] as const) {
+    try {
+      const res = await request<Record<string, unknown>>(
+        ep,
+        ep === "/user/detail/new" ? { uid, all: "true" } : { uid },
+        false,
+      );
+      const profile = (res?.profile ?? res?.data ?? res) as Record<
+        string,
+        unknown
+      > | null;
+      if (!profile || typeof profile !== "object") continue;
+      const detail = profile.avatarDetail;
+      if (detail && typeof detail === "object") {
+        const d = detail as Record<string, unknown>;
+        const url = String(d.identityIconUrl ?? "");
+        if (/^https?:\/\//i.test(url)) return url;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return "";
+}
+
 export async function getVipInfo(uid: number): Promise<VipInfo> {
   let d: Record<string, unknown> = {};
   // /vip/info (v1) carries the official member badge icons — including the
@@ -1092,10 +1126,13 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
   );
   const expireTime = deepFindExpireMs(d);
   // 取值优先级（对齐官方客户端行为）：
-  // 1) 佩戴中的个性化会员铭牌——会员信息里没有就到用户资料接口找；
+  // 1) 佩戴中的个性化铭牌/装扮——优先取会员信息里的铭牌类字段，
+  //    再取 /user/detail 的 avatarDetail.identityIconUrl（官方把当前
+  //    佩戴的装扮统一放在这里下发，login/status 常被精简掉）；
   // 2) 当前生效的官方动态会员图标（黑胶 > 畅听包，校验有效期）；
   // 3) 全局择优兜底。
   let badgeUrl = deepFindCustomPlate(d);
+  if (!badgeUrl) badgeUrl = await fetchWornDecoration(uid);
   if (!badgeUrl) {
     for (const ep of ["/user/detail/new", "/user/detail"] as const) {
       try {
