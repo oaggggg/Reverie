@@ -110,7 +110,8 @@ export default function UserMenu() {
           ) : null}
         </span>
         <span className="user-nick">{profile?.nickname ?? ""}</span>
-        {isVip && badgeUrl && brokenBadge !== badgeUrl ? (
+        {/* 铭牌与头像框是同一来源时只保留头像上的挂件展示，避免重复 */}
+        {isVip && badgeUrl && brokenBadge !== badgeUrl && badgeUrl !== frameUrl ? (
           <img
             className="user-badge-api"
             src={badgeUrl}
