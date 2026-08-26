@@ -5234,6 +5234,29 @@ textarea {
 .setting-switch.active span {
   transform: translateX(18px);
 }
+/* 开关下方的从属设置行：淡入淡出时长滑块、跨端续播设备等。 */
+.setting-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 4px 6px;
+  margin-top: -4px;
+}
+.setting-sub-row .setting-hint {
+  flex: none;
+}
+.setting-fade-slider input[type="range"] {
+  flex: 1;
+  max-width: 220px;
+  accent-color: var(--accent);
+}
+.setting-fade-slider b {
+  flex: none;
+  min-width: 44px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-dim);
+}
 .theme-swatches {
   display: flex;
   flex-wrap: wrap;

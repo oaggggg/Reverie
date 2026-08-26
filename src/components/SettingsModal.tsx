@@ -47,50 +47,94 @@ const ANIMATION_SPEEDS: Array<{ id: AnimationSpeed; name: string }> = [
   { id: "instant", name: "极速" },
 ];
 
-const PRIVACY_TEXT = `隐私说明
+const PRIVACY_TEXT = `隐私政策
+最近更新：随版本发布同步修订
 
-1. 数据范围
-Reverie 不建立独立的用户账户体系，也不向 Reverie 服务器收集或出售个人信息。界面主题、外观偏好、播放历史、下载路径等设置仅保存在当前设备的本地存储中。
+一、我们收集什么
+Reverie 是本地优先的桌面音乐播放器，不建立独立账户体系，不设 Reverie 远端服务器，不收集、不出售任何个人信息。以下数据仅保存在当前设备的本地存储中：
+1. 偏好设置：主题、外观、动效、音质选择、淡入淡出时长、封面展示、启动行为等；
+2. 播放数据：播放队列、最近播放、收藏列表缓存、歌词偏好；
+3. 登录凭证：网易云音乐登录 Cookie（仅本地保存）。
 
-2. 登录凭证
-当你使用网易云音乐账号登录时，登录 Cookie 仅用于向网易云音乐接口发起需要身份认证的请求。凭证由本地客户端保存，不会上传到 Reverie 的服务器；请勿在共享设备上保持登录状态。
+二、登录凭证如何使用
+1. 当你登录网易云音乐账号时，登录 Cookie 仅用于向网易云音乐官方接口发起需要身份认证的请求（播放、收藏、歌单同步等）；
+2. 凭证保存在本机客户端存储中，不会上传至 Reverie 或任何第三方服务器；
+3. 请勿在共享或公共设备上保持登录状态；退出登录会清除本机保存的凭证。
 
-3. 网络请求
-搜索、播放、歌单、评论等功能会通过本地接口服务访问 NeteaseCloudMusicApi 及其所代理的网易云音乐接口。具体请求内容由你主动使用的功能决定，接口服务可能按照其自身隐私政策记录必要的访问日志。
+三、网络请求去向
+1. 搜索、播放、歌单、评论等功能通过本机接口服务访问 NeteaseCloudMusicApi 及其代理的网易云音乐官方接口，请求内容仅由你主动使用的功能决定；
+2. 位置展示功能调用第三方 IP 定位服务，仅根据网络出口地址推断省市信息，不读取 GPS、通讯录或精确位置；
+3. 检查更新、问题反馈会访问 GitHub 及相关发布服务；
+4. 上述第三方服务可能按其自身隐私政策记录必要的访问日志，此类处理不受 Reverie 控制。
 
-4. 位置信息
-首页位置由第三方 IP 定位服务根据网络出口地址推断，仅用于展示省市信息。应用不会读取 GPS、通讯录或精确地址；你可以在系统网络层面阻止相关请求。
+四、跨端续播
+开启「跨端续播」后，本机设备标识（平台与设备名）仅用于在本机标记续播上下文；当前版本不通过云端传输播放进度到其他设备。
 
-5. 数据删除
-清除应用数据、退出账号或删除本地存储即可移除本机保存的偏好和缓存。已发送到第三方服务的请求记录不受 Reverie 控制，请以对应服务的政策为准。
+五、数据保留与删除
+1. 本地数据随应用卸载或清除应用数据一并删除；
+2. 清除浏览器/WebView 站点数据同样会移除全部偏好与缓存；
+3. 已发送至第三方服务的请求记录，请以对应服务的政策为准行使权利。
 
-6. 安全提示
-请使用可信网络环境并妥善保管账号凭证。Reverie 不会以任何理由索取你的密码、短信验证码或支付信息。`;
+六、未成年人保护
+Reverie 面向一般用户，不主动向未成年人推送内容，也不进行任何用户画像或个性化广告投放。未成年人使用请在监护人指导下进行。
 
-const USAGE_TEXT = `使用说明
+七、安全提示
+请使用可信网络环境并妥善保管账号凭证。Reverie 不会以任何理由向你索取账号密码、短信验证码或支付信息；如收到冒用 Reverie 名义的此类请求，请勿理会并向我们反馈。`;
 
-1. 开始使用
-启动本地接口服务后即可浏览首页、搜索歌曲和播放公开内容。部分歌单、收藏、评论及同步功能需要先登录网易云音乐账号。
+const USAGE_TEXT = `服务条款
+最近更新：随版本发布同步修订
 
-2. 播放与音质
-播放栏支持播放控制、播放列表、循环模式和官方可用音质切换。可用音质由当前歌曲、账号权限和接口返回结果共同决定，不支持的音质不会显示。
+接受条款
+下载、安装或使用 Reverie 即表示你已阅读并同意本服务条款。若不同意任一条款，请停止使用并删除本应用。
 
-3. 下载与缓存
-下载路径可在“设置 > 常规”中修改。下载能力受歌曲版权、账号权限和接口返回状态限制；应用不会绕过平台权限或解除 DRM。
+一、服务说明
+1. Reverie 提供音乐浏览、搜索、播放、歌单管理、歌词展示、下载等本地功能；
+2. 音乐内容及元数据均来自第三方接口服务，Reverie 不存储、不上传、不改写任何音频内容；
+3. 部分功能（收藏同步、私人漫游、评论、会员音质等）需登录网易云音乐账号并受该账号权益限制。
 
-4. 设置与外观
-“设置 > 外观”可调整透明程度、背景模糊和文字对比度；“设置 > 常规”可调整主题、动效、歌词翻译和字号。设置会即时生效并保存在本机。
+二、账号与合规使用
+1. 你应使用本人合法拥有的网易云音乐账号登录，并自行保管凭证；
+2. 不得利用本应用从事任何违反法律法规、平台协议或侵犯他人合法权益的行为；
+3. 不得对本应用的接口服务进行攻击、爬取、逆向压测或干扰其正常运行。
 
-5. 更新与故障排查
-建议保持接口服务和客户端版本一致。遇到搜索、播放或登录异常时，请先确认网络连接、接口服务状态和账号登录状态，再重启本地接口服务或重新登录。
+三、播放与音质
+1. 可用音质由当前歌曲、你的账号身份和接口返回结果共同决定，不支持的音质不会显示；
+2. 会员音质（VIP/SVIP）的可用性以网易云音乐官方权益判定为准，Reverie 不提供任何形式的权益绕过。
 
-6. 内容与版权
-音乐、歌词、评论、封面及相关元数据均来自第三方服务。请遵守所在地法律、平台服务协议和版权要求，仅将本应用用于个人学习与合法欣赏。`;
+四、下载与缓存
+1. 下载路径可在「设置 > 常规」中修改；下载能力受歌曲版权、账号权限和接口返回状态限制；
+2. 应用不会绕过平台权限或解除 DRM；下载内容仅供个人离线欣赏，不得二次分发或用于商业用途。
 
-const DISCLAIMER_TEXT = `· Reverie 是开源音乐播放器，仅供个人学习与交流使用。
-· 音乐数据来源于 NeteaseCloudMusicApi，歌曲版权归各版权方所有。
-· 本应用与网易云音乐及其关联公司无隶属或合作关系。
-· 若涉及合法权益问题，请联系移除相关内容。`;
+五、知识产权
+1. Reverie 软件本身的代码按其开源许可证提供；
+2. 音乐、歌词、评论、封面、商标等内容的权利归各权利人所有；
+3. 「网易云音乐」及相关名称、商标为其权利人财产，Reverie 与其无隶属或合作关系。
+
+六、服务变更与中止
+第三方接口的内容范围、可用性与配额可能随时变化，由此导致的功能波动不属于违约。Reverie 可随版本更新调整功能形态，并在说明文档中告知。
+
+七、责任限制
+在适用法律允许的最大范围内，Reverie 按「现状」提供，不对内容的准确性、完整性、可用性作出保证；对于因使用或无法使用本应用造成的间接损失不承担责任。`;
+
+const DISCLAIMER_TEXT = `免责声明
+
+一、项目性质
+Reverie 是开源桌面音乐播放器，仅供个人学习、技术研究与合法欣赏使用，不得用于任何商业用途。
+
+二、内容来源
+音乐数据来源于 NeteaseCloudMusicApi 所代理的公开接口，歌曲、歌词、封面等内容版权归各版权方所有。Reverie 不托管、不缓存分发任何音频文件。
+
+三、非官方声明
+本应用与网易云音乐、NetEase Cloud Music 及其关联公司无隶属、合作或授权关系。「网易云音乐」及相关商标为其权利人财产。因使用本应用产生的与平台账号相关的一切风险由使用者自行承担。
+
+四、使用风险
+使用第三方接口意味着接受其可用性变化、限流或失效的可能。因平台策略调整、接口变更、账号处罚等原因导致的功能异常，Reverie 不承担相关责任。
+
+五、版权处理
+若你是权利人或其代理，认为本应用的相关链接侵犯了合法权益，请通过项目仓库提交 Issue 并附权属证明与具体链接，我们将在核实后及时移除。
+
+六、其他
+本免责声明与隐私政策、服务条款共同构成使用本应用的完整约定；如与法律法规强制性规定冲突，以法律规定为准。`;
 
 type Category = "general" | "appearance" | "account" | "about";
 type Panel = "privacy" | "usage" | "disclaimer" | null;
@@ -159,6 +203,14 @@ export default function SettingsModal() {
   const setReducedMotion = usePlayerStore((s) => s.setReducedMotion);
   const audioFadeEnabled = usePlayerStore((s) => s.audioFadeEnabled);
   const setAudioFadeEnabled = usePlayerStore((s) => s.setAudioFadeEnabled);
+  const audioFadeSeconds = usePlayerStore((s) => s.audioFadeSeconds);
+  const setAudioFadeSeconds = usePlayerStore((s) => s.setAudioFadeSeconds);
+  const showListCover = usePlayerStore((s) => s.showListCover);
+  const setShowListCover = usePlayerStore((s) => s.setShowListCover);
+  const launchFmOnStart = usePlayerStore((s) => s.launchFmOnStart);
+  const setLaunchFmOnStart = usePlayerStore((s) => s.setLaunchFmOnStart);
+  const crossDeviceResume = usePlayerStore((s) => s.crossDeviceResume);
+  const setCrossDeviceResume = usePlayerStore((s) => s.setCrossDeviceResume);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
   const showTranslation = usePlayerStore((s) => s.showTranslation);
@@ -402,10 +454,7 @@ export default function SettingsModal() {
                       ))}
                     </div>
                   </SettingRow>
-                  <SettingRow
-                    title="减少动画效果"
-                    hint="关闭大多数过渡、浮动和入场动画"
-                  >
+                  <SettingRow title="减少动画效果" hint="关闭大多数过渡、浮动和入场动画">
                     <button
                       type="button"
                       className={`setting-switch ${reducedMotion ? "active" : ""}`}
@@ -417,6 +466,68 @@ export default function SettingsModal() {
                       <span />
                     </button>
                   </SettingRow>
+                  <SettingRow
+                    title="列表展示专辑封面"
+                    hint="歌单与歌曲列表行内是否显示封面缩略图，关闭后更紧凑"
+                  >
+                    <button
+                      type="button"
+                      className={`setting-switch ${showListCover ? "active" : ""}`}
+                      role="switch"
+                      aria-checked={showListCover}
+                      aria-label="列表展示专辑封面"
+                      onClick={() => setShowListCover(!showListCover)}
+                    >
+                      <span />
+                    </button>
+                  </SettingRow>
+                </div>
+                <div className="settings-section">
+                  <h3>启动</h3>
+                  <SettingRow
+                    title="启动直达私人漫游"
+                    hint="打开 Reverie 后自动开始播放私人漫游内容（需已登录）"
+                  >
+                    <button
+                      type="button"
+                      className={`setting-switch ${launchFmOnStart ? "active" : ""}`}
+                      role="switch"
+                      aria-checked={launchFmOnStart}
+                      aria-label="启动直达私人漫游"
+                      onClick={() => setLaunchFmOnStart(!launchFmOnStart)}
+                    >
+                      <span />
+                    </button>
+                  </SettingRow>
+                </div>
+                <div className="settings-section">
+                  <h3>跨端续播</h3>
+                  <SettingRow
+                    title="跨端续播"
+                    hint="记住本机作为续播设备，在其他端继续上次播放进度"
+                  >
+                    <button
+                      type="button"
+                      className={`setting-switch ${crossDeviceResume ? "active" : ""}`}
+                      role="switch"
+                      aria-checked={crossDeviceResume}
+                      aria-label="跨端续播"
+                      onClick={() => setCrossDeviceResume(!crossDeviceResume)}
+                    >
+                      <span />
+                    </button>
+                  </SettingRow>
+                  {crossDeviceResume && (
+                    <div className="setting-sub-row">
+                      <span className="setting-hint">
+                        当前续播设备：
+                        {window.ncm?.platform ||
+                          navigator.platform ||
+                          "未知平台"}
+                        （本机）
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="settings-section">
                   <h3>播放</h3>
@@ -435,6 +546,23 @@ export default function SettingsModal() {
                       <span />
                     </button>
                   </SettingRow>
+                  {audioFadeEnabled && (
+                    <div className="setting-sub-row setting-fade-slider">
+                      <span className="setting-hint">淡入淡出时长</span>
+                      <input
+                        type="range"
+                        min={1}
+                        max={12}
+                        step={1}
+                        value={audioFadeSeconds}
+                        aria-label="淡入淡出时长（秒）"
+                        onChange={(e) =>
+                          setAudioFadeSeconds(Number(e.target.value))
+                        }
+                      />
+                      <b>{audioFadeSeconds} 秒</b>
+                    </div>
+                  )}
                   <SettingRow
                     title="歌曲下载路径"
                     hint={
@@ -664,7 +792,7 @@ export default function SettingsModal() {
                     }
                   >
                     <span>
-                      <strong>隐私说明</strong>
+                      <strong>隐私政策</strong>
                       <small>数据处理、账号凭证与第三方服务</small>
                     </span>
                     <ChevronRight size={16} />
@@ -679,7 +807,7 @@ export default function SettingsModal() {
                     onClick={() => setPanel(panel === "usage" ? null : "usage")}
                   >
                     <span>
-                      <strong>使用说明</strong>
+                      <strong>服务条款</strong>
                       <small>播放、下载、设置与故障排查</small>
                     </span>
                     <ChevronRight size={16} />

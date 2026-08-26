@@ -55,6 +55,9 @@ export default function SongList({
   const playing = usePlayerStore((s) => s.playing);
   const playSong = usePlayerStore((s) => s.playSong);
   const playNext = usePlayerStore((s) => s.playNext);
+  // 设置里的「列表展示专辑封面」总开关与调用方 showCover 取与。
+  const globalCover = usePlayerStore((s) => s.showListCover);
+  const coverShown = showCover && globalCover;
   const openMedia = useMediaStore((s) => s.open);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
@@ -96,7 +99,7 @@ export default function SongList({
                     i + 1
                   )}
                 </span>
-                {showCover &&
+                {coverShown &&
                   (song.picUrl ? (
                     <img
                       src={sizedImage(song.picUrl, 80)}
