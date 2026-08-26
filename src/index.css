@@ -328,7 +328,11 @@ textarea {
   transform-origin: 50% 100%;
   animation-name: reverie-letter-bounce;
   animation-duration: var(--brand-cycle);
-  animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1);
+  /* 线性时间轴：TSX 的 --bounce-delay 按线性几何推算（光带到达
+     该字母中心的时刻），缓动函数若作用于关键帧之间会把实际峰值
+     时刻扭曲偏离公式，造成跳动与光效不同步；三段式起落形态由
+     关键帧本身（3.2%/5.4%/7.2%/9%）刻画，线性推进依然平滑。 */
+  animation-timing-function: linear;
   animation-iteration-count: infinite;
   animation-delay: var(--bounce-delay, 0s);
 }
@@ -370,6 +374,12 @@ textarea {
   100% {
     background-position: -60% 50%;
   }
+}
+/* 失活暂停必须覆盖全部三层动画（词级光晕、字母跳动、字母光效切片）：
+   漏掉任何一层都会在窗口失活→恢复后相位永久错开，表现为跳动与
+   光效不再实时对应。 */
+:root[data-window-active="false"] .titlebar-letter::after {
+  animation-play-state: paused !important;
 }
 /* 光晕跟随光带位置脉动：暖绯色光晕随高光一起从左向右平移，
    到达右端后熄灭等待下一轮 —— 呼吸感有了方向性。峰值提前到
