@@ -158,6 +158,11 @@ export default function SongCards({
                     VIP
                   </span>
                 )}
+                {song.master && (
+                  <span className="song-tag master" title="支持超清母带音质">
+                    母带
+                  </span>
+                )}
               </div>
               <div className="a">{song.artists}</div>
             </article>

@@ -12,10 +12,12 @@ export interface Song {
   duration: number;
   /** 0 = free, 1 = VIP, 4/8 = digital album etc. */
   fee: number;
+  /** 支持超清母带音质（官方 privilege 判定：jymaster 等级或母带码率档）。 */
+  master?: boolean;
   mvId?: number;
   /** Present when the playable song represents a podcast program. */
   programId?: number;
-  /** 官方别名（网易云返回），如「翻自 XXX」「Live」——用于原唱/翻唱标识。 */
+  /** 官方别名（网易云返回，如「翻自 XXX」「Live」）。 */
   alias?: string[];
 }
 
