@@ -73,8 +73,10 @@ interface ExploreState {
   mutualFollow: Record<number, boolean | undefined>;
 
   openAlbum: (id: number) => Promise<void>;
+  loadAlbum: (id: number) => Promise<void>;
   toggleAlbumSubscription: () => Promise<void>;
   openArtist: (id: number) => Promise<void>;
+  loadArtist: (id: number) => Promise<void>;
   toggleArtistSubscription: () => Promise<void>;
   openComments: (song: Song) => Promise<void>;
   setCommentSort: (sort: CommentSort) => Promise<void>;
@@ -162,8 +164,13 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
 
   openAlbum: async (id) => {
     if (!id) return;
-    const token = beginNavLoad();
     showView("album");
+    await get().loadAlbum(id);
+  },
+  // 只拉取数据不切换页面视图：供弹窗场景复用。
+  loadAlbum: async (id) => {
+    if (!id) return;
+    const token = beginNavLoad();
     set({ loading: true, album: null, albumSongs: [] });
     try {
       const result = await getAlbum(id);
@@ -192,8 +199,13 @@ export const useExploreStore = create<ExploreState>()((set, get) => ({
   },
   openArtist: async (id) => {
     if (!id) return;
-    const token = beginNavLoad();
     showView("artist");
+    await get().loadArtist(id);
+  },
+  // 只拉取数据不切换页面视图：供弹窗场景复用。
+  loadArtist: async (id) => {
+    if (!id) return;
+    const token = beginNavLoad();
     set({
       loading: true,
       artist: null,
