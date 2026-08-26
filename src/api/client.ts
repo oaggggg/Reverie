@@ -962,6 +962,11 @@ export interface VipInfo {
   expireTime: number;
   /** official/custom member badge image url from the API */
   badgeUrl?: string;
+  /**
+   * 黑胶超级会员（SVIP）：黑胶 VIP 与畅听包同时生效——对应官方
+   * vipType 110 组合态，是沉浸环绕声/超清母带等 SVIP 特权的判定依据。
+   */
+  svip?: boolean;
 }
 
 /** Parse an epoch value that may be seconds or ms, or a "YYYY-MM-DD" date string. */
@@ -1240,11 +1245,19 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
       uid,
     );
   }
+  // SVIP 判定（官方组合态）：黑胶 VIP 包与畅听包同时生效。
+  const now = Date.now();
+  const pkgActive = (o: unknown): boolean => {
+    if (!o || typeof o !== "object") return false;
+    return Number((o as Record<string, unknown>).expireTime ?? 0) > now;
+  };
+  const svip = pkgActive(d.associator) && pkgActive(d.musicPackage);
   return {
     vipType,
     vipLevel: redLevel,
     expireTime,
     badgeUrl: badgeUrl || undefined,
+    svip,
   };
 }
 
