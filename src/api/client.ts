@@ -372,6 +372,14 @@ export function normalizeSong(raw: unknown): Song | null {
   const duration = Number(s.dt ?? s.duration ?? 0);
   const fee = Number(s.fee ?? 0);
 
+  // 官方别名：/song/detail 与多数列表接口为 alias，部分艺术家接口为 alia。
+  const aliasRaw = Array.isArray(s.alias)
+    ? s.alias
+    : Array.isArray(s.alia)
+      ? s.alia
+      : [];
+  const alias = aliasRaw.map((a) => String(a ?? "").trim()).filter(Boolean);
+
   return {
     id,
     name: String(s.name ?? "未知歌曲"),
@@ -391,6 +399,7 @@ export function normalizeSong(raw: unknown): Song | null {
         : typeof s.mvid === "number"
           ? s.mvid
           : undefined,
+    alias: alias.length ? alias : undefined,
   };
 }
 

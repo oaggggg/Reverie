@@ -15,6 +15,8 @@ export interface Song {
   mvId?: number;
   /** Present when the playable song represents a podcast program. */
   programId?: number;
+  /** 官方别名（网易云返回），如「翻自 XXX」「Live」——用于原唱/翻唱标识。 */
+  alias?: string[];
 }
 
 /** Official Netease Cloud Music playback quality levels. */

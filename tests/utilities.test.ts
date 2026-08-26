@@ -26,8 +26,16 @@ test("normalizeSong accepts the common Netease song shapes", () => {
       duration: 1234,
       fee: 1,
       mvId: 99,
+      alias: undefined,
     },
   );
+  // 官方别名（alias/alia 双形态）用于原唱/翻唱等版本标识
+  assert.deepEqual(normalizeSong({ id: 7, name: "x", alias: [" 翻自 某人 "] })?.alias, [
+    "翻自 某人",
+  ]);
+  assert.deepEqual(normalizeSong({ id: 8, name: "y", alia: ["Live"] })?.alias, [
+    "Live",
+  ]);
   assert.equal(normalizeSong({ name: "缺少 id" }), null);
 });
 
