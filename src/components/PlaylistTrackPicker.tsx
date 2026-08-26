@@ -157,6 +157,9 @@ export default function PlaylistTrackPicker({
                   </small>
                 </span>
                 {song.fee === 1 && <span className="vip-badge">VIP</span>}
+                {song.master && (
+                  <span className="song-tag master">母带</span>
+                )}
               </button>
             );
           })}

@@ -343,6 +343,25 @@ export async function request<T = unknown>(
 /*  Search & enrich                                                    */
 /* ------------------------------------------------------------------ */
 
+/**
+ * 官方数据判定「支持超清母带」：privilege 的音质等级字段
+ * （flLevel/plLevel/dlLevel）出现 jymaster，或计费档位里包含母带码率
+ * （1999000bps 档）。两路信号都来自 /song/detail、/playlist/detail 等
+ * 官方响应的 privilege 结构。
+ */
+function privilegeSupportsMaster(
+  p: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!p || typeof p !== "object") return false;
+  const levels = [p.flLevel, p.plLevel, p.dlLevel];
+  if (levels.some((l) => l === "jymaster")) return true;
+  const list = Array.isArray(p.chargeInfoList) ? p.chargeInfoList : [];
+  return list.some(
+    (c) =>
+      Number((c as Record<string, unknown>)?.rate ?? 0) >= 1_990_000,
+  );
+}
+
 export function normalizeSong(raw: unknown): Song | null {
   if (!raw || typeof raw !== "object") return null;
   const s = raw as Record<string, unknown>;
@@ -400,6 +419,12 @@ export function normalizeSong(raw: unknown): Song | null {
           ? s.mvid
           : undefined,
     alias: alias.length ? alias : undefined,
+    // 行内自带 privilege（/playlist/detail 的 tracks 等）时直接判定母带
+    ...(privilegeSupportsMaster(
+      s.privilege as Record<string, unknown> | null | undefined,
+    )
+      ? { master: true }
+      : {}),
   };
 }
 
@@ -1232,7 +1257,23 @@ export async function getSongsByIds(ids: number[]): Promise<Song[]> {
     { ids: ids.join(",") },
     30 * 60 * 1000,
   );
+  // /song/detail 的特权信息在平级的 privileges 数组里（按 id 对应），
+  // 合并回歌曲以获得超清母带支持标记。
+  const privs = new Map<number, Record<string, unknown>>();
+  for (const p of (res as { privileges?: unknown[] }).privileges ?? []) {
+    const o = p as Record<string, unknown>;
+    const pid = Number(o?.id ?? 0);
+    if (pid > 0) privs.set(pid, o);
+  }
   return (res.songs ?? [])
-    .map((r) => normalizeSong(r))
+    .map((r) => {
+      const song = normalizeSong(r);
+      if (!song) return null;
+      if (!song.master) {
+        const p = privs.get(song.id);
+        if (p && privilegeSupportsMaster(p)) return { ...song, master: true };
+      }
+      return song;
+    })
     .filter((s): s is Song => s !== null);
 }
