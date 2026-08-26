@@ -233,6 +233,19 @@ function isCacheFresh(key: string, ttl: number): boolean {
   return cachedAt > 0 && Date.now() - cachedAt < ttl;
 }
 
+/** 缓存时间戳是否落在本地今天的日历日内（跨天即视为过期）。 */
+function isSameLocalDay(key: string): boolean {
+  const cachedAt = readNum(key, 0);
+  if (!cachedAt) return false;
+  const cached = new Date(cachedAt);
+  const now = new Date();
+  return (
+    cached.getFullYear() === now.getFullYear() &&
+    cached.getMonth() === now.getMonth() &&
+    cached.getDate() === now.getDate()
+  );
+}
+
 function touchCache(key: string) {
   write(key, String(Date.now()));
 }
@@ -1677,12 +1690,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
 
     const tasks: Promise<unknown>[] = [];
+    // 已有数据时一律静默刷新（不置 loading），只有空列表才显示骨架——
+    // 否则每次进入首页都会用白色骨架替换已有内容，闪一下再刷新。
     if (
       refreshPlaylists ||
       !get().hotPlaylists.length ||
       !isCacheFresh(HOME_PLAYLISTS_CACHE_AT_KEY, HOME_DATA_CACHE_TTL)
     ) {
-      set({ hotPlaylistsLoading: true });
+      if (!get().hotPlaylists.length) set({ hotPlaylistsLoading: true });
       tasks.push(
         getHotPlaylists(
           12,
@@ -1701,7 +1716,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       !get().topSongs.length ||
       !isCacheFresh(HOME_TOP_CACHE_AT_KEY, HOME_DATA_CACHE_TTL)
     ) {
-      set({ topSongsLoading: true });
+      if (!get().topSongs.length) set({ topSongsLoading: true });
       tasks.push(
         getTopSongs(0, 10)
           .then((songs) => {
@@ -1721,9 +1736,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         !isCacheFresh(
           recommendCacheAtKey(profile.userId),
           HOME_RECOMMEND_CACHE_TTL,
-        ))
+        ) ||
+        // 「每日推荐」按天更新：缓存不是今天的即视为过期，
+        // 跨天后的首次进入直接拉取新一天的个人推荐。
+        !isSameLocalDay(recommendCacheAtKey(profile.userId)))
     ) {
-      set({ recommendSongsLoading: true });
+      if (!get().recommendSongs.length) set({ recommendSongsLoading: true });
       tasks.push(
         getRecommendSongs()
           .then((songs) => {
