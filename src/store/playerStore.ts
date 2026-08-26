@@ -78,16 +78,18 @@ export const PLAYBACK_QUALITY_LABELS: Record<PlaybackQuality, string> = {
   exhigh: "极高",
   lossless: "无损",
   hires: "Hi-Res无损",
+  dolby: "杜比全景声",
   jyeffect: "高清环绕声",
   sky: "沉浸环绕声",
   jymaster: "超清母带",
+  vivid: "全景声 Vivid",
 };
 
 /**
  * 音质 → 所需会员身份（官方会员权益口径）：
  * 免费：标准 / 较高 / 极高（菜单中不加标识）
- * VIP（黑胶会员）：无损 / Hi-Res / 高清环绕声
- * SVIP（黑胶超级会员）：沉浸环绕声 / 超清母带
+ * VIP（黑胶会员）：无损 / Hi-Res / 杜比全景声 / 高清环绕声
+ * SVIP（黑胶超级会员）：沉浸环绕声 / 超清母带 / 全景声 Vivid
  */
 export const PLAYBACK_QUALITY_TIER: Record<PlaybackQuality, QualityTier> = {
   standard: "free",
@@ -95,21 +97,25 @@ export const PLAYBACK_QUALITY_TIER: Record<PlaybackQuality, QualityTier> = {
   exhigh: "free",
   lossless: "vip",
   hires: "vip",
+  dolby: "vip",
   jyeffect: "vip",
   sky: "svip",
   jymaster: "svip",
+  vivid: "svip",
 };
 
-/** 全部官方音质等级（播放栏菜单按此完整展示）。 */
+/** 全部官方音质等级（按官方客户端码率序，播放栏菜单完整展示）。 */
 export const ALL_PLAYBACK_QUALITIES: PlaybackQuality[] = [
   "standard",
   "higher",
   "exhigh",
   "lossless",
   "hires",
+  "dolby",
   "jyeffect",
-  "sky",
   "jymaster",
+  "sky",
+  "vivid",
 ];
 
 const PLAYBACK_QUALITY_LEVELS: PlaybackQuality[] = [
@@ -131,6 +137,8 @@ function qualitiesFromPrivilege(privilege: {
   surroundEffect: boolean;
   immersive: boolean;
   jymaster: boolean;
+  dolby: boolean;
+  vivid: boolean;
 }): PlaybackQuality[] {
   const qualities: PlaybackQuality[] = [];
   if (privilege.standard || privilege.maxBitrate > 0)
@@ -139,10 +147,12 @@ function qualitiesFromPrivilege(privilege: {
   if (privilege.maxBitrate >= 320000) qualities.push("exhigh");
   if (privilege.lossless) qualities.push("lossless");
   if (privilege.highRes) qualities.push("hires");
+  if (privilege.dolby) qualities.push("dolby");
   if (privilege.surroundEffect || privilege.spatialAudio)
     qualities.push("jyeffect");
-  if (privilege.immersive) qualities.push("sky");
   if (privilege.jymaster) qualities.push("jymaster");
+  if (privilege.immersive) qualities.push("sky");
+  if (privilege.vivid) qualities.push("vivid");
   return qualities.length ? qualities : ["standard"];
 }
 
