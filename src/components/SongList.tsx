@@ -44,6 +44,7 @@ export default function SongList({
   onOpenProgram,
 }: Props) {
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const playing = usePlayerStore((s) => s.playing);
   const playSong = usePlayerStore((s) => s.playSong);
   const playNext = usePlayerStore((s) => s.playNext);
   const openMedia = useMediaStore((s) => s.open);
@@ -72,7 +73,20 @@ export default function SongList({
                 onClick={() => playSong(song, songs)}
               >
                 <span className="idx">
-                  {isCur ? <Play size={13} fill="currentColor" /> : i + 1}
+                  {isCur ? (
+                    playing ? (
+                      // 正在播放：动态均衡器指示条（随播放状态动画）
+                      <span className="eq-bars" aria-label="正在播放">
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    ) : (
+                      <Play size={13} fill="currentColor" />
+                    )
+                  ) : (
+                    i + 1
+                  )}
                 </span>
                 {showCover &&
                   (song.picUrl ? (

@@ -97,6 +97,11 @@ export default function App() {
   const seamlessTransitionRef = useRef(false);
   const skipNextFadeInRef = useRef(false);
   const handledEndedUrlRef = useRef<string | null>(null);
+  // 音质切换两阶段交接：记录已对哪个目标 URL 完成寻址（第一阶段 seek）。
+  const qualitySeekRef = useRef<{ url: string; seeked: boolean }>({
+    url: "",
+    seeked: false,
+  });
   // 静音看门狗：AudioContext 被系统挂起或音量被竞态留在 0 时，
   // 媒体元素照常走表（播放栏正常）却没有声音。异常需持续存在
   // （SILENT_RECOVERY_MS）才触发自愈，短暂打断不提示；toast 只提示一次。
@@ -994,14 +999,26 @@ export default function App() {
       !qualitySwitchQuality
     )
       return;
-    // 缓冲不足时不急着切：等后续 canplay/playing 事件再次触发，
-    // 避免换源后立刻卡在缓冲上（卡顿的主要来源）。
-    if (event.currentTarget.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
-      return;
+    const el = event.currentTarget;
+    // 每次换源重置寻址标记（不同目标 URL 视为新一次切换）。
+    if (qualitySeekRef.current.url !== qualitySwitchUrl) {
+      qualitySeekRef.current = { url: qualitySwitchUrl, seeked: false };
+    }
     const active =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     const position = active ? Math.max(0, active.currentTime * 1000) : 0;
-    inactive.currentTime = position / 1000;
+    if (!qualitySeekRef.current.seeked) {
+      // 第一阶段：先跳到当前播放位置，让浏览器围绕目标位置取流。
+      // 新加载的流只会从 0 开始缓冲，对中途切换毫无意义；seek 后
+      // seeked/canplay 会再次触发本 handler 进入第二阶段。
+      el.currentTime = position / 1000;
+      qualitySeekRef.current.seeked = true;
+      return;
+    }
+    // 第二阶段：目标位置数据充分（HAVE_ENOUGH_DATA）才交接。旧解码器
+    // 在此期间持续出声，杜绝「切完直接没声、几秒后才有声音」的空窗；
+    // 缓冲不足时保持等待，progress/canplay 事件会再次驱动本流程。
+    if (el.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) return;
     // 先让新音质真正出声，再停掉旧解码器。旧实现先 pause 再 play，
     // 一旦 play() 因缓冲/系统原因迟迟不返回，UI 停在“播放中”却既无进度
     // 也无声；现在最坏情况只是短暂双声重叠，不会出现静默挂起。
@@ -1015,7 +1032,7 @@ export default function App() {
     }
     resumeAnalyser();
     // 瞬时交接，不做交叉淡化：淡化会让音量先变小再恢复，听感像「声音
-    // 被压下去好几秒」。新旧解码器在 canplay（缓冲已就绪）后立即换手。
+    // 被压下去好几秒」。缓冲就绪后立即换手。
     void inactive
       .play()
       .then(() => {
@@ -1027,6 +1044,7 @@ export default function App() {
         inactive.pause();
         if (!switchSuperseded()) {
           cancelQualitySwitch();
+          qualitySeekRef.current = { url: "", seeked: false };
           usePlayerStore
             .getState()
             .toast("音质切换启动失败，已保留当前播放", "info");
@@ -1041,6 +1059,7 @@ export default function App() {
       activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
     if (event.currentTarget === inactive && qualitySwitchUrl) {
       cancelQualitySwitch();
+      qualitySeekRef.current = { url: "", seeked: false };
       usePlayerStore.getState().toast("该音质暂时不可用，已保留原音质", "info");
       return;
     }
