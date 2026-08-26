@@ -853,6 +853,21 @@ export async function qrCheck(key: string): Promise<QrCheckResponse> {
   );
 }
 
+/** 读取佩戴中的个性化头像框：profile.avatarDetail.identityIconUrl。 */
+function pickAvatarFrame(profileRaw: Record<string, unknown> | null): string {
+  if (!profileRaw) return "";
+  const detail = profileRaw.avatarDetail;
+  if (detail && typeof detail === "object") {
+    const d = detail as Record<string, unknown>;
+    const url = String(d.identityIconUrl ?? d.iconUrl ?? "");
+    if (/^https?:\/\//i.test(url)) return url;
+  }
+  const direct = profileRaw.avatarFrameUrl ?? profileRaw.frameUrl;
+  return typeof direct === "string" && /^https?:\/\//i.test(direct)
+    ? direct
+    : "";
+}
+
 export async function loginStatus(): Promise<UserProfile | null> {
   const res = await request<LoginStatusResponse>("/login/status");
   const profile = (res.data?.profile ?? res.profile ?? null) as Record<
@@ -872,6 +887,7 @@ export async function loginStatus(): Promise<UserProfile | null> {
     userId: Number(profile.userId ?? 0),
     nickname: String(profile.nickname ?? "网易云用户"),
     avatarUrl: String(profile.avatarUrl ?? ""),
+    avatarFrameUrl: pickAvatarFrame(profile) || undefined,
     signature: profile.signature ? String(profile.signature) : undefined,
     vipType: Math.max(
       Number(account?.vipType ?? 0),
