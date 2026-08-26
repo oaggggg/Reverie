@@ -31,9 +31,10 @@ import {
 const FALLBACK_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='18' fill='%23e9eaf0'/%3E%3Ccircle cx='80' cy='80' r='42' fill='%23c9cad4'/%3E%3Ccircle cx='80' cy='80' r='14' fill='%23f5f5f8'/%3E%3Cpath d='M94 42v46.5a20 20 0 1 1-8-16V42h8Z' fill='%237b7f92'/%3E%3C/svg%3E";
 
-const AUDIO_FADE_IN_MS = 180;
-const AUDIO_FADE_OUT_MS = 140;
 const SEAMLESS_CROSSFADE_MS = 260;
+// 淡入淡出时长由设置驱动（audioFadeSeconds，1~12 秒）；无缝切歌过渡
+// 是独立机制，保持短促避免拖沓。
+const fadeMs = () => usePlayerStore.getState().audioFadeSeconds * 1000;
 // 静音看门狗判定窗口：系统通知音、蓝牙切换等会让 AudioContext 短暂
 // 离开 running 态并在一两秒内自行恢复，属于正常现象，不应提示。
 const SILENT_RECOVERY_MS = 2500;
@@ -371,6 +372,12 @@ export default function App() {
       };
       idle = window.requestIdleCallback?.(refreshHome, { timeout: 1800 });
       if (idle === undefined) timer = window.setTimeout(refreshHome, 250);
+      // 启动直达私人漫游：设置开启且当前没有恢复的在播内容时才触发；
+      // 未登录时静默跳过，不在启动流程里弹登录框打扰。
+      const boot = usePlayerStore.getState();
+      if (boot.launchFmOnStart && !boot.currentSong && boot.loggedIn) {
+        void usePlayerStore.getState().loadPersonalFm();
+      }
     })();
     return () => {
       cancelled = true;
@@ -602,7 +609,7 @@ export default function App() {
               a.volume = target;
               return;
             }
-            return fadeAudioVolume(a, target, AUDIO_FADE_IN_MS);
+            return fadeAudioVolume(a, target, fadeMs());
           })
           .catch(async () => {
             a.volume = target;
@@ -626,7 +633,7 @@ export default function App() {
                 a.pause();
                 return;
               }
-              await fadeAudioVolume(a, target, AUDIO_FADE_IN_MS);
+              await fadeAudioVolume(a, target, fadeMs());
               return;
             } catch {
               /* 重试仍失败才提示 */
@@ -643,7 +650,7 @@ export default function App() {
           });
       }
     } else if (!a.paused) {
-      void fadeAudioVolume(a, 0, AUDIO_FADE_OUT_MS).then(() => {
+      void fadeAudioVolume(a, 0, fadeMs()).then(() => {
         if (
           syncToken !== playbackSyncRef.current ||
           usePlayerStore.getState().playing

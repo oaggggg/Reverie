@@ -678,6 +678,14 @@ interface PlayerState {
   reducedMotion: boolean;
   /** 歌曲切换 / 音质切换的音量淡入淡出开关。 */
   audioFadeEnabled: boolean;
+  /** 淡入淡出时长（秒），1~12。 */
+  audioFadeSeconds: number;
+  /** 歌单 / 歌曲列表是否展示专辑封面。 */
+  showListCover: boolean;
+  /** 启动 Reverie 后直接进入私人漫游。 */
+  launchFmOnStart: boolean;
+  /** 跨端续播开关（开启后本机作为续播设备上报）。 */
+  crossDeviceResume: boolean;
   lyricTheme: LyricTheme;
   lyricFontSize: number;
   particleEffect: ParticleEffect;
@@ -774,6 +782,10 @@ interface PlayerState {
   setAnimationSpeed: (v: AnimationSpeed) => void;
   setReducedMotion: (v: boolean) => void;
   setAudioFadeEnabled: (v: boolean) => void;
+  setAudioFadeSeconds: (v: number) => void;
+  setShowListCover: (v: boolean) => void;
+  setLaunchFmOnStart: (v: boolean) => void;
+  setCrossDeviceResume: (v: boolean) => void;
   setLyricTheme: (t: LyricTheme) => void;
   setLyricFontSize: (s: number) => void;
   setParticleEffect: (e: ParticleEffect) => void;
@@ -1087,6 +1099,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   animationSpeed: readAnimationSpeed(),
   reducedMotion: readBool("reverie_reduced_motion", false),
   audioFadeEnabled: readBool("reverie_audio_fade", true),
+  audioFadeSeconds: Math.min(
+    12,
+    Math.max(1, Math.round(readNum("reverie_audio_fade_s", 2))),
+  ),
+  showListCover: readBool("reverie_list_cover", true),
+  launchFmOnStart: readBool("reverie_launch_fm", false),
+  crossDeviceResume: readBool("reverie_cross_resume", false),
   lyricTheme: readLyricTheme(),
   lyricFontSize: readNum("reverie_lyricfont", 22),
   particleEffect: readParticleEffect(),
@@ -1723,6 +1742,23 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setAudioFadeEnabled: (v) => {
     set({ audioFadeEnabled: v });
     write("reverie_audio_fade", v ? "1" : "0");
+  },
+  setAudioFadeSeconds: (v) => {
+    const n = Math.min(12, Math.max(1, Math.round(v)));
+    set({ audioFadeSeconds: n });
+    write("reverie_audio_fade_s", String(n));
+  },
+  setShowListCover: (v) => {
+    set({ showListCover: v });
+    write("reverie_list_cover", v ? "1" : "0");
+  },
+  setLaunchFmOnStart: (v) => {
+    set({ launchFmOnStart: v });
+    write("reverie_launch_fm", v ? "1" : "0");
+  },
+  setCrossDeviceResume: (v) => {
+    set({ crossDeviceResume: v });
+    write("reverie_cross_resume", v ? "1" : "0");
   },
   setLyricTheme: (t: LyricTheme) => {
     set({ lyricTheme: t });
