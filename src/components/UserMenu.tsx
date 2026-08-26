@@ -72,6 +72,7 @@ export default function UserMenu() {
   const expireTime = Number(vipInfo?.expireTime ?? 0);
   const isVip = vipType > 0 || vipLevel > 0 || expireTime > 0;
   const badgeUrl = vipInfo?.badgeUrl || profile?.badgeUrl;
+  const frameUrl = profile?.avatarFrameUrl;
 
   return (
     <div className="user-menu" ref={ref}>
@@ -86,17 +87,28 @@ export default function UserMenu() {
         }}
         title={profile?.nickname}
       >
-        {profile?.avatarUrl ? (
-          <img
-            className="user-avatar"
-            src={sizedImage(profile.avatarUrl, 100)}
-            alt=""
-          />
-        ) : (
-          <span className="user-avatar user-avatar-ph">
-            <CircleUserRound size={17} />
-          </span>
-        )}
+        <span className="user-avatar-wrap">
+          {profile?.avatarUrl ? (
+            <img
+              className="user-avatar"
+              src={sizedImage(profile.avatarUrl, 100)}
+              alt=""
+            />
+          ) : (
+            <span className="user-avatar user-avatar-ph">
+              <CircleUserRound size={17} />
+            </span>
+          )}
+          {/* 佩戴中的个性化头像框：官方挂件图，按原始尺寸悬浮于头像之上 */}
+          {frameUrl && brokenBadge !== frameUrl ? (
+            <img
+              className="user-avatar-frame"
+              src={frameUrl}
+              alt=""
+              onError={() => setBrokenBadge(frameUrl)}
+            />
+          ) : null}
+        </span>
         <span className="user-nick">{profile?.nickname ?? ""}</span>
         {isVip && badgeUrl && brokenBadge !== badgeUrl ? (
           <img
@@ -117,13 +129,23 @@ export default function UserMenu() {
           className={`user-dropdown ${transition.surfaceClassName}`}
         >
           <div className="user-dropdown-head">
-            {profile?.avatarUrl ? (
-              <img src={sizedImage(profile.avatarUrl, 100)} alt="" />
-            ) : (
-              <span className="user-avatar-ph-lg">
-                <CircleUserRound size={24} />
-              </span>
-            )}
+            <span className="user-avatar-wrap lg">
+              {profile?.avatarUrl ? (
+                <img src={sizedImage(profile.avatarUrl, 100)} alt="" />
+              ) : (
+                <span className="user-avatar-ph-lg">
+                  <CircleUserRound size={24} />
+                </span>
+              )}
+              {frameUrl && brokenBadge !== frameUrl ? (
+                <img
+                  className="user-avatar-frame"
+                  src={frameUrl}
+                  alt=""
+                  onError={() => setBrokenBadge(frameUrl)}
+                />
+              ) : null}
+            </span>
             <div className="uh-info">
               <div className="nm">
                 <span className="uh-nick">{profile?.nickname}</span>

@@ -225,6 +225,8 @@ export interface UserProfile {
   userId: number;
   nickname: string;
   avatarUrl: string;
+  /** 佩戴中的个性化头像框（avatarDetail.identityIconUrl）。 */
+  avatarFrameUrl?: string;
   signature?: string;
   vipType: number;
   badgeUrl?: string;

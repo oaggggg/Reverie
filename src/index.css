@@ -626,6 +626,38 @@ textarea {
   object-fit: cover;
   flex: none;
 }
+/* 个性化头像框：佩戴中的官方挂件图悬浮于头像之上。
+   挂件素材通常比头像大一圈且带透明边，按 150% 居中铺放。 */
+.user-avatar-wrap {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.user-avatar-wrap .user-avatar {
+  width: 100%;
+  height: 100%;
+}
+.user-avatar-wrap.lg {
+  width: 42px;
+  height: 42px;
+}
+.user-avatar-wrap img:not(.user-avatar-frame) {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.user-avatar-frame {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150%;
+  height: 150%;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+}
 .user-avatar-ph {
   display: flex;
   align-items: center;
@@ -860,6 +892,13 @@ textarea {
   height: 42px;
   border-radius: 50%;
   object-fit: cover;
+}
+/* 头像框不受头像尺寸规则约束 */
+.user-dropdown-head img.user-avatar-frame {
+  width: 150%;
+  height: 150%;
+  border-radius: 0;
+  object-fit: contain;
 }
 .uh-info .nm {
   display: flex;
