@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import appIconUrl from "../../src-tauri/icons/icon.png";
+import appIconUrl from "../../src-tauri/icons/128x128@2x.png";
 import { usePlayerStore } from "../store/playerStore";
 import type {
   AnimationSpeed,

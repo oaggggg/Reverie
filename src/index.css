@@ -4972,14 +4972,19 @@ textarea {
   color: var(--text-dim);
   text-align: left;
 }
-.settings-sidebar nav button:hover {
+.settings-sidebar nav button:hover:not(.active) {
   background: var(--hover);
   color: var(--text);
 }
+/* 悬停不得抹掉选中态的红色高亮：hover 规则带 :not(.active) 让路，
+   选中项自身悬停时仅轻微加深，保持可见的红色反馈 */
 .settings-sidebar nav button.active {
   background: rgba(236, 65, 65, 0.12);
   color: var(--accent-2);
   font-weight: 600;
+}
+.settings-sidebar nav button.active:hover {
+  background: rgba(236, 65, 65, 0.19);
 }
 .settings-sidebar-footer {
   margin-top: auto;
@@ -5350,9 +5355,10 @@ textarea {
   height: 48px;
   flex: 0 0 48px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: var(--text-on-accent);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 24%, transparent);
+  /* 应用图标自带暖白圆角画布，不能再垫 accent 渐变：透明圆角外会
+     漏出彩色边。改用中性微底 + 轻阴影，任何主题下都干净利落 */
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--shadow) 45%, transparent);
 }
 .about-app-icon img {
   width: 100%;
@@ -11288,7 +11294,7 @@ textarea {
 .topnav .search-close:hover,
 .user-dropdown-cell:hover,
 .user-dropdown-item:hover,
-.settings-sidebar nav button:hover,
+.settings-sidebar nav button:hover:not(.active),
 .player-bar .icon-btn:not(.primary):hover,
 .media-video-btn:hover,
 .pb-quality-btn:hover,
