@@ -34,7 +34,7 @@ export default function AlbumModal() {
         >
           <X size={16} />
         </button>
-        <AlbumPage />
+        <AlbumPage embedded />
       </div>
     </div>
   );

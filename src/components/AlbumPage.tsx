@@ -4,12 +4,18 @@ import { getAlbumPrivileges } from "../api/library";
 import type { AlbumPrivilege } from "../api/types";
 import { useCommentStore } from "../store/commentStore";
 import { useExploreStore } from "../store/exploreStore";
+import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { LoadingState, Page } from "./Page";
 import SongList from "./SongList";
 import BackButton from "./BackButton";
 
-export default function AlbumPage() {
+export default function AlbumPage({
+  embedded = false,
+}: {
+  /** 弹窗内嵌模式：评论按钮打开抽屉弹窗而不是跳转评论页面。 */
+  embedded?: boolean;
+}) {
   const album = useExploreStore((s) => s.album);
   const songs = useExploreStore((s) => s.albumSongs);
   const loading = useExploreStore((s) => s.loading);
@@ -101,18 +107,22 @@ export default function AlbumPage() {
                 </button>
                 <button
                   className="btn"
-                  onClick={() =>
-                    void openComments(
-                      {
-                        type: "album",
-                        id: String(album.id),
-                        title: album.name,
-                        subtitle: album.artistNames,
-                        coverUrl: album.picUrl,
-                      },
-                      true,
-                    )
-                  }
+                  onClick={() => {
+                    const resource = {
+                      type: "album" as const,
+                      id: String(album.id),
+                      title: album.name,
+                      subtitle: album.artistNames,
+                      coverUrl: album.picUrl,
+                    };
+                    if (embedded) {
+                      // 弹窗内嵌模式：评论以抽屉弹窗叠加打开，不跳转页面。
+                      void openComments(resource, false);
+                      usePlayerStore.getState().setShowPlayerComments(true);
+                    } else {
+                      void openComments(resource, true);
+                    }
+                  }}
                 >
                   <MessageCircle size={15} /> 评论
                 </button>

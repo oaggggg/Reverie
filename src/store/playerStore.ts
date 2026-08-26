@@ -432,6 +432,8 @@ function isValidHomeQuote(
   if (t.length < 6 || t.length > 80 || !s || s.length > 60) return false;
   // 控制字符视为损坏数据
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(t + s)) return false;
+  // 逐字歌词 JSON 时间轴碎片（如 {"t":1000,"c":}）不是正常文案
+  if (/[{}]|"\w+"\s*[:：]/.test(t)) return false;
   return true;
 }
 
@@ -585,6 +587,8 @@ interface PlayerState {
   glassContrast: GlassContrast;
   animationSpeed: AnimationSpeed;
   reducedMotion: boolean;
+  /** 歌曲切换 / 音质切换的音量淡入淡出开关。 */
+  audioFadeEnabled: boolean;
   lyricTheme: LyricTheme;
   lyricFontSize: number;
   particleEffect: ParticleEffect;
@@ -677,6 +681,7 @@ interface PlayerState {
   setGlassContrast: (v: GlassContrast) => void;
   setAnimationSpeed: (v: AnimationSpeed) => void;
   setReducedMotion: (v: boolean) => void;
+  setAudioFadeEnabled: (v: boolean) => void;
   setLyricTheme: (t: LyricTheme) => void;
   setLyricFontSize: (s: number) => void;
   setParticleEffect: (e: ParticleEffect) => void;
@@ -929,6 +934,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   glassContrast: readGlassContrast(),
   animationSpeed: readAnimationSpeed(),
   reducedMotion: readBool("reverie_reduced_motion", false),
+  audioFadeEnabled: readBool("reverie_audio_fade", true),
   lyricTheme: readLyricTheme(),
   lyricFontSize: readNum("reverie_lyricfont", 22),
   particleEffect: readParticleEffect(),
@@ -1534,6 +1540,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setReducedMotion: (v) => {
     set({ reducedMotion: v });
     write("reverie_reduced_motion", v ? "1" : "0");
+  },
+  setAudioFadeEnabled: (v) => {
+    set({ audioFadeEnabled: v });
+    write("reverie_audio_fade", v ? "1" : "0");
   },
   setLyricTheme: (t: LyricTheme) => {
     set({ lyricTheme: t });
