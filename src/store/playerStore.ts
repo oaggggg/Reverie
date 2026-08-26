@@ -18,6 +18,7 @@ import {
   isCookieFreshlySet,
   likeSong,
   loginStatus,
+  reportSongPlayed,
   searchSongs,
   setCookie,
 } from "../api/client";
@@ -480,6 +481,33 @@ let toastSeq = 0;
 let homeLoadPromise: Promise<void> | null = null;
 let homeQuoteLoadPromise: Promise<void> | null = null;
 let vipInfoLoadedAt = 0;
+
+/* ── 听歌打卡（与官方播放数据对齐） ─────────────────────────────
+ * 官方客户端把「最近播放 / 听歌排行 / 每日推荐演化」建立在 playend
+ * 上报之上；本播放器此前从不上报，两端数据永久分叉。这里在切歌与
+ * 自然播完两个结算点，把上一曲累计进度回传给官方接口：
+ * - 单次有效播放门槛 30s（官方规则），不足不记；
+ * - 试听歌曲（previewEnd 截断）不算完整收听，不上报；
+ * - 同一首歌 90s 内去重——ended 兜底定时器与手动切歌可能连续触发。
+ */
+let lastScrobbleId = 0;
+let lastScrobbleAt = 0;
+let likedSyncedAt = 0;
+function settleScrobble(): void {
+  const { currentSong, progress, duration, previewEnd, loggedIn } =
+    usePlayerStore.getState();
+  if (!loggedIn || !currentSong) return;
+  if (previewEnd !== null) return; // 试听片段不计入官方记录
+  const playedMs = Math.min(progress, duration || progress);
+  if (playedMs < 30_000) return;
+  const now = Date.now();
+  if (currentSong.id === lastScrobbleId && now - lastScrobbleAt < 90_000) {
+    return;
+  }
+  lastScrobbleId = currentSong.id;
+  lastScrobbleAt = now;
+  reportSongPlayed(currentSong.id, playedMs).catch(() => {});
+}
 let fmBatchPromise: Promise<Song[]> | null = null;
 let fmRetryStreak = 0;
 let searchToken = 0;
@@ -1243,6 +1271,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   commitPreloaded: (song, queue, source, url) => {
     const state = get();
+    // 无缝续播切歌同样先结算上一曲打卡。
+    settleScrobble();
     const index = queue.findIndex((item) => item.id === song.id);
     if (
       index < 0 ||
@@ -1901,6 +1931,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // 搜索结果等）最终都会经过这里。
     if (!get().requireLoginForPlayback()) return;
     const st = get();
+    // 切歌前先结算上一曲的听歌打卡（≥30s 才计为有效播放）。
+    settleScrobble();
     const quality = options?.quality ?? st.playbackQuality;
     const autoplay = options?.autoplay ?? true;
     const activeSource = source ?? (queue ? "list" : st.queueSource);
@@ -2190,6 +2222,20 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const { likedIds, likedAt, profile } = get();
     const generation = accountDataGeneration;
     const uid = profile?.userId ?? 0;
+    // 静默对齐：进入「我喜欢」时若 ID 列表已超 5 分钟未刷新，先按缓存
+    // 渲染，同时后台重拉一次——在官方客户端里新增/取消的喜欢最终会
+    // 汇入本端，避免两边列表长期漂移。
+    if (Date.now() - likedSyncedAt > 5 * 60 * 1000) {
+      likedSyncedAt = Date.now();
+      const snapshot = likedIds.join(",");
+      // 后台对齐后若 ID 集合有变化，重建可见列表（重入时已节流）。
+      void get()
+        .loadLiked()
+        .then(() => {
+          const fresh = usePlayerStore.getState().likedIds;
+          if (fresh.join(",") !== snapshot) void get().loadLikedSongs();
+        });
+    }
     if (!likedIds.length) {
       set({ likedSongs: [], likedSongsLoading: false });
       return;

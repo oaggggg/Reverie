@@ -911,6 +911,25 @@ export async function getLikedIds(uid: number): Promise<number[]> {
   return res.ids ?? [];
 }
 
+/**
+ * 听歌打卡：把一次有效播放上报给官方（/api/feedback/weblog）。
+ * 这是官方「最近播放 / 听歌排行 / 年度报告」的唯一数据源——不在官方
+ * 客户端里听的歌若不上报，两端数据就会永久分叉。官方规则为单次
+ * 播放满 30s 记一次 playend；sourceid 用于归属来源列表，0 表示未带
+ * 上下文（仍计入播放记录）。
+ */
+export async function reportSongPlayed(
+  songId: number,
+  playedMs: number,
+): Promise<void> {
+  if (!getCookie() || !songId) return;
+  await request(
+    "/scrobble",
+    { id: songId, sourceid: 0, time: Math.max(0, Math.round(playedMs)) },
+    true,
+  );
+}
+
 export interface VipInfo {
   vipType: number;
   vipLevel: number;
