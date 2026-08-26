@@ -29,21 +29,34 @@ test("album privilege API normalizes available quality flags", async () => {
     const url = new URL(String(input));
     assert.equal(url.pathname, "/album/privilege");
     assert.equal(url.searchParams.get("id"), "99");
-    return Response.json({ data: [{ id: 8, maxbr: 999000, pl: 1, fl: 1, hr: 1, db: 1 }] });
+    // 真实响应形态：等级字符串 + 权限位图（实测热歌榜专辑）
+    return Response.json({
+      data: [{
+        id: 8,
+        maxbr: 999000,
+        maxBrLevel: "jymaster",
+        playMaxBrLevel: "jymaster",
+        plLevel: "jyeffect",
+        flag: 1544196,
+        pl: 999000,
+        fl: 320000,
+      }],
+    });
   };
   try {
     const privileges = await getAlbumPrivileges(99);
     assert.deepEqual(privileges[0], {
       songId: 8,
       maxBitrate: 999000,
+      maxLevel: "jymaster",
       standard: true,
       lossless: true,
       highRes: true,
-      dolby: true,
+      dolby: false,
       spatialAudio: false,
-      surroundEffect: false,
-      immersive: false,
-      jymaster: false,
+      surroundEffect: true,
+      immersive: true,
+      jymaster: true,
       vivid: false,
     });
   } finally {

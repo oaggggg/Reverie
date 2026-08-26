@@ -133,27 +133,63 @@ export async function getAlbumPrivileges(
   );
   const value = obj(response.data ?? response.result ?? response);
   const rows = arr(value.data ?? value.list ?? response.data ?? response);
+  // 官方音质等级序（与播放器 ALL_PLAYBACK_QUALITIES 一致），
+  // 用于把 maxBrLevel 等级字符串展开为逐档支持布尔。
+  const LEVEL_RANK: Record<string, number> = {
+    standard: 0,
+    higher: 1,
+    exhigh: 2,
+    lossless: 3,
+    hires: 4,
+    dolby: 5,
+    jyeffect: 6,
+    jymaster: 7,
+    sky: 8,
+    vivid: 9,
+  };
   return rows
     .map((raw) => {
       const item = obj(raw);
       const songId = Number(item.id ?? item.songId ?? 0);
       const maxBitrate = Number(item.maxbr ?? item.maxBitrate ?? item.br ?? 0);
-      const spatialAudioRaw =
-        typeof raw === "object" && raw !== null && "spatialAudio" in raw;
+      // 权威信号：歌曲最高支持等级字符串（账号无关）。
+      const maxLevel = String(item.maxBrLevel ?? item.playMaxBrLevel ?? "");
+      const rank =
+        maxLevel in LEVEL_RANK ? LEVEL_RANK[maxLevel] : -2;
+      const atLeast = (level: string): boolean =>
+        rank >= LEVEL_RANK[level] ||
+        // 只有数值码率时的降级路径：999k 视为到无损，320k 到极高。
+        (rank === -2 && maxBitrate >= 999000 && LEVEL_RANK[level] <= 3) ||
+        (rank === -2 && maxBitrate >= 192000 && LEVEL_RANK[level] <= 2);
+      // 权限位图（官方客户端同款位定义）：14 dolby / 16 jymaster /
+      // 17 jyeffect / 18 sky / 21 vivid / 12 hires。
+      const flag = Number(item.flag ?? 0);
+      const bit = (n: number): boolean => ((flag >> n) & 1) === 1;
       return {
         songId,
         maxBitrate,
-        standard: Boolean(item.pl ?? item.standard ?? maxBitrate > 0),
-        lossless: Boolean(item.fl ?? item.lossless ?? item.hq),
-        highRes: Boolean(item.hr ?? item.highRes ?? item.hires),
-        dolby: Boolean(item.db ?? item.dolby),
+        maxLevel: maxLevel || undefined,
+        standard:
+          rank >= -1 ||
+          maxBitrate > 0 ||
+          Boolean(item.pl ?? item.standard),
+        lossless: atLeast("lossless") || Number(item.pl ?? 0) >= 999000,
+        highRes:
+          atLeast("hires") ||
+          bit(12) ||
+          Boolean(item.hr ?? item.highRes ?? item.hires),
+        dolby: bit(14) || Boolean(item.db ?? item.dolby),
         spatialAudio: Boolean(item.jm ?? item.spatialAudio ?? item.jyeffect),
-        surroundEffect: Boolean(
-          item.je ?? item.jyeffect ?? item.surround ?? spatialAudioRaw,
-        ),
-        immersive: Boolean(item.sky ?? item.immersive ?? item.spatialAudio),
-        jymaster: Boolean(item.jm ?? item.jymaster ?? item.master),
-        vivid: Boolean(item.vv ?? item.vivid),
+        surroundEffect:
+          atLeast("jyeffect") ||
+          bit(17) ||
+          Boolean(item.je ?? item.jyeffect ?? item.surround),
+        immersive: atLeast("sky") || bit(18) || Boolean(item.sky),
+        jymaster:
+          atLeast("jymaster") ||
+          bit(16) ||
+          Boolean(item.jm ?? item.jymaster ?? item.master),
+        vivid: atLeast("vivid") || bit(21) || Boolean(item.vv ?? item.vivid),
       } satisfies AlbumPrivilege;
     })
     .filter((item) => item.songId > 0);
