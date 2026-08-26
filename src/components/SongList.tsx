@@ -32,6 +32,25 @@ interface Props {
   onOpenProgram?: (song: Song) => void;
 }
 
+/** 歌曲版本标识：依据网易云官方别名（alias）判定原唱/翻唱/现场等。 */
+function songVersionTag(song: Song): {
+  label: string;
+  title: string;
+  kind: "cover" | "live" | "instrumental" | "original";
+} {
+  const aliasText = (song.alias ?? []).join(" ").trim();
+  if (!aliasText) return { label: "原唱", title: "", kind: "original" };
+  if (/翻自|翻唱/.test(aliasText))
+    return { label: "翻唱", title: aliasText, kind: "cover" };
+  if (/伴奏|Instrumental/i.test(aliasText) && aliasText.length < 30)
+    return { label: "伴奏", title: aliasText, kind: "instrumental" };
+  if (/live|现场|演唱会|音乐会/i.test(aliasText))
+    return { label: "Live", title: aliasText, kind: "live" };
+  if (/Remix/i.test(aliasText))
+    return { label: "Remix", title: aliasText, kind: "cover" };
+  return { label: "原唱", title: "", kind: "original" };
+}
+
 export default function SongList({
   songs,
   title,
@@ -125,6 +144,14 @@ export default function SongList({
                     )}
                   </div>
                   <div className="a">
+                    {(() => {
+                      const tag = songVersionTag(song);
+                      return (
+                        <span className={`song-tag ${tag.kind}`} title={tag.title}>
+                          {tag.label}
+                        </span>
+                      );
+                    })()}
                     {song.artists}
                     {song.album ? ` · ${song.album}` : ""}
                   </div>

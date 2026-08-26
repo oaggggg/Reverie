@@ -288,12 +288,12 @@ textarea {
   letter-spacing: 0.2em;
   /* —— 编排参数 ——
      --brand-cycle     光带完整走一遍的周期；
-     --brand-letters   字标字母数；
      --brand-sweep-end 光带在周期的这一比例时刻抵达最右端，
                        其余时间停在画外等待下一轮（0.66：行程约
-                       4.75s、停驻约 2.45s，从容但不拖沓）。 */
+                       4.75s、停驻约 2.45s，从容但不拖沓）。
+                       各字母的触发延迟由 TitleBar.tsx 按真实字形
+                       几何以内联变量传入。 */
   --brand-cycle: 7.2s;
-  --brand-letters: 7;
   --brand-sweep-end: 0.66;
   --brand-sheen-gradient: linear-gradient(
     100deg,
@@ -317,11 +317,10 @@ textarea {
   letter-spacing: inherit;
   line-height: inherit;
 }
-/* 字母跳动的相位：第 i 个字母在光带扫过它的那一刻起跳。
-   光带按 --brand-sweep-end 匀速跨越整行，故到达第 i 个字母的时刻是
-   cycle * (i + 0.5) / N * sweep-end；减去单次跳跃的上升段（3.2%），
-   让跳起的最高点恰好落在光带到达的瞬间。所有字母共享同一周期，
-   循环无缝且永远自左向右。 */
+/* 字母跳动的相位：延迟由 TSX 按每个字母在整词中的真实几何中心
+   （LETTER_CENTERS）以内联变量 --bounce-delay 精确传入——光带到达
+   哪个字母，那个字母就恰好在那一刻起跳到最高点（上升段 3.2%）。
+   旧的均匀分布假设忽略了字宽差异，宽窄字母会明显不同步。 */
 .titlebar-letter {
   position: relative;
   display: inline-block;
@@ -331,15 +330,13 @@ textarea {
   animation-duration: var(--brand-cycle);
   animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1);
   animation-iteration-count: infinite;
-  animation-delay: calc(
-    var(--brand-cycle) * ((var(--letter-i, 0) + 0.5) / var(--brand-letters) *
-          var(--brand-sweep-end) - 0.032)
-  );
+  animation-delay: var(--bounce-delay, 0s);
 }
 /* 高光带切片：挂在每个字母自身的 ::after 上，继承字母的全部变换——
    字母跳到哪里，光就跟随到哪里，结构上不可能出现静止重影。
-   各字母以 i/N·sweep-end 的正延迟依次进入自己的行程段；渐变边缘
-   各占约四成宽度且相邻字母的光斑互相叠接，读感是一道连续行波。
+   延迟由 TSX 以 --sheen-delay 传入：使每个字母的亮峰时刻与光带
+   经过其几何中心的时刻重合；渐变边缘各占约四成宽度且相邻光斑
+   互相叠接，读感是一道连续行波。
    注意：keyframes 选择器不能用 var()，下面的 66% 必须与
    .titlebar-name-text 的 --brand-sweep-end: 0.66 手工保持一致。 */
 .titlebar-letter::after {
@@ -359,10 +356,7 @@ textarea {
   animation-duration: var(--brand-cycle);
   animation-timing-function: linear;
   animation-iteration-count: infinite;
-  animation-delay: calc(
-    var(--brand-cycle) * (var(--letter-i, 0) / var(--brand-letters) *
-          var(--brand-sweep-end))
-  );
+  animation-delay: var(--sheen-delay, 0s);
 }
 /* 单个字母的行程段：position 由 150% 递减到 -60%（百分比递减 =
    背景图右移 = 光带自左向右穿过本字母），其余时间停靠画外。 */
@@ -1343,6 +1337,32 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
+}
+/* 歌曲版本标识（原唱/翻唱/Live/伴奏）：依据网易云官方别名渲染，
+   紧跟在歌手行行首，一眼区分同名歌曲的不同版本。 */
+.song-tag {
+  display: inline-block;
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-right: 5px;
+  vertical-align: 1px;
+  border: 1px solid color-mix(in srgb, var(--text-faint) 45%, transparent);
+  color: var(--text-dim);
+}
+.song-tag.cover {
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  color: color-mix(in srgb, var(--accent) 82%, var(--text));
+}
+.song-tag.live {
+  border-color: color-mix(in srgb, var(--accent-2) 58%, transparent);
+  color: color-mix(in srgb, var(--accent-2) 85%, var(--text));
+}
+.song-tag.instrumental {
+  border-color: color-mix(in srgb, #3d9a6c 55%, transparent);
+  color: #4fae7e;
 }
 .song-item .t.playing-text {
   color: var(--accent-2);
@@ -8658,6 +8678,57 @@ textarea {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+/* 资源评论弹窗：紧凑头部（封面缩略 + 类型徽标 + 标题）+ 可滚动评论区。
+   刻意不展示歌单创建者/收藏者等次要信息，排版聚焦评论本身。 */
+.comments-modal-inner {
+  gap: 12px;
+}
+.comments-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  padding-right: 34px; /* 给右上角关闭按钮留位 */
+}
+.comments-modal-cover {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-3);
+  color: var(--text-faint);
+}
+.comments-modal-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.comments-modal-titles {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.comments-modal-kind {
+  align-self: flex-start;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 58%, transparent);
+  color: color-mix(in srgb, var(--accent-2) 85%, var(--text));
+}
+.comments-modal-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .comment-history-list article {
   display: flex;
