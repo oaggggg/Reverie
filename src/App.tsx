@@ -34,9 +34,6 @@ const FALLBACK_IMAGE =
 const AUDIO_FADE_IN_MS = 180;
 const AUDIO_FADE_OUT_MS = 140;
 const SEAMLESS_CROSSFADE_MS = 260;
-// 音质切换的交叉淡化时长：新旧解码器短暂重叠、音量互补，
-// 消除切换瞬间的爆音与听感跳变。
-const QUALITY_SWITCH_FADE_MS = 140;
 // 静音看门狗判定窗口：系统通知音、蓝牙切换等会让 AudioContext 短暂
 // 离开 running 态并在一两秒内自行恢复，属于正常现象，不应提示。
 const SILENT_RECOVERY_MS = 2500;
@@ -88,6 +85,7 @@ const VideoPage = lazy(() => import("./components/VideoPage"));
 const PlayerCommentsDrawer = lazy(
   () => import("./components/PlayerCommentsDrawer"),
 );
+const CommentsModal = lazy(() => import("./components/CommentsModal"));
 const LoginModal = lazy(() => import("./components/LoginModal"));
 const UpdateModal = lazy(() => import("./components/UpdateModal"));
 
@@ -170,6 +168,7 @@ export default function App() {
   const activeView = usePlayerStore((s) => s.activeView);
   const currentPage = usePlayerStore((s) => s.currentPage);
   const showPlayerComments = usePlayerStore((s) => s.showPlayerComments);
+  const showCommentsModal = usePlayerStore((s) => s.showCommentsModal);
   const showLogin = usePlayerStore((s) => s.showLogin);
   const showUpdate = usePlayerStore((s) => s.showUpdate);
   const showNotifications = usePlayerStore((s) => s.showNotifications);
@@ -189,6 +188,7 @@ export default function App() {
   );
   const [mountedOverlays, setMountedOverlays] = useState({
     comments: showPlayerComments,
+    commentsModal: showCommentsModal,
     login: showLogin,
     update: showUpdate,
     notifications: showNotifications,
@@ -215,6 +215,7 @@ export default function App() {
   useEffect(() => {
     if (
       !showPlayerComments &&
+      !showCommentsModal &&
       !showLogin &&
       !showUpdate &&
       !showNotifications &&
@@ -227,6 +228,7 @@ export default function App() {
       return;
     setMountedOverlays((current) => ({
       comments: current.comments || showPlayerComments,
+      commentsModal: current.commentsModal || showCommentsModal,
       login: current.login || showLogin,
       update: current.update || showUpdate,
       notifications: current.notifications || showNotifications,
@@ -239,6 +241,7 @@ export default function App() {
   }, [
     showLogin,
     showPlayerComments,
+    showCommentsModal,
     showUpdate,
     showNotifications,
     showCommentHistory,
@@ -1011,33 +1014,17 @@ export default function App() {
       return;
     }
     resumeAnalyser();
-    const latest = usePlayerStore.getState();
-    const targetVolume = latest.muted ? 0 : latest.volume;
-    inactive.volume = latest.audioFadeEnabled ? 0 : targetVolume;
+    // 瞬时交接，不做交叉淡化：淡化会让音量先变小再恢复，听感像「声音
+    // 被压下去好几秒」。新旧解码器在 canplay（缓冲已就绪）后立即换手。
     void inactive
       .play()
       .then(() => {
-        if (switchSuperseded()) {
-          inactive.volume = targetVolume;
-          return;
-        }
-        // 短交叉淡化：新音质淡入、旧音质同步淡出，音量互补无爆音；
-        // 设置关闭淡入淡出时 fadeMs=0 即瞬时切换。
-        const fadeMs = usePlayerStore.getState().audioFadeEnabled
-          ? QUALITY_SWITCH_FADE_MS
-          : 0;
-        void Promise.all([
-          fadeAudioVolume(inactive, targetVolume, fadeMs),
-          active ? fadeAudioVolume(active, 0, fadeMs) : Promise.resolve(),
-        ]).then(() => {
-          if (switchSuperseded()) return;
-          active?.pause();
-          commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
-        });
+        if (switchSuperseded()) return;
+        active?.pause();
+        commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
       })
       .catch(() => {
         inactive.pause();
-        inactive.volume = targetVolume;
         if (!switchSuperseded()) {
           cancelQualitySwitch();
           usePlayerStore
@@ -1216,7 +1203,13 @@ export default function App() {
           )}
         </>
       )}
-      {/* 评论抽屉可能从专辑弹窗等二级弹窗内打开，渲染在其后保证叠放在上层 */}
+      {/* 资源评论弹窗（专辑弹窗内继续打开的评论区）叠在详情弹窗之上 */}
+      {mountedOverlays.commentsModal && (
+        <Suspense fallback={null}>
+          <CommentsModal />
+        </Suspense>
+      )}
+      {/* 评论抽屉可能从播放栏等处打开，渲染在其后保证叠放在上层 */}
       {mountedOverlays.comments && (
         <Suspense fallback={null}>
           <PlayerCommentsDrawer />

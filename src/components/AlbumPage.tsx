@@ -116,9 +116,10 @@ export default function AlbumPage({
                       coverUrl: album.picUrl,
                     };
                     if (embedded) {
-                      // 弹窗内嵌模式：评论以抽屉弹窗叠加打开，不跳转页面。
+                      // 弹窗内嵌模式：在专辑弹窗之上继续打开评论弹窗，
+                      // 不跳转页面，也不动播放栏的评论抽屉。
                       void openComments(resource, false);
-                      usePlayerStore.getState().setShowPlayerComments(true);
+                      usePlayerStore.getState().setShowCommentsModal(true);
                     } else {
                       void openComments(resource, true);
                     }
