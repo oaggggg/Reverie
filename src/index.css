@@ -271,7 +271,10 @@ textarea {
 /* Window title: Reverie wordmark. 光效与跳动深度重构：
    一条高光带每个周期从最左端出发、匀速扫到最右端后立即从头再来（只向右，
    绝不回扫）；字母跳动与光带的到达时刻由同一周期方程推算，波形沿
-   “R→e→v→e→r→i→e”自左向右传播，无限循环。 */
+   “R→e→v→e→r→i→e”自左向右传播，无限循环。
+   方向说明：background-position 的百分比越大，背景图越向左移；因此
+   光带要从左向右扫过文字，keyframes 必须让 position 由大变小
+   （145% → -45%）。此前版本写反了，视觉上光带实际从右往左跑。 */
 .titlebar-name {
   position: absolute;
   left: 50%;
@@ -339,19 +342,20 @@ textarea {
           var(--brand-sweep-end) - 0.045)
   );
 }
-/* 一道共享高光从左端出发扫到右端：行程段线性匀速（与字母相位精确同步），
-   抵达右端后停驻在画外直到下一周期，方向恒为从左到右。
+/* 一道共享高光从左端出发扫到右端：position 由 145% 递减到 -45%
+   （百分比递减 = 背景图右移 = 光带自左向右），行程段线性匀速、
+   与字母相位精确同步；抵达右端后停驻画外直到下一周期。
    注意：keyframes 选择器不能用 var()，下面的 56% 必须与
    .titlebar-name-text 的 --brand-sweep-end: 0.56 手工保持一致。 */
 @keyframes reverie-sheen {
   0% {
-    background-position: -45% 50%;
+    background-position: 145% 50%;
   }
   56% {
-    background-position: 145% 50%;
+    background-position: -45% 50%;
   }
   100% {
-    background-position: 145% 50%;
+    background-position: -45% 50%;
   }
 }
 /* 光晕跟随光带位置脉动：暖绯色光晕随高光一起从左向右平移，
@@ -371,21 +375,32 @@ textarea {
         color-mix(in srgb, var(--accent-2) 14%, transparent));
   }
 }
-/* 单次跳跃压缩在周期的前 11%（≈0.53s）：快速起落一次后完全静止，
-   等待自己的下一次光带到达；不会与相邻字母的运动相互拖泥带水。 */
+/* 单次跳跃铺满周期的前 13%（≈0.62s），比相邻字母的起跳间隔
+   （≈0.38s）略长：前一个字母还在回落时下一个已经起跳，形成一束
+   连绵传递的波浪而不是离散的弹跳。曲线为「起跳拉伸 → 落地压扁 →
+   微回弹归位」三段式，配合亮度随光带同步提亮，观感丝滑不生硬。
+   最高点仍固定在 4.5%，与字母触发时刻公式里的 -0.045 保持一致。 */
 @keyframes reverie-letter-bounce {
   0% {
     transform: translateY(0) scale(1) rotate(0deg);
+    filter: brightness(1);
   }
   4.5% {
-    transform: translateY(-3px) scale(1.06) rotate(-1.2deg);
+    transform: translateY(-3.4px) scale(1.085) rotate(-1.5deg);
+    filter: brightness(1.3);
   }
-  8% {
-    transform: translateY(0.6px) scale(0.995) rotate(0.6deg);
+  7.5% {
+    transform: translateY(0.9px) scale(0.99, 1.01) rotate(0.8deg);
+    filter: brightness(1.06);
   }
-  11%,
+  10% {
+    transform: translateY(-0.4px) scale(1.004) rotate(-0.25deg);
+    filter: brightness(1);
+  }
+  13%,
   100% {
     transform: translateY(0) scale(1) rotate(0deg);
+    filter: brightness(1);
   }
 }
 .titlebar-sheen-letter {
@@ -393,6 +408,7 @@ textarea {
   color: transparent;
   background: var(--brand-sheen-gradient);
   background-size: 260% 100%;
+  /* 静止停靠位与周期结束帧一致（画外右端），首帧前不露光 */
   background-position: -45% 50%;
   background-repeat: no-repeat;
   -webkit-background-clip: text;
