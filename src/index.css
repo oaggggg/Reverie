@@ -1377,8 +1377,8 @@ textarea {
   text-overflow: ellipsis;
   margin-top: 2px;
 }
-/* 歌曲版本标识（原唱/翻唱/Live/伴奏）：依据网易云官方别名渲染，
-   紧跟在歌手行行首，一眼区分同名歌曲的不同版本。 */
+/* 歌曲版本标识（翻唱/Live/伴奏/Remix 等）：依据网易云官方别名渲染，
+   原唱不打标签，只有特殊版本才显示，紧跟在歌手行行首。 */
 .song-tag {
   display: inline-block;
   flex: none;
@@ -1391,7 +1391,8 @@ textarea {
   border: 1px solid color-mix(in srgb, var(--text-faint) 45%, transparent);
   color: var(--text-dim);
 }
-.song-tag.cover {
+.song-tag.cover,
+.song-tag.remix {
   border-color: color-mix(in srgb, var(--accent) 62%, transparent);
   color: color-mix(in srgb, var(--accent) 82%, var(--text));
 }
