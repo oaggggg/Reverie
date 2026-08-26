@@ -975,6 +975,41 @@ function deepFindBadgeUrl(obj: unknown): string {
 }
 
 /**
+ * 深度查找「佩戴中的个性化会员铭牌」：用户在会员中心装备的自定义
+ * 铭牌会以独立字段出现在会员信息或用户资料里（customBadge/nameplate/
+ * medal/decorate 一类命名）。与通用择优不同，这里只认铭牌类键，
+ * 且命中即为最高优先级——官方客户端在佩戴了个性化铭牌时，
+ * 昵称旁展示的就是它而不是默认的黑胶动图。
+ */
+function deepFindCustomPlate(obj: unknown): string {
+  if (!obj || typeof obj !== "object") return "";
+  let best = "";
+  let bestScore = 0;
+  const walk = (o: unknown, depth: number) => {
+    if (!o || typeof o !== "object" || depth > 6) return;
+    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+      if (typeof v === "string" && /^https?:\/\//i.test(v)) {
+        if (/avatar|background|cover|img1v1|default|dynamic/i.test(k)) continue;
+        let score = 0;
+        if (/custom.*badge|badge.*custom/i.test(k)) score = 500;
+        else if (/nameplate|mingpai|铭牌/i.test(k)) score = 480;
+        else if (/medal/i.test(k)) score = 460;
+        else if (/decorat/.test(k)) score = 440;
+        else if (/wear|equipped|using/i.test(k)) score = 420;
+        else if (/badge/i.test(k)) score = 400;
+        if (score > bestScore) {
+          bestScore = score;
+          best = v;
+        }
+      }
+      if (v && typeof v === "object") walk(v, depth + 1);
+    }
+  };
+  walk(obj, 0);
+  return best;
+}
+
+/**
  * 取「当前正在生效」的官方动态会员图标：/vip/info 会同时返回多个会员包
  * （associator 黑胶会员、musicPackage 畅听包等），每个都带自己的
  * dynamicIconUrl 与过期时间——已过期的包仍会残留旧图标，直接按字段名
@@ -1040,10 +1075,27 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     d.vipType ?? d.redVipType ?? d.vipStatus ?? (redLevel > 0 ? 10 : 0),
   );
   const expireTime = deepFindExpireMs(d);
-  // 优先取「当前生效」的官方动态会员图标；拿不到再退回全局择优，
-  // 最后才尝试用户资料里的自定义徽标。
-  let badgeUrl = pickActiveDynamicBadge(d) || deepFindBadgeUrl(d);
-  // the custom member badge lives in the user profile
+  // 取值优先级（对齐官方客户端行为）：
+  // 1) 佩戴中的个性化会员铭牌——会员信息里没有就到用户资料接口找；
+  // 2) 当前生效的官方动态会员图标（黑胶 > 畅听包，校验有效期）；
+  // 3) 全局择优兜底。
+  let badgeUrl = deepFindCustomPlate(d);
+  if (!badgeUrl) {
+    for (const ep of ["/user/detail/new", "/user/detail"] as const) {
+      try {
+        const res = await request<unknown>(
+          ep,
+          ep === "/user/detail/new" ? { uid, all: "true" } : { uid },
+          false,
+        );
+        badgeUrl = deepFindCustomPlate(res);
+        if (badgeUrl) break;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  if (!badgeUrl) badgeUrl = pickActiveDynamicBadge(d);
   if (!badgeUrl) {
     try {
       const res = await request<unknown>(
