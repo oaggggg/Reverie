@@ -1,4 +1,4 @@
-import type { LyricLine } from "../api/types";
+import type { LyricLine } from "../api/types.ts";
 
 const TIME_TAG = /\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
 
