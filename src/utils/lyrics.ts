@@ -93,6 +93,11 @@ const DUET_NAME_PREFIX_RE =
 /** 社交提及/站外引导："@IceTeeth"、"关注公众号" 一类非歌词行。 */
 const MENTION_RE = /@[A-Za-z0-9_\u4e00-\u9fa5]|关注(我们|公众号|订阅)|点赞|转发/;
 
+/** 逐字歌词 JSON 时间轴碎片：网易云把 YRC 数据（{"t":1000,"c":[…]}）塞进
+ *  lrc 字段，剥掉时间标签后会残留 `{"t":1000,"c":}` 一类片段 —— 真实歌词
+ *  正文不会包含花括号或 JSON 键值对。 */
+const JSON_TIMELINE_RE = /[{}]|"\w+"\s*[:：]/;
+
 /** 无信息量的语气词：纯拉丁行若全部由它们构成则不作为首页文案。 */
 const VOCABLES = new Set([
   "yeah", "yea", "oh", "ooh", "oooh", "ooooh", "ohh", "woow", "woo",
@@ -114,6 +119,7 @@ export function isLyricLine(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
   if (t.length < 4) return false;
+  if (JSON_TIMELINE_RE.test(t)) return false;
   if (METADATA_RE.test(t)) return false;
   if (NONLYRIC_RE.test(t)) return false;
   // 多人名连排 + 冒号（Live 版合唱标注）

@@ -157,6 +157,8 @@ export default function SettingsModal() {
   const setAnimationSpeed = usePlayerStore((s) => s.setAnimationSpeed);
   const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setReducedMotion = usePlayerStore((s) => s.setReducedMotion);
+  const audioFadeEnabled = usePlayerStore((s) => s.audioFadeEnabled);
+  const setAudioFadeEnabled = usePlayerStore((s) => s.setAudioFadeEnabled);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
   const showTranslation = usePlayerStore((s) => s.showTranslation);
@@ -418,6 +420,21 @@ export default function SettingsModal() {
                 </div>
                 <div className="settings-section">
                   <h3>播放</h3>
+                  <SettingRow
+                    title="歌曲淡入淡出"
+                    hint="起播渐入、暂停渐出，切歌与音质切换时音量平滑过渡；关闭后立即切换"
+                  >
+                    <button
+                      type="button"
+                      className={`setting-switch ${audioFadeEnabled ? "active" : ""}`}
+                      role="switch"
+                      aria-checked={audioFadeEnabled}
+                      aria-label="歌曲淡入淡出"
+                      onClick={() => setAudioFadeEnabled(!audioFadeEnabled)}
+                    >
+                      <span />
+                    </button>
+                  </SettingRow>
                   <SettingRow
                     title="歌曲下载路径"
                     hint={

@@ -34,6 +34,9 @@ const FALLBACK_IMAGE =
 const AUDIO_FADE_IN_MS = 180;
 const AUDIO_FADE_OUT_MS = 140;
 const SEAMLESS_CROSSFADE_MS = 260;
+// 音质切换的交叉淡化时长：新旧解码器短暂重叠、音量互补，
+// 消除切换瞬间的爆音与听感跳变。
+const QUALITY_SWITCH_FADE_MS = 140;
 // 静音看门狗判定窗口：系统通知音、蓝牙切换等会让 AudioContext 短暂
 // 离开 running 态并在一两秒内自行恢复，属于正常现象，不应提示。
 const SILENT_RECOVERY_MS = 2500;
@@ -118,14 +121,18 @@ export default function App() {
     cancelAudioFade(audio);
     const start = audio.volume;
     const end = Math.min(1, Math.max(0, target));
-    if (duration <= 0 || Math.abs(start - end) < 0.005) {
+    // 设置里关闭淡入淡出时，所有渐变统一退化为立即切换。
+    const effective = usePlayerStore.getState().audioFadeEnabled
+      ? duration
+      : 0;
+    if (effective <= 0 || Math.abs(start - end) < 0.005) {
       audio.volume = end;
       return Promise.resolve();
     }
     return new Promise<void>((resolve) => {
       const startedAt = performance.now();
       const step = (now: number) => {
-        const progress = Math.min(1, (now - startedAt) / duration);
+        const progress = Math.min(1, (now - startedAt) / effective);
         const eased = 1 - Math.pow(1 - progress, 3);
         audio.volume = start + (end - start) * eased;
         if (progress >= 1) {
@@ -984,6 +991,10 @@ export default function App() {
       !qualitySwitchQuality
     )
       return;
+    // 缓冲不足时不急着切：等后续 canplay/playing 事件再次触发，
+    // 避免换源后立刻卡在缓冲上（卡顿的主要来源）。
+    if (event.currentTarget.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
+      return;
     const active =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     const position = active ? Math.max(0, active.currentTime * 1000) : 0;
@@ -1000,15 +1011,33 @@ export default function App() {
       return;
     }
     resumeAnalyser();
+    const latest = usePlayerStore.getState();
+    const targetVolume = latest.muted ? 0 : latest.volume;
+    inactive.volume = latest.audioFadeEnabled ? 0 : targetVolume;
     void inactive
       .play()
       .then(() => {
-        if (switchSuperseded()) return;
-        active?.pause();
-        commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
+        if (switchSuperseded()) {
+          inactive.volume = targetVolume;
+          return;
+        }
+        // 短交叉淡化：新音质淡入、旧音质同步淡出，音量互补无爆音；
+        // 设置关闭淡入淡出时 fadeMs=0 即瞬时切换。
+        const fadeMs = usePlayerStore.getState().audioFadeEnabled
+          ? QUALITY_SWITCH_FADE_MS
+          : 0;
+        void Promise.all([
+          fadeAudioVolume(inactive, targetVolume, fadeMs),
+          active ? fadeAudioVolume(active, 0, fadeMs) : Promise.resolve(),
+        ]).then(() => {
+          if (switchSuperseded()) return;
+          active?.pause();
+          commitQualitySwitch(qualitySwitchUrl, qualitySwitchQuality, position);
+        });
       })
       .catch(() => {
         inactive.pause();
+        inactive.volume = targetVolume;
         if (!switchSuperseded()) {
           cancelQualitySwitch();
           usePlayerStore
@@ -1133,11 +1162,6 @@ export default function App() {
         ) : (
           <div className="now-playing-loading" />
         ))}
-      {mountedOverlays.comments && (
-        <Suspense fallback={null}>
-          <PlayerCommentsDrawer />
-        </Suspense>
-      )}
       <PlayerBar />
       {mountedOverlays.login && (
         <Suspense fallback={null}>
@@ -1191,6 +1215,12 @@ export default function App() {
             </Suspense>
           )}
         </>
+      )}
+      {/* 评论抽屉可能从专辑弹窗等二级弹窗内打开，渲染在其后保证叠放在上层 */}
+      {mountedOverlays.comments && (
+        <Suspense fallback={null}>
+          <PlayerCommentsDrawer />
+        </Suspense>
       )}
       <SettingsModal />
       {mountedOverlays.update && (
