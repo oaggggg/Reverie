@@ -629,6 +629,9 @@ interface PlayerState {
   showRecent: boolean;
   showArtistModal: boolean;
   showAlbumModal: boolean;
+  /** 歌手/专辑详情弹窗的打开序号：决定两者叠加时的 DOM 顺序。 */
+  artistModalSeq: number;
+  albumModalSeq: number;
   showPlayerComments: boolean;
   toasts: ToastMsg[];
 
@@ -968,6 +971,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   showRecent: false,
   showArtistModal: false,
   showAlbumModal: false,
+  artistModalSeq: 0,
+  albumModalSeq: 0,
   showPlayerComments: false,
   toasts: [],
 
@@ -1598,8 +1603,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setShowCommentHistory: (v) => set({ showCommentHistory: v }),
   setShowLikes: (v) => set({ showLikes: v }),
   setShowRecent: (v) => set({ showRecent: v }),
-  setShowArtistModal: (v) => set({ showArtistModal: v }),
-  setShowAlbumModal: (v) => set({ showAlbumModal: v }),
+  setShowArtistModal: (v) =>
+    set((s) =>
+      v
+        ? { showArtistModal: true, artistModalSeq: s.artistModalSeq + 1 }
+        : { showArtistModal: false },
+    ),
+  setShowAlbumModal: (v) =>
+    set((s) =>
+      v
+        ? { showAlbumModal: true, albumModalSeq: s.albumModalSeq + 1 }
+        : { showAlbumModal: false },
+    ),
   // 未登录时一切播放入口统一拦截：弹出扫码登录引导。
   requireLoginForPlayback: () => {
     if (usePlayerStore.getState().loggedIn) return true;

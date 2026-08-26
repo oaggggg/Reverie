@@ -8596,6 +8596,22 @@ textarea {
 .detail-modal .detail-back {
   display: none;
 }
+.detail-modal-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  padding: 18px 20px 16px;
+}
+.detail-modal .collection-tabs.detail-tabs {
+  margin: 2px 0 12px;
+}
+.detail-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 .comment-history-list article {
   display: flex;
   gap: 10px;

@@ -5,7 +5,6 @@ import {
   Download,
   FileText,
   ListEnd,
-  MessageCircle,
   Play,
   Trash2,
   UserRound,
@@ -13,13 +12,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { Song } from "../api/types";
-import { useCommentStore } from "../store/commentStore";
-import { useExploreStore } from "../store/exploreStore";
 import { useMediaStore } from "../store/mediaStore";
 import { usePlayerStore } from "../store/playerStore";
 import { downloadSongFile } from "../api/client";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
+import { openAlbumModal, openArtistModal } from "../utils/detailModals";
 import { LoadingState } from "./Page";
 
 interface Props {
@@ -32,11 +30,6 @@ interface Props {
   onRemove?: (song: Song, index: number) => void;
   onMove?: (song: Song, index: number, direction: -1 | 1) => void;
   onOpenProgram?: (song: Song) => void;
-  /** 弹窗等嵌套场景：隐藏歌曲评论入口 */
-  hideComments?: boolean;
-  /** 弹窗等嵌套场景：覆盖歌手/专辑入口的打开方式（如改为弹窗） */
-  onOpenArtistAction?: (id: number) => void;
-  onOpenAlbumAction?: (id: number) => void;
 }
 
 export default function SongList({
@@ -49,16 +42,10 @@ export default function SongList({
   onRemove,
   onMove,
   onOpenProgram,
-  hideComments = false,
-  onOpenArtistAction,
-  onOpenAlbumAction,
 }: Props) {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const playSong = usePlayerStore((s) => s.playSong);
   const playNext = usePlayerStore((s) => s.playNext);
-  const openAlbum = useExploreStore((s) => s.openAlbum);
-  const openArtist = useExploreStore((s) => s.openArtist);
-  const openComments = useCommentStore((s) => s.openResourceComments);
   const openMedia = useMediaStore((s) => s.open);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
@@ -151,38 +138,11 @@ export default function SongList({
                       <Clapperboard size={15} />
                     </button>
                   ) : null}
-                  {!hideComments && (
-                    <button
-                      className="icon-action"
-                      title={song.programId ? "节目评论" : "歌曲评论"}
-                      onClick={() =>
-                        void openComments(
-                          {
-                            type: song.programId ? "program" : "song",
-                            id: String(song.programId ?? song.id),
-                            title: song.name,
-                            subtitle: song.programId
-                              ? song.album
-                              : song.artists,
-                            coverUrl: song.picUrl,
-                          },
-                          true,
-                        )
-                      }
-                    >
-                      <MessageCircle size={15} />
-                    </button>
-                  )}
                   {song.artistIds?.[0] ? (
                     <button
                       className="icon-action"
                       title="歌手详情"
-                      onClick={() => {
-                        const artistId = song.artistIds![0];
-                        if (onOpenArtistAction)
-                          onOpenArtistAction(artistId);
-                        else void openArtist(artistId);
-                      }}
+                      onClick={() => openArtistModal(song.artistIds![0])}
                     >
                       <UserRound size={15} />
                     </button>
@@ -191,10 +151,7 @@ export default function SongList({
                     <button
                       className="icon-action"
                       title="专辑详情"
-                      onClick={() => {
-                        if (onOpenAlbumAction) onOpenAlbumAction(song.albumId);
-                        else void openAlbum(song.albumId);
-                      }}
+                      onClick={() => openAlbumModal(song.albumId)}
                     >
                       <Disc3 size={15} />
                     </button>
