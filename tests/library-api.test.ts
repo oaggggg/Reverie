@@ -41,6 +41,9 @@ test("album privilege API normalizes available quality flags", async () => {
       highRes: true,
       dolby: true,
       spatialAudio: false,
+      surroundEffect: false,
+      immersive: false,
+      jymaster: false,
     });
   } finally {
     globalThis.fetch = originalFetch;

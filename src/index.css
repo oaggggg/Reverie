@@ -7837,6 +7837,33 @@ textarea {
 .pb-quality-menu button.active {
   font-weight: 600;
 }
+/* 身份不足或歌曲不支持的音质：置灰锁定，保留标识说明门槛 */
+.pb-quality-menu button.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pb-quality-menu button.locked:hover {
+  background: transparent;
+  color: var(--text);
+}
+/* 音质身份标识：VIP 金 / SVIP 黑金渐变；免费音质无标识 */
+.pb-quality-tier {
+  flex: none;
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+.pb-quality-tier.vip {
+  border: 1px solid color-mix(in srgb, #d9a441 65%, transparent);
+  color: #e0aa4a;
+}
+.pb-quality-tier.svip {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #5a4a2f, #b98d3e 55%, #7a6338);
+  color: #ffe9bd;
+}
 
 @keyframes player-anchor-in {
   from {

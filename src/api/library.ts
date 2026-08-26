@@ -138,6 +138,8 @@ export async function getAlbumPrivileges(
       const item = obj(raw);
       const songId = Number(item.id ?? item.songId ?? 0);
       const maxBitrate = Number(item.maxbr ?? item.maxBitrate ?? item.br ?? 0);
+      const spatialAudioRaw =
+        typeof raw === "object" && raw !== null && "spatialAudio" in raw;
       return {
         songId,
         maxBitrate,
@@ -146,6 +148,11 @@ export async function getAlbumPrivileges(
         highRes: Boolean(item.hr ?? item.highRes ?? item.hires),
         dolby: Boolean(item.db ?? item.dolby),
         spatialAudio: Boolean(item.jm ?? item.spatialAudio ?? item.jyeffect),
+        surroundEffect: Boolean(
+          item.je ?? item.jyeffect ?? item.surround ?? spatialAudioRaw,
+        ),
+        immersive: Boolean(item.sky ?? item.immersive ?? item.spatialAudio),
+        jymaster: Boolean(item.jm ?? item.jymaster ?? item.master),
       } satisfies AlbumPrivilege;
     })
     .filter((item) => item.songId > 0);

@@ -28,6 +28,7 @@ import type {
   PlaybackQuality,
   PlaylistInfo,
   PlayMode,
+  QualityTier,
   Song,
   UserProfile,
   View,
@@ -78,8 +79,38 @@ export const PLAYBACK_QUALITY_LABELS: Record<PlaybackQuality, string> = {
   lossless: "无损",
   hires: "Hi-Res无损",
   jyeffect: "高清环绕声",
+  sky: "沉浸环绕声",
   jymaster: "超清母带",
 };
+
+/**
+ * 音质 → 所需会员身份（官方会员权益口径）：
+ * 免费：标准 / 较高 / 极高（菜单中不加标识）
+ * VIP（黑胶会员）：无损 / Hi-Res / 高清环绕声
+ * SVIP（黑胶超级会员）：沉浸环绕声 / 超清母带
+ */
+export const PLAYBACK_QUALITY_TIER: Record<PlaybackQuality, QualityTier> = {
+  standard: "free",
+  higher: "free",
+  exhigh: "free",
+  lossless: "vip",
+  hires: "vip",
+  jyeffect: "vip",
+  sky: "svip",
+  jymaster: "svip",
+};
+
+/** 全部官方音质等级（播放栏菜单按此完整展示）。 */
+export const ALL_PLAYBACK_QUALITIES: PlaybackQuality[] = [
+  "standard",
+  "higher",
+  "exhigh",
+  "lossless",
+  "hires",
+  "jyeffect",
+  "sky",
+  "jymaster",
+];
 
 const PLAYBACK_QUALITY_LEVELS: PlaybackQuality[] = [
   "standard",
@@ -97,6 +128,9 @@ function qualitiesFromPrivilege(privilege: {
   lossless: boolean;
   highRes: boolean;
   spatialAudio: boolean;
+  surroundEffect: boolean;
+  immersive: boolean;
+  jymaster: boolean;
 }): PlaybackQuality[] {
   const qualities: PlaybackQuality[] = [];
   if (privilege.standard || privilege.maxBitrate > 0)
@@ -105,7 +139,10 @@ function qualitiesFromPrivilege(privilege: {
   if (privilege.maxBitrate >= 320000) qualities.push("exhigh");
   if (privilege.lossless) qualities.push("lossless");
   if (privilege.highRes) qualities.push("hires");
-  if (privilege.spatialAudio) qualities.push("jyeffect");
+  if (privilege.surroundEffect || privilege.spatialAudio)
+    qualities.push("jyeffect");
+  if (privilege.immersive) qualities.push("sky");
+  if (privilege.jymaster) qualities.push("jymaster");
   return qualities.length ? qualities : ["standard"];
 }
 
@@ -816,6 +853,35 @@ function previewDurationForSong(song: Song): number | null {
     : null;
 }
 
+/** 用户当前的会员身份档位：以官方 /vip/info 包体生效状态为准。 */
+export function userQualityTier(state: {
+  loggedIn: boolean;
+  profile: UserProfile | null;
+  vipInfo: VipInfo | null;
+}): QualityTier {
+  if (!state.loggedIn) return "free";
+  const v = state.vipInfo;
+  if (
+    v?.svip &&
+    (v.expireTime <= 0 || v.expireTime > Date.now())
+  ) {
+    return "svip";
+  }
+  if (hasVipAccess(state)) return "vip";
+  return "free";
+}
+
+/** 音质是否对该身份开放（免费音质人人可用；高等级身份向下兼容）。 */
+export function qualityAllowedFor(
+  quality: PlaybackQuality,
+  tier: QualityTier,
+): boolean {
+  const need = PLAYBACK_QUALITY_TIER[quality];
+  if (need === "free") return true;
+  if (tier === "svip") return true;
+  return tier === "vip" && need === "vip";
+}
+
 /**
  * 统一播放地址协议：部分歌曲解析出的 CDN 地址是 http，在安全上下文里
  * 会被拦截或静默失败，媒体管线报错后 play() 拒绝并提示「音频启动失败」。
@@ -1172,7 +1238,21 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   setPlaybackQuality: async (quality) => {
     const current = get();
-    if (!current.availablePlaybackQualities.includes(quality)) return;
+    // 身份门槛（官方权益）：免费音质人人可用；VIP/SVIP 音质要求对应身份。
+    if (!qualityAllowedFor(quality, userQualityTier(current))) {
+      const need = PLAYBACK_QUALITY_TIER[quality];
+      get().toast(
+        need === "svip"
+          ? "该音质为黑胶超级会员特权，暂无法使用"
+          : "该音质需要网易云音乐会员，暂无法使用",
+        "info",
+      );
+      return;
+    }
+    if (!current.availablePlaybackQualities.includes(quality)) {
+      get().toast("该歌曲不支持此音质", "info");
+      return;
+    }
     if (current.playbackQuality === quality && !current.qualitySwitching)
       return;
     const previousQuality = current.playbackQuality;
@@ -1224,10 +1304,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         ? qualitiesFromPrivilege(privilege)
         : ["standard"];
       if (get().currentSong?.id !== song.id) return;
-      const currentQuality = get().playbackQuality;
       set({ availablePlaybackQualities: available });
-      if (!available.includes(currentQuality)) {
-        const fallback = [...available].reverse()[0] ?? "standard";
+      // 自动回退只允许落在当前身份可用的音质上，避免静音质地
+      // 把用户顶到无权限的等级。
+      const tier = userQualityTier(get());
+      const usable = available.filter((q) => qualityAllowedFor(q, tier));
+      const currentQuality = get().playbackQuality;
+      if (!usable.includes(currentQuality)) {
+        const fallback =
+          [...usable].reverse()[0] ??
+          ([...available].filter((q) => qualityAllowedFor(q, "free"))[0] ??
+            "standard");
         set({ playbackQuality: fallback });
         write("reverie_playback_quality", fallback);
       }

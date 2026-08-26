@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
-import { PLAYBACK_QUALITY_LABELS, usePlayerStore } from "../store/playerStore";
+import {
+  ALL_PLAYBACK_QUALITIES,
+  PLAYBACK_QUALITY_LABELS,
+  PLAYBACK_QUALITY_TIER,
+  qualityAllowedFor,
+  userQualityTier,
+  usePlayerStore,
+} from "../store/playerStore";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
@@ -443,6 +450,8 @@ export default function PlayerBar() {
                   setQueueOpen(false);
                   setShareOpen(false);
                   setShowPlayerComments(false);
+                  // 打开菜单即静默校验一次会员信息，保证身份门槛判定新鲜
+                  void usePlayerStore.getState().loadVipInfo();
                 }}
                 title="音质"
                 aria-haspopup="menu"
@@ -457,23 +466,55 @@ export default function PlayerBar() {
                   className={`pb-quality-menu ${qualityTransition.surfaceClassName}`}
                   role="menu"
                 >
-                  {availablePlaybackQualities.map((quality) => (
-                    <button
-                      key={quality}
-                      className={quality === playbackQuality ? "active" : ""}
-                      role="menuitemradio"
-                      aria-checked={quality === playbackQuality}
-                      onClick={() => {
-                        setQualityOpen(false);
-                        void setPlaybackQuality(quality);
-                      }}
-                    >
-                      <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
-                      {quality === playbackQuality && (
-                        <span aria-hidden="true">✓</span>
-                      )}
-                    </button>
-                  ))}
+                  {ALL_PLAYBACK_QUALITIES.map((quality) => {
+                    const supported =
+                      availablePlaybackQualities.includes(quality);
+                    const tier = userQualityTier(usePlayerStore.getState());
+                    const allowed = qualityAllowedFor(quality, tier);
+                    const usable = supported && allowed;
+                    const need = PLAYBACK_QUALITY_TIER[quality];
+                    return (
+                      <button
+                        key={quality}
+                        className={[
+                          quality === playbackQuality ? "active" : "",
+                          !usable ? "locked" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        role="menuitemradio"
+                        aria-checked={quality === playbackQuality}
+                        disabled={!usable}
+                        title={
+                          !supported
+                            ? "当前歌曲不支持此音质"
+                            : !allowed
+                              ? need === "svip"
+                                ? "需要黑胶超级会员（SVIP）"
+                                : "需要网易云音乐会员（VIP）"
+                              : undefined
+                        }
+                        onClick={() => {
+                          setQualityOpen(false);
+                          void setPlaybackQuality(quality);
+                        }}
+                      >
+                        <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
+                        {/* 免费/免费可听不加标识；VIP/SVIP 音质按官方权益加标 */}
+                        {need !== "free" && (
+                          <span
+                            className={`pb-quality-tier ${need}`}
+                            aria-label={need === "svip" ? "超级会员" : "会员"}
+                          >
+                            {need === "svip" ? "SVIP" : "VIP"}
+                          </span>
+                        )}
+                        {quality === playbackQuality && (
+                          <span aria-hidden="true">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

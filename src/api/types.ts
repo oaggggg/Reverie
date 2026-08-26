@@ -29,7 +29,14 @@ export type PlaybackQuality =
   | "lossless"
   | "hires"
   | "jyeffect"
+  | "sky"
   | "jymaster";
+
+/**
+ * 音质对应的最低会员身份（官方会员权益口径）：
+ * 免费（无标识）→ VIP（黑胶会员）→ SVIP（黑胶超级会员）。
+ */
+export type QualityTier = "free" | "vip" | "svip";
 
 export interface LyricLine {
   time: number;
@@ -151,6 +158,12 @@ export interface AlbumPrivilege {
   highRes: boolean;
   dolby: boolean;
   spatialAudio: boolean;
+  /** 高清环绕声（jyeffect） */
+  surroundEffect: boolean;
+  /** 沉浸环绕声（sky） */
+  immersive: boolean;
+  /** 超清母带（jymaster） */
+  jymaster: boolean;
 }
 
 export interface CommentInfo {
