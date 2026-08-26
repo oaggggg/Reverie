@@ -136,7 +136,14 @@ test("user playlist and social status routes normalize account data", async () =
     globalThis.fetch = async (input, init) => {
       const url = new URL(String(input));
       paths.push(url.pathname);
-      if (url.pathname === "/user/playlist/create" || url.pathname === "/user/playlist/collect") return Response.json({ data: [{ id: 1, name: "歌单", creator: { userId: 42, nickname: "我" } }] });
+      // 创建/收藏歌单统一复用 /user/playlist 全量拉取后按创建者拆分
+      if (url.pathname === "/user/playlist")
+        return Response.json({
+          playlist: [
+            { id: 1, name: "我创建的", creator: { userId: 42, nickname: "我" } },
+            { id: 2, name: "我收藏的", creator: { userId: 99, nickname: "别人" } },
+          ],
+        });
       if (url.pathname === "/user/social/status") return Response.json({ data: { statusName: "听歌中" } });
       if (url.pathname === "/user/social/status/rcmd") return Response.json({ data: [{ name: "专注" }] });
       if (url.pathname === "/user/social/status/support") return Response.json({ data: [{ name: "听歌中" }] });
@@ -145,13 +152,18 @@ test("user playlist and social status routes normalize account data", async () =
       assert.equal(init?.method, "POST");
       return Response.json({ code: 200 });
     };
-    assert.equal((await getUserCreatedPlaylists(42))[0]?.name, "歌单");
-    assert.equal((await getUserCollectedPlaylists(42))[0]?.id, 1);
+    const created = await getUserCreatedPlaylists(42);
+    assert.equal(created.length, 1);
+    assert.equal(created[0]?.name, "我创建的");
+    const collected = await getUserCollectedPlaylists(42);
+    assert.equal(collected.length, 1);
+    assert.equal(collected[0]?.id, 2);
     assert.equal(await getUserSocialStatus(42), "听歌中");
     assert.deepEqual(await getSocialStatusRecommendations(), ["专注"]);
     assert.deepEqual(await getSupportedSocialStatuses(), ["听歌中"]);
     await deleteEvent(8);
-    assert.deepEqual(paths, ["/user/playlist/create", "/user/playlist/collect", "/user/social/status", "/user/social/status/rcmd", "/user/social/status/support", "/event/del"]);
+    // 第二次调用命中 cachedRequest 内存缓存，故只发一次 /user/playlist
+    assert.deepEqual(paths, ["/user/playlist", "/user/social/status", "/user/social/status/rcmd", "/user/social/status/support", "/event/del"]);
   } finally {
     globalThis.fetch = originalFetch;
   }
