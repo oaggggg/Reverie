@@ -1067,11 +1067,11 @@ function pickActiveDynamicBadge(data: Record<string, unknown>): string {
 }
 
 /**
- * 读取用户「当前佩戴」的装扮图标：/user/detail 的
- * profile.avatarDetail.identityIconUrl。官方客户端里昵称旁的会员铭牌、
- * 佩戴的个性化装扮都通过这个字段下发（佩戴自定义铭牌时它指向铭牌图，
- * 未佩戴时可能是默认会员标或为空）。login/status 的 profile 常被精简
- * 掉该字段，因此必须走 /user/detail。
+ * 读取用户「当前佩戴」的装扮图标。已知官方下发形态：
+ * - /user/detail → profile.avatarDetail.identityIconUrl（佩戴中的
+ *   头像挂件/铭牌；login/status 的 profile 常被精简掉该字段）
+ * - 兜底：profile 浅层扫描 identity/pendant/frame/badge/decorate 类
+ *   键携带的图片直链（不同版本字段命名不一）。
  */
 async function fetchWornDecoration(uid: number): Promise<string> {
   if (!uid) return "";
@@ -1087,12 +1087,29 @@ async function fetchWornDecoration(uid: number): Promise<string> {
         unknown
       > | null;
       if (!profile || typeof profile !== "object") continue;
-      const detail = profile.avatarDetail;
+      const detail = profile.avatarDetail ?? profile.pendant;
       if (detail && typeof detail === "object") {
         const d = detail as Record<string, unknown>;
-        const url = String(d.identityIconUrl ?? "");
-        if (/^https?:\/\//i.test(url)) return url;
+        for (const k of ["identityIconUrl", "iconUrl", "url", "imageUrl"]) {
+          const url = String(d[k] ?? "");
+          if (/^https?:\/\//i.test(url)) return url;
+        }
       }
+      // 宽泛兜底：资料对象浅层扫描装饰类键的图片直链
+      let fallback = "";
+      for (const [k, v] of Object.entries(profile)) {
+        if (
+          typeof v === "string" &&
+          /^https?:\/\//i.test(v) &&
+          /(identity|pendant|frame|plate|badge|decorat).*url$|^identityicon/i.test(
+            k,
+          )
+        ) {
+          fallback = v;
+          break;
+        }
+      }
+      if (fallback) return fallback;
     } catch {
       /* ignore */
     }
@@ -1168,6 +1185,16 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     } catch {
       /* ignore */
     }
+  }
+  if (!badgeUrl) {
+    // 诊断：所有来源都未命中时打印可用字段名，便于用开发者工具
+    // 确认该账号的铭牌/装扮实际下发位置（只输出键名，不含值）。
+    console.debug(
+      "[reverie:vip] 未命中任何会员图标来源 | /vip/info 键:",
+      Object.keys(d).join(",") || "(空)",
+      "| uid:",
+      uid,
+    );
   }
   return {
     vipType,
