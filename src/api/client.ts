@@ -344,17 +344,18 @@ export async function request<T = unknown>(
 /* ------------------------------------------------------------------ */
 
 /**
- * 官方数据判定「支持超清母带」：privilege 的音质等级字段
- * （flLevel/plLevel/dlLevel）为 jymaster，或行内布尔标记 jm/jymaster。
- * 注意不能用 chargeInfoList 码率档推断——1999000 是 Hi-Res 计费档，
- * 并不代表母带（实测孤勇者 pl=jyeffect 也带该档）。
+ * 官方数据判定「歌曲本身支持超清母带」（与账号身份无关）：
+ * maxBrLevel / playMaxBrLevel / downloadMaxBrLevel 是该曲目的最高
+ * 支持音质等级；实测热歌榜大量曲目 maxBrLevel="jymaster" 而账号受限
+ * 的 plLevel 只是 jyeffect——不能用 pl/fl 等级判定，那是「当前账号
+ * 可达档」而非「歌曲支持档」。行内布尔 jm/jymaster 作兜底。
  */
 function privilegeSupportsMaster(
   p: Record<string, unknown> | null | undefined,
 ): boolean {
   if (!p || typeof p !== "object") return false;
-  const levels = [p.flLevel, p.plLevel, p.dlLevel];
-  if (levels.some((l) => l === "jymaster")) return true;
+  const songMax = [p.maxBrLevel, p.playMaxBrLevel, p.downloadMaxBrLevel];
+  if (songMax.some((l) => l === "jymaster")) return true;
   return Boolean(p.jm ?? p.jymaster ?? p.master);
 }
 
