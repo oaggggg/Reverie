@@ -28,9 +28,11 @@ export type PlaybackQuality =
   | "exhigh"
   | "lossless"
   | "hires"
+  | "dolby"
   | "jyeffect"
   | "sky"
-  | "jymaster";
+  | "jymaster"
+  | "vivid";
 
 /**
  * 音质对应的最低会员身份（官方会员权益口径）：
@@ -164,6 +166,8 @@ export interface AlbumPrivilege {
   immersive: boolean;
   /** 超清母带（jymaster） */
   jymaster: boolean;
+  /** 全景声（vivid） */
+  vivid: boolean;
 }
 
 export interface CommentInfo {

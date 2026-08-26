@@ -153,6 +153,7 @@ export async function getAlbumPrivileges(
         ),
         immersive: Boolean(item.sky ?? item.immersive ?? item.spatialAudio),
         jymaster: Boolean(item.jm ?? item.jymaster ?? item.master),
+        vivid: Boolean(item.vv ?? item.vivid),
       } satisfies AlbumPrivilege;
     })
     .filter((item) => item.songId > 0);

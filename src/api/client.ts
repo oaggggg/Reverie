@@ -345,9 +345,9 @@ export async function request<T = unknown>(
 
 /**
  * 官方数据判定「支持超清母带」：privilege 的音质等级字段
- * （flLevel/plLevel/dlLevel）出现 jymaster，或计费档位里包含母带码率
- * （1999000bps 档）。两路信号都来自 /song/detail、/playlist/detail 等
- * 官方响应的 privilege 结构。
+ * （flLevel/plLevel/dlLevel）为 jymaster，或行内布尔标记 jm/jymaster。
+ * 注意不能用 chargeInfoList 码率档推断——1999000 是 Hi-Res 计费档，
+ * 并不代表母带（实测孤勇者 pl=jyeffect 也带该档）。
  */
 function privilegeSupportsMaster(
   p: Record<string, unknown> | null | undefined,
@@ -355,11 +355,7 @@ function privilegeSupportsMaster(
   if (!p || typeof p !== "object") return false;
   const levels = [p.flLevel, p.plLevel, p.dlLevel];
   if (levels.some((l) => l === "jymaster")) return true;
-  const list = Array.isArray(p.chargeInfoList) ? p.chargeInfoList : [];
-  return list.some(
-    (c) =>
-      Number((c as Record<string, unknown>)?.rate ?? 0) >= 1_990_000,
-  );
+  return Boolean(p.jm ?? p.jymaster ?? p.master);
 }
 
 export function normalizeSong(raw: unknown): Song | null {
