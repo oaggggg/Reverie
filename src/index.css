@@ -1281,6 +1281,43 @@ textarea {
   font-size: 12px;
   flex: none;
 }
+/* 正在播放指示：三条跳动的均衡器柱，替代静止的 ▶ ——
+   歌曲在播时列表行一眼可辨；暂停时回退为播放三角。 */
+.eq-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.song-item.playing .eq-bars {
+  --eq-color: var(--accent);
+}
+.eq-bars i {
+  width: 3px;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--eq-color, var(--accent));
+  transform-origin: bottom;
+  animation: reverie-eq 0.9s ease-in-out infinite;
+}
+.eq-bars i:nth-child(2) {
+  animation-delay: 0.22s;
+}
+.eq-bars i:nth-child(3) {
+  animation-delay: 0.44s;
+}
+@keyframes reverie-eq {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  35% {
+    transform: scaleY(1);
+  }
+  65% {
+    transform: scaleY(0.55);
+  }
+}
 .song-item img {
   width: 42px;
   height: 42px;
