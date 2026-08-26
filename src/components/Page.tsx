@@ -48,8 +48,11 @@ export function Page({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const node = scrollRef.current;
     if (!node) return;
+    // 弹窗内嵌页面（如歌手/专辑详情弹窗）的滚动只属于弹窗自身，
+    // 不能驱动背景页面的导航栏收缩，因此不发布全局滚动事件。
+    const embeddedInModal = node.closest(".modal") !== null;
     node.scrollTop = savedTop;
-    publishScroll(savedTop);
+    if (!embeddedInModal) publishScroll(savedTop);
     return () => {
       window.cancelAnimationFrame(scrollFrameRef.current);
       saveViewScroll(activeView, node.scrollTop);
@@ -58,6 +61,7 @@ export function Page({ children }: { children: ReactNode }) {
 
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
+      if (event.currentTarget.closest(".modal")) return;
       publishScroll(event.currentTarget.scrollTop);
     },
     [publishScroll],
