@@ -33,24 +33,23 @@ export default function TitleBar() {
       <div className="titlebar-name" aria-label="Reverie">
         <span
           className="titlebar-name-text"
-          data-text="Reverie"
           aria-hidden="true"
         >
+          {/* 单层字母结构：高光带是每个字母内部的 ::after 渐变切片，
+              随字母一同跳动——不存在第二份静止文字，因此不会有重影。
+              各字母的光带相位按序号错开，视觉上仍是一道自左向右
+              连续扫过的行波。 */}
           <span className="titlebar-letter-layer" aria-hidden="true">
             {BRAND_LETTERS.map((letter, index) => (
               <span
                 className="titlebar-letter"
                 key={index}
+                data-ch={letter}
                 style={{ "--letter-i": index } as CSSProperties}
               >
                 {letter}
               </span>
             ))}
-          </span>
-          <span className="titlebar-sheen-layer" aria-hidden="true">
-            {/* 一条连续光带铺在整个字标图层上（background-clip:text），
-                随背景位移动画自左向右扫过，不做逐字母分片 */}
-            Reverie
           </span>
         </span>
       </div>

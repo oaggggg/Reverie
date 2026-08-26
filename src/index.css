@@ -269,12 +269,10 @@ textarea {
   height: 100%;
 }
 /* Window title: Reverie wordmark. 光效与跳动深度重构：
-   一条高光带每个周期从最左端出发、匀速扫到最右端后立即从头再来（只向右，
-   绝不回扫）；字母跳动与光带的到达时刻由同一周期方程推算，波形沿
-   “R→e→v→e→r→i→e”自左向右传播，无限循环。
-   方向说明：background-position 的百分比越大，背景图越向左移；因此
-   光带要从左向右扫过文字，keyframes 必须让 position 由大变小
-   （145% → -45%）。此前版本写反了，视觉上光带实际从右往左跑。 */
+   高光带是每个字母内部的 ::after 渐变切片，随字母一同跳动——
+   不存在第二份静止文字拷贝，从结构上杜绝跳动时的重影；各字母的
+   光带相位按序号错开，相邻字母的光带首尾叠接，视觉上仍是一道
+   自左向右连续扫过整行「R→e→v→e→r→i→e」的行波，无限循环。 */
 .titlebar-name {
   position: absolute;
   left: 50%;
@@ -298,11 +296,11 @@ textarea {
   --brand-sweep-end: 0.56;
   --brand-sheen-gradient: linear-gradient(
     100deg,
-    transparent 34%,
-    color-mix(in srgb, var(--accent-2) 28%, transparent) 44%,
+    transparent 30%,
+    color-mix(in srgb, var(--accent-2) 28%, transparent) 42%,
     color-mix(in srgb, white 82%, var(--accent-2) 18%) 50%,
-    color-mix(in srgb, var(--accent) 72%, white 28%) 56%,
-    transparent 66%
+    color-mix(in srgb, var(--accent) 72%, white 28%) 58%,
+    transparent 70%
   );
   position: relative;
   color: color-mix(in srgb, var(--text-dim) 82%, var(--accent-2) 18%);
@@ -311,34 +309,12 @@ textarea {
   /* 提升渐变文字的抗锯齿锐度 */
   -webkit-font-smoothing: antialiased;
 }
-.titlebar-letter-layer,
-.titlebar-sheen-layer {
+.titlebar-letter-layer {
   display: inline-flex;
   align-items: baseline;
   padding-inline: 0.2em;
   letter-spacing: inherit;
   line-height: inherit;
-}
-.titlebar-sheen-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  /* 一条完整光带铺满整个字标图层：渐变通过 background-clip:text
-     裁进所有字母，随 background-position 位移动画自左向右扫过——
-     是横贯整词的一道连续高光，而不是每个字母各亮各的分片光 */
-  background: var(--brand-sheen-gradient);
-  background-size: 260% 100%;
-  /* 静止停靠位与周期结束帧一致（画外右端），首帧前不露光 */
-  background-position: -45% 50%;
-  background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation-name: reverie-sheen;
-  animation-duration: var(--brand-cycle);
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
 }
 /* 字母跳动的相位：第 i 个字母在光带扫过它的那一刻起跳。
    光带按 --brand-sweep-end 匀速跨越整行，故到达第 i 个字母的时刻是
@@ -346,6 +322,7 @@ textarea {
    让跳起的最高点恰好落在光带到达的瞬间。所有字母共享同一周期，
    循环无缝且永远自左向右。 */
 .titlebar-letter {
+  position: relative;
   display: inline-block;
   color: inherit;
   transform-origin: 50% 100%;
@@ -358,20 +335,45 @@ textarea {
           var(--brand-sweep-end) - 0.045)
   );
 }
-/* 一道共享高光从左端出发扫到右端：position 由 145% 递减到 -45%
-   （百分比递减 = 背景图右移 = 光带自左向右），行程段线性匀速、
-   与字母相位精确同步；抵达右端后停驻画外直到下一周期。
+/* 高光带切片：挂在每个字母自身的 ::after 上，继承字母的全部变换——
+   字母跳到哪里，光就跟随到哪里，结构上不可能出现静止重影。
+   各字母以 i/N·sweep-end 的正延迟依次进入自己的行程段，相邻字母
+   的光带前后叠接（渐变边缘各占约三成宽度），读感仍是一道连续行波。
    注意：keyframes 选择器不能用 var()，下面的 56% 必须与
    .titlebar-name-text 的 --brand-sweep-end: 0.56 手工保持一致。 */
-@keyframes reverie-sheen {
+.titlebar-letter::after {
+  content: attr(data-ch);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: transparent;
+  background: var(--brand-sheen-gradient);
+  background-size: 300% 100%;
+  background-position: -60% 50%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation-name: reverie-letter-sheen;
+  animation-duration: var(--brand-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: calc(
+    var(--brand-cycle) * (var(--letter-i, 0) / var(--brand-letters) *
+          var(--brand-sweep-end))
+  );
+}
+/* 单个字母的行程段：position 由 150% 递减到 -60%（百分比递减 =
+   背景图右移 = 光带自左向右穿过本字母），其余时间停靠画外。 */
+@keyframes reverie-letter-sheen {
   0% {
-    background-position: 145% 50%;
+    background-position: 150% 50%;
   }
   56% {
-    background-position: -45% 50%;
+    background-position: -60% 50%;
   }
   100% {
-    background-position: -45% 50%;
+    background-position: -60% 50%;
   }
 }
 /* 光晕跟随光带位置脉动：暖绯色光晕随高光一起从左向右平移，
@@ -478,13 +480,13 @@ textarea {
   font-weight: 600;
   letter-spacing: 0;
 }
-[data-platform="darwin"] .titlebar-sheen-layer {
-  display: none;
-}
 [data-platform="darwin"] .titlebar-letter {
   animation: none;
   color: inherit;
   background: none;
+}
+[data-platform="darwin"] .titlebar-letter::after {
+  display: none;
 }
 [data-platform="darwin"] .titlebar-controls {
   align-items: center;
@@ -6580,7 +6582,7 @@ textarea {
   .titlebar-name,
   .titlebar-name-text,
   .titlebar-letter,
-  .titlebar-sheen-layer,
+  .titlebar-letter::after,
   .toast,
   .np-visual-panel,
   .card-cover,
