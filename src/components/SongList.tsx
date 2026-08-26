@@ -32,14 +32,18 @@ interface Props {
   onOpenProgram?: (song: Song) => void;
 }
 
-/** 歌曲版本标识：依据网易云官方别名（alias）判定原唱/翻唱/现场等。 */
+/**
+ * 歌曲版本标识：依据网易云官方别名（alias）判定。对齐官方客户端行为——
+ * 原唱不打任何标签，只有翻唱/伴奏/Live/Remix 等特殊版本才渲染；
+ * 其余短别名单独展示原文（如「重唱」「纯音乐」），长别名不展示。
+ */
 function songVersionTag(song: Song): {
   label: string;
   title: string;
-  kind: "cover" | "live" | "instrumental" | "original";
-} {
+  kind: "cover" | "live" | "instrumental" | "remix" | "other";
+} | null {
   const aliasText = (song.alias ?? []).join(" ").trim();
-  if (!aliasText) return { label: "原唱", title: "", kind: "original" };
+  if (!aliasText) return null;
   if (/翻自|翻唱/.test(aliasText))
     return { label: "翻唱", title: aliasText, kind: "cover" };
   if (/伴奏|Instrumental/i.test(aliasText) && aliasText.length < 30)
@@ -47,8 +51,11 @@ function songVersionTag(song: Song): {
   if (/live|现场|演唱会|音乐会/i.test(aliasText))
     return { label: "Live", title: aliasText, kind: "live" };
   if (/Remix/i.test(aliasText))
-    return { label: "Remix", title: aliasText, kind: "cover" };
-  return { label: "原唱", title: "", kind: "original" };
+    return { label: "Remix", title: aliasText, kind: "remix" };
+  // 未识别的别名：短的直接原文展示（官方同款灰标签），过长则忽略
+  if (aliasText.length <= 10)
+    return { label: aliasText, title: "", kind: "other" };
+  return null;
 }
 
 export default function SongList({
@@ -146,6 +153,7 @@ export default function SongList({
                   <div className="a">
                     {(() => {
                       const tag = songVersionTag(song);
+                      if (!tag) return null;
                       return (
                         <span className={`song-tag ${tag.kind}`} title={tag.title}>
                           {tag.label}
