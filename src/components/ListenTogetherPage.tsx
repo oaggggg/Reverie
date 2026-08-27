@@ -15,7 +15,7 @@ import { usePlayerStore } from "../store/playerStore.ts";
 import { sizedImage } from "../utils/image";
 import { LoadingState, Page, PageHeader } from "./Page";
 
-export default function ListenTogetherPage() {
+export default function ListenTogetherPage({ modal = false, onClose }: { modal?: boolean; onClose?: () => void }) {
   const room = useListenTogetherStore((state) => state.room);
   const playlist = useListenTogetherStore((state) => state.playlist);
   const roomIdInput = useListenTogetherStore((state) => state.roomIdInput);
@@ -70,6 +70,7 @@ export default function ListenTogetherPage() {
 
   return (
     <Page>
+      {modal && onClose ? <button className="sr-only" onClick={onClose} aria-label="关闭一起听" /> : null}
       <PageHeader
         title="一起听"
         subtitle="和好友共享房间、歌单与播放状态"

@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { userQualityTier, usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
-import { CircleUserRound } from "lucide-react";
+import { CircleUserRound, X } from "lucide-react";
 import { getProfileCenter } from "../api/profile";
 import {
   mergeWithCachedIdentity,
   useProfileStore,
 } from "../store/profileStore";
 import FollowListDialog from "./FollowListDialog";
+import ProfilePage from "./ProfilePage";
+import ListenTogetherPage from "./ListenTogetherPage";
 import {
   captureInteractionOrigin,
   useOriginTransition,
@@ -15,6 +17,8 @@ import {
 
 export default function UserMenu() {
   const [open, setOpen] = useState(false);
+  const [profileDialog, setProfileDialog] = useState(false);
+  const [listenTogetherDialog, setListenTogetherDialog] = useState(false);
   const [brokenBadge, setBrokenBadge] = useState("");
   const profile = usePlayerStore((s) => s.profile);
   const vipInfo = usePlayerStore((s) => s.vipInfo);
@@ -239,7 +243,8 @@ export default function UserMenu() {
               className="user-dropdown-cell"
               onClick={() => {
                 setOpen(false);
-                void openProfile();
+                setProfileDialog(true);
+                void openProfile(false);
               }}
             >
               个人中心
@@ -248,10 +253,7 @@ export default function UserMenu() {
               className="user-dropdown-cell"
               onClick={() => {
                 setOpen(false);
-                usePlayerStore.setState({
-                  activeView: "listenTogether",
-                  prevView: "home",
-                });
+                setListenTogetherDialog(true);
               }}
             >
               一起听
@@ -278,6 +280,22 @@ export default function UserMenu() {
           type={followDialog}
           onClose={() => setFollowDialog(null)}
         />
+      )}
+      {profileDialog && (
+        <div className="modal-backdrop user-feature-backdrop" onClick={() => setProfileDialog(false)}>
+          <section className="modal user-feature-modal profile-feature-modal" role="dialog" aria-modal="true" aria-label="个人中心" onClick={(event) => event.stopPropagation()}>
+            <button className="icon-btn user-feature-close" title="关闭" onClick={() => setProfileDialog(false)}><X size={18} /></button>
+            <ProfilePage modal />
+          </section>
+        </div>
+      )}
+      {listenTogetherDialog && (
+        <div className="modal-backdrop user-feature-backdrop" onClick={() => setListenTogetherDialog(false)}>
+          <section className="modal user-feature-modal listen-together-feature-modal" role="dialog" aria-modal="true" aria-label="一起听" onClick={(event) => event.stopPropagation()}>
+            <button className="icon-btn user-feature-close" title="关闭" onClick={() => setListenTogetherDialog(false)}><X size={18} /></button>
+            <ListenTogetherPage modal onClose={() => setListenTogetherDialog(false)} />
+          </section>
+        </div>
       )}
     </div>
   );

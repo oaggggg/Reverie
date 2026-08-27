@@ -27,7 +27,7 @@ interface ProfileState {
   period: RecordPeriod;
   loading: boolean;
   recordsLoading: boolean;
-  openProfile: () => Promise<void>;
+  openProfile: (navigate?: boolean) => Promise<void>;
   setPeriod: (period: RecordPeriod) => Promise<void>;
 }
 
@@ -73,14 +73,14 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
   loading: false,
   recordsLoading: false,
 
-  openProfile: async () => {
+  openProfile: async (navigate = true) => {
     const uid = usePlayerStore.getState().profile?.userId;
     if (!uid) {
       usePlayerStore.getState().setShowLogin(true);
       return;
     }
     const token = ++profileToken;
-    showProfileView();
+    if (navigate) showProfileView();
     set({ loading: true, period: "week" });
     try {
       const [data, medals, createdRadios, createdPrograms] = await Promise.all([
