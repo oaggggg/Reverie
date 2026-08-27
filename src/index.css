@@ -7781,9 +7781,24 @@ textarea {
   width: min(760px, calc(100vw - 32px));
   max-height: min(86vh, 760px);
   overflow: hidden;
+  padding: 0;
 }
 .playlist-comments-dialog .modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex: none;
+  min-height: 74px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.playlist-comments-cover {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-3);
 }
 .playlist-comments-dialog .modal-header p {
   margin: 4px 0 0;
@@ -7794,9 +7809,60 @@ textarea {
   min-height: 0;
   overflow: hidden;
 }
+.playlist-comments-dialog .comment-toolbar {
+  padding: 10px 18px;
+  background: var(--bg-2);
+}
 .playlist-comments-dialog .comment-list {
-  max-height: min(48vh, 440px);
+  max-height: none;
+  min-height: 260px;
   overflow: auto;
+  padding: 4px 18px 12px;
+}
+.playlist-comments-dialog .comment-composer {
+  flex: none;
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.comments-modal {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(86vh, 760px);
+}
+.comments-modal .comments-modal-body {
+  overflow: hidden;
+}
+.comments-modal .comment-panel {
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+.comments-modal .comment-toolbar {
+  padding: 10px 0;
+}
+.comments-modal .comment-list {
+  min-height: 260px;
+  padding: 4px 0 12px;
+  overflow: auto;
+}
+.comments-modal .comment-composer {
+  flex: none;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 560px) {
+  .playlist-comments-dialog, .comments-modal {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 24px);
+  }
+  .playlist-comments-dialog .modal-header,
+  .playlist-comments-dialog .comment-list,
+  .playlist-comments-dialog .comment-composer {
+    padding-inline: 14px;
+  }
+  .comments-modal-inner { padding-inline: 14px; }
+  .comments-modal-head { padding-right: 28px; }
 }
 
 .pb-quality-wrap {
