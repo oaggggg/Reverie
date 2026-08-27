@@ -1170,7 +1170,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const expire = () => {
       const current = get().toasts;
       if (current.some((item) => item.exiting)) {
-        setTimeout(expire, 260);
+        setTimeout(expire, 340);
         return;
       }
       const earliest = current.find((item) => !item.exiting);
@@ -1184,7 +1184,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }));
     setTimeout(
       () => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
-      260,
+      340,
     );
   },
 
