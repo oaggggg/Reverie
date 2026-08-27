@@ -42,6 +42,7 @@ export default function PlaylistPage() {
   const playlistCover = usePlayerStore((s) => s.playlistCover);
   const playlistCreatorId = usePlayerStore((s) => s.playlistCreatorId);
   const playlistSubscribed = usePlayerStore((s) => s.playlistSubscribed);
+  const firstUserPlaylistId = usePlayerStore((s) => s.userPlaylists[0]?.id ?? 0);
   const playlistLoading = usePlayerStore((s) => s.playlistLoading);
   const uid = usePlayerStore((s) => s.profile?.userId ?? 0);
   const closePlaylist = usePlayerStore((s) => s.closePlaylist);
@@ -218,6 +219,8 @@ export default function PlaylistPage() {
     ],
   );
   const owned = playlistCreatorId > 0 && playlistCreatorId === uid;
+  const isLikedPlaylist = playlistId > 0 && playlistId === firstUserPlaylistId;
+  const canManage = owned && !isLikedPlaylist;
   const playlistActions =
     !playlistLoading && playlistId > 0 ? (
       <>
@@ -270,15 +273,19 @@ export default function PlaylistPage() {
             >
               <ListPlus size={14} /> 添加歌曲
             </button>
-            <button className="btn" onClick={() => setEditing(true)}>
-              <Pencil size={14} /> 编辑
-            </button>
-            <button
-              className="btn danger"
-              onClick={() => setConfirmingDelete(true)}
-            >
-              <Trash2 size={14} /> 删除
-            </button>
+            {canManage ? (
+              <>
+                <button className="btn" onClick={() => setEditing(true)}>
+                  <Pencil size={14} /> 编辑
+                </button>
+                <button
+                  className="btn danger"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  <Trash2 size={14} /> 删除
+                </button>
+              </>
+            ) : null}
           </>
         ) : (
           <button
@@ -343,9 +350,9 @@ export default function PlaylistPage() {
         title="歌曲列表"
         loading={playlistLoading}
         emptyText="歌单为空"
-        onRemove={owned ? (song) => void removeSong(song) : undefined}
+        onRemove={canManage ? (song) => void removeSong(song) : undefined}
         onMove={
-          owned
+          canManage
             ? (song, index, direction) => void moveSong(song, index, direction)
             : undefined
         }

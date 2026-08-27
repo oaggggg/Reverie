@@ -175,6 +175,7 @@ export default function UserListPage() {
                     : "暂无歌单"
             }
             renderActions={(playlist) =>
+              playlist.id === userPlaylists[0]?.id ? null :
               playlist.creatorId === uid ? (
                 <>
                   <button
