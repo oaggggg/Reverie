@@ -1301,10 +1301,21 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     );
   }
   // SVIP 判定（官方组合态）：黑胶 VIP 包与畅听包同时生效。
+  // 到期判定与 pickActiveDynamicBadge 同一口径：包内任意过期类字段的
+  // 最大值即该包到期时间（秒/毫秒/日期串经 parseEpoch 归一）。此前只认
+  // expireTime 且按毫秒直读，字段名变体或秒级时间戳会把在期的包误判为
+  // 已过期，导致 SVIP 被降档显示成 VIP。
   const now = Date.now();
   const pkgActive = (o: unknown): boolean => {
     if (!o || typeof o !== "object") return false;
-    return Number((o as Record<string, unknown>).expireTime ?? 0) > now;
+    const expires: number[] = [];
+    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+      if (/expire|endtime|end_time|deadline|validto|valid_to/i.test(k)) {
+        const n = parseEpoch(v);
+        if (n > 0) expires.push(n);
+      }
+    }
+    return expires.length === 0 || Math.max(...expires) > now;
   };
   const svip = pkgActive(d.associator) && pkgActive(d.musicPackage);
   return {
