@@ -892,11 +892,10 @@ export function userQualityTier(state: {
 }): QualityTier {
   if (!state.loggedIn) return "free";
   const v = state.vipInfo;
-  // SVIP 音质必须同时满足官方组合会员类型（vipType=110）和有效期。
-  // 部分接口会给普通 VIP 携带 svip/品牌位字段，不能仅凭布尔标记放行。
+  // SVIP 音质必须同时满足官方 SVIP 权益标记和有效期。
+  // 不强制限定 vipType 数值：月卡/季卡等 SVIP 套餐可能使用不同编码。
   if (
     v?.svip &&
-    v.vipType === 110 &&
     (v.expireTime <= 0 || v.expireTime > Date.now())
   ) {
     return "svip";
