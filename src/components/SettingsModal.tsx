@@ -454,7 +454,10 @@ export default function SettingsModal() {
                       ))}
                     </div>
                   </SettingRow>
-                  <SettingRow title="减少动画效果" hint="关闭大多数过渡、浮动和入场动画">
+                  <SettingRow
+                    title="减少动画效果"
+                    hint="关闭大多数过渡、浮动和入场动画"
+                  >
                     <button
                       type="button"
                       className={`setting-switch ${reducedMotion ? "active" : ""}`}
@@ -730,7 +733,10 @@ export default function SettingsModal() {
                   </div>
                   <div className="about-app-copy">
                     <strong>Reverie</strong>
-                    <span>桌面音乐播放器</span>
+                    <span>Windows 与 macOS 桌面音乐播放器</span>
+                    <small>
+                      仅提供 Windows、macOS 客户端，不提供移动端版本
+                    </small>
                     <small>{"v" + __APP_VERSION__}</small>
                   </div>
                   <button

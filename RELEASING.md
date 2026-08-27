@@ -1,6 +1,6 @@
 # Reverie 发布流程
 
-Reverie 当前通过 GitHub Actions 构建 Windows x64 安装包和 macOS Universal 安装包，并把 Tauri updater 所需的完整性签名产物发布到 GitHub Releases。应用运行时从 `src-tauri/tauri.conf.json` 配置的 `latest.json` 地址检查更新。
+Reverie 当前仅面向 Windows 与 macOS 桌面客户端，通过 GitHub Actions 构建 Windows x64 安装包和 macOS Universal 安装包，并把 Tauri updater 所需的完整性签名产物发布到 GitHub Releases。不构建 Android、iOS 或其他移动端版本。应用运行时从 `src-tauri/tauri.conf.json` 配置的 `latest.json` 地址检查更新。
 
 ## 发布前提
 
