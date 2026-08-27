@@ -5834,7 +5834,8 @@ textarea {
 .toast-wrap {
   top: 128px;
   bottom: auto;
-  height: 48px;
+  min-height: 48px;
+  height: 104px;
   width: max-content;
   max-width: calc(100vw - 32px);
   gap: 0;
