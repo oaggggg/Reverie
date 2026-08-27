@@ -371,9 +371,7 @@ function privilegeMaxLevel(
     String(p.downloadMaxBrLevel ?? ""),
   ].filter((l) => l in LEVEL_RANK);
   if (candidates.length) {
-    return candidates.reduce((a, b) =>
-      LEVEL_RANK[b] > LEVEL_RANK[a] ? b : a,
-    );
+    return candidates.reduce((a, b) => (LEVEL_RANK[b] > LEVEL_RANK[a] ? b : a));
   }
   if (p.jm ?? p.jymaster ?? p.master) return "jymaster";
   return null;
@@ -528,7 +526,10 @@ export async function searchSongs(
   const songs = withLevel.map((song) => {
     const e = enriched.get(song.id);
     if (!e) return song;
-    return songWithMaxLevel(e, song.maxLevel ? { maxBrLevel: song.maxLevel } : undefined);
+    return songWithMaxLevel(
+      e,
+      song.maxLevel ? { maxBrLevel: song.maxLevel } : undefined,
+    );
   });
 
   const normalizeTerm = (value: string) =>
@@ -973,7 +974,12 @@ export async function loginStatus(): Promise<UserProfile | null> {
       Number(account?.vipType ?? 0),
       Number(profile.vipType ?? 0),
     ),
-    badgeUrl: deepFindBadgeUrl(res.data ?? res) || undefined,
+    // 徽标同 getVipInfo 的口径：先走官方品牌位（含 SVIP redplus 节点），
+    // 深扫只作兜底，避免把静态等级胶囊或无关图标当官方铭牌。
+    badgeUrl:
+      pickOfficialBrandIcon(findVipRights(res.data ?? res))?.url ||
+      deepFindBadgeUrl(res.data ?? res) ||
+      undefined,
   };
 }
 
@@ -1022,6 +1028,97 @@ export interface VipInfo {
    * vipType 110 组合态，是沉浸环绕声/超清母带等 SVIP 特权的判定依据。
    */
   svip?: boolean;
+}
+
+/**
+ * 官方品牌位解析（对齐 music.163.com 自身模板的判定树，一字不差）：
+ * 1) redplus.vipCode===300 且 rights → 黑胶超级会员（brand-svip），
+ *    这是官方口径里 SVIP 的权威证据，优先于一切等级推断；
+ * 2) associator.rights → associator.iconUrl，缺失则按 redVipLevel
+ *    取官方静态等级资产（1..7）；
+ * 3) musicPackage.rights → musicPackage.iconUrl（畅听包）；
+ * 4) redVipAnnualCount>=1 → 年费 VIP 资产；
+ * 5) associator.rights 无等级 → 默认 VIP 资产。
+ * 静态资产直链抄自官方模板（useNewVipIcon 新版一套），属官方图片。
+ */
+const OFFICIAL_VIP_LEVEL_ASSETS: Record<number, string> = {
+  1: "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289771075/9cde/206c/1521/ae97069bf19817f1fff4e3afda1d3998.png",
+  2: "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289779981/0735/9a76/996b/2b858ffcf51cb298412b566407c4cc75.png",
+  3: "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289796623/21a9/2cb2/8817/596f81c8bb28d1bca5f332ac3dc9a79e.png",
+  4: "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289814330/170d/189e/70cb/75a12e81f2f6f92407419e417e9777b0.png",
+  5: "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289819871/cae8/cbb4/63e2/feee66e7a731f20d2ce7aab9e92d1f68.png",
+  6: "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289839236/54ce/9c06/9eae/861f11a2e2666f34ad7f201e001d9221.png",
+  7: "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289847457/5230/7279/6543/ee2a0c6b2941a9647669e3ca522c350a.png",
+};
+const OFFICIAL_ANNUAL_VIP_ASSET =
+  "https://p6.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31290261228/d8c6/b0fb/b236/ccc907aabf076e224ac6f2ae76d045e3.png";
+const OFFICIAL_DEFAULT_VIP_ASSET =
+  "https://p6.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/31289879300/0ce6/0791/894f/2d90cb8ac138e4e4eda83f13d7979e88.png";
+
+export interface OfficialBrandIcon {
+  url: string;
+  /** 该图标是否为黑胶超级会员（SVIP）身份位。 */
+  svip: boolean;
+}
+
+function officialImg(v: unknown): string {
+  return typeof v === "string" && /^https?:\/\//i.test(v) ? v : "";
+}
+
+export function pickOfficialBrandIcon(
+  vipRights: unknown,
+): OfficialBrandIcon | null {
+  if (!vipRights || typeof vipRights !== "object") return null;
+  const vr = vipRights as Record<string, unknown>;
+  const redplus = vr.redplus as Record<string, unknown> | undefined;
+  if (
+    Number(redplus?.vipCode) === 300 &&
+    Boolean(redplus?.rights) &&
+    officialImg(redplus?.iconUrl)
+  ) {
+    return { url: officialImg(redplus?.iconUrl), svip: true };
+  }
+  const associator = vr.associator as Record<string, unknown> | undefined;
+  if (Boolean(associator?.rights)) {
+    const icon = officialImg(associator?.iconUrl);
+    if (icon) return { url: icon, svip: false };
+    const level = Number(vr.redVipLevel ?? 0);
+    const asset = OFFICIAL_VIP_LEVEL_ASSETS[level];
+    if (asset) return { url: asset, svip: false };
+  }
+  const musicPackage = vr.musicPackage as Record<string, unknown> | undefined;
+  if (Boolean(musicPackage?.rights)) {
+    const icon = officialImg(musicPackage?.iconUrl);
+    if (icon) return { url: icon, svip: false };
+  }
+  // redplus 只差图标时的 SVIP 身份仍要成立（无图时上层走文字铭牌）
+  if (Number(redplus?.vipCode) === 300 && Boolean(redplus?.rights))
+    return { url: "", svip: true };
+  if (Number(vr.redVipAnnualCount ?? 0) >= 1)
+    return { url: OFFICIAL_ANNUAL_VIP_ASSET, svip: false };
+  if (Boolean(associator?.rights))
+    return { url: OFFICIAL_DEFAULT_VIP_ASSET, svip: false };
+  return null;
+}
+
+/**
+ * 从任意响应对象中递归找出 profile.vipRights（login/status、
+ * /user/detail 系列都有该结构），供官方品牌位解析使用。
+ */
+export function findVipRights(obj: unknown): unknown {
+  if (!obj || typeof obj !== "object") return null;
+  const root = obj as Record<string, unknown>;
+  const candidates: unknown[] = [
+    root.profile,
+    (root.data as Record<string, unknown> | undefined)?.profile,
+    root.data,
+    root,
+  ];
+  for (const c of candidates) {
+    if (c && typeof c === "object" && (c as Record<string, unknown>).vipRights)
+      return (c as Record<string, unknown>).vipRights;
+  }
+  return null;
 }
 
 /** Parse an epoch value that may be seconds or ms, or a "YYYY-MM-DD" date string. */
@@ -1154,8 +1251,7 @@ function pickActiveDynamicBadge(data: Record<string, unknown>): string {
         if (n > 0) expires.push(n);
       }
     }
-    const active =
-      expires.length === 0 || Math.max(...expires) > now;
+    const active = expires.length === 0 || Math.max(...expires) > now;
     if (!active) continue;
     for (const [k, v] of Object.entries(o)) {
       if (
@@ -1165,57 +1261,6 @@ function pickActiveDynamicBadge(data: Record<string, unknown>): string {
       ) {
         return v;
       }
-    }
-  }
-  return "";
-}
-
-/**
- * 读取用户「当前佩戴」的装扮图标。已知官方下发形态：
- * - /user/detail → profile.avatarDetail.identityIconUrl（佩戴中的
- *   头像挂件/铭牌；login/status 的 profile 常被精简掉该字段）
- * - 兜底：profile 浅层扫描 identity/pendant/frame/badge/decorate 类
- *   键携带的图片直链（不同版本字段命名不一）。
- */
-async function fetchWornDecoration(uid: number): Promise<string> {
-  if (!uid) return "";
-  for (const ep of ["/user/detail", "/user/detail/new"] as const) {
-    try {
-      const res = await request<Record<string, unknown>>(
-        ep,
-        ep === "/user/detail/new" ? { uid, all: "true" } : { uid },
-        false,
-      );
-      const profile = (res?.profile ?? res?.data ?? res) as Record<
-        string,
-        unknown
-      > | null;
-      if (!profile || typeof profile !== "object") continue;
-      const detail = profile.avatarDetail ?? profile.pendant;
-      if (detail && typeof detail === "object") {
-        const d = detail as Record<string, unknown>;
-        for (const k of ["identityIconUrl", "iconUrl", "url", "imageUrl"]) {
-          const url = String(d[k] ?? "");
-          if (/^https?:\/\//i.test(url)) return url;
-        }
-      }
-      // 宽泛兜底：资料对象浅层扫描装饰类键的图片直链
-      let fallback = "";
-      for (const [k, v] of Object.entries(profile)) {
-        if (
-          typeof v === "string" &&
-          /^https?:\/\//i.test(v) &&
-          /(identity|pendant|frame|plate|badge|decorat).*url$|^identityicon/i.test(
-            k,
-          )
-        ) {
-          fallback = v;
-          break;
-        }
-      }
-      if (fallback) return fallback;
-    } catch {
-      /* ignore */
     }
   }
   return "";
@@ -1246,49 +1291,45 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     d.vipType ?? d.redVipType ?? d.vipStatus ?? (redLevel > 0 ? 10 : 0),
   );
   const expireTime = deepFindExpireMs(d);
-  // 取值优先级（对齐官方客户端行为）：
-  // 1) 佩戴中的个性化铭牌/装扮——优先取会员信息里的铭牌类字段，
-  //    再取 /user/detail 的 avatarDetail.identityIconUrl（官方把当前
-  //    佩戴的装扮统一放在这里下发，login/status 常被精简掉）；
-  // 2) 当前生效的官方动态会员图标（黑胶 > 畅听包，校验有效期）；
-  // 3) 全局择优兜底。
+  // ── 官方徽标解析链（对齐官方客户端口径）────────────────────────
+  // ①佩戴中的个性化铭牌 → ②包动态图标(校验有效期) → ③官方品牌位
+  // (vipRights 树，SVIP 的权威证据在 redplus.vipCode===300 节点)
+  // → ④资料深扫兜底。此前把头像挂件(avatarDetail)混进徽标来源、且读
+  // 不到 redplus 节点，导致 SVIP 显示成 "VIP·柒" 等级胶囊或非官方图。
   let badgeUrl = deepFindCustomPlate(d);
-  if (!badgeUrl) badgeUrl = await fetchWornDecoration(uid);
-  if (!badgeUrl) {
-    for (const ep of ["/user/detail/new", "/user/detail"] as const) {
-      try {
-        const res = await request<unknown>(
-          ep,
-          ep === "/user/detail/new" ? { uid, all: "true" } : { uid },
-          false,
-        );
-        badgeUrl = deepFindCustomPlate(res);
-        if (badgeUrl) break;
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-  if (!badgeUrl) badgeUrl = pickActiveDynamicBadge(d);
-  if (!badgeUrl) {
+  let vipRights: unknown = findVipRights(d);
+  let detailRes: unknown = null;
+  const fetchDetailOnce = async () => {
+    if (detailRes) return detailRes;
     try {
-      const res = await request<unknown>(
+      detailRes = await request<unknown>(
         "/user/detail/new",
         { uid, all: "true" },
         false,
       );
-      badgeUrl = deepFindBadgeUrl(res);
+    } catch {
+      /* ignore */
+    }
+    return detailRes;
+  };
+  const firstDetail = await fetchDetailOnce();
+  if (!badgeUrl && firstDetail) badgeUrl = deepFindCustomPlate(firstDetail);
+  if (!vipRights) vipRights = findVipRights(firstDetail);
+  if (!vipRights) {
+    // user/detail/new 拿不到资料时的次级来源（内含 profile.vipRights）
+    try {
+      const res = await request<unknown>("/user/detail", { uid }, false);
+      badgeUrl ||= deepFindCustomPlate(res);
+      vipRights = findVipRights(res);
     } catch {
       /* ignore */
     }
   }
-  if (!badgeUrl) {
-    try {
-      const res = await request<unknown>("/user/detail", { uid }, false);
-      badgeUrl = deepFindBadgeUrl(res);
-    } catch {
-      /* ignore */
-    }
+  const brand = pickOfficialBrandIcon(vipRights);
+  if (!badgeUrl) badgeUrl = pickActiveDynamicBadge(d);
+  if (!brand?.url && !badgeUrl) {
+    const res = await fetchDetailOnce();
+    if (res) badgeUrl = deepFindBadgeUrl(res);
   }
   if (!badgeUrl) {
     // 诊断：所有来源都未命中时打印可用字段名，便于用开发者工具
@@ -1300,7 +1341,10 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
       uid,
     );
   }
-  // SVIP 判定（官方组合态）：黑胶 VIP 包与畅听包同时生效。
+  // SVIP 判定双通道：
+  // a) 官方品牌位 redplus.vipCode===300 && rights（vipRights 树）——
+  //    官方口径里黑胶超级会员的权威证据，最优先；
+  // b) /vip/info 双包（黑胶+畅听）同时生效的组合态兜底。
   // 到期判定与 pickActiveDynamicBadge 同一口径：包内任意过期类字段的
   // 最大值即该包到期时间（秒/毫秒/日期串经 parseEpoch 归一）。此前只认
   // expireTime 且按毫秒直读，字段名变体或秒级时间戳会把在期的包误判为
@@ -1317,12 +1361,14 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     }
     return expires.length === 0 || Math.max(...expires) > now;
   };
-  const svip = pkgActive(d.associator) && pkgActive(d.musicPackage);
+  const svip =
+    Boolean(brand?.svip) ||
+    (pkgActive(d.associator) && pkgActive(d.musicPackage));
   return {
     vipType,
     vipLevel: redLevel,
     expireTime,
-    badgeUrl: badgeUrl || undefined,
+    badgeUrl: badgeUrl || brand?.url || undefined,
     svip,
   };
 }
