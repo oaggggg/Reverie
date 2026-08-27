@@ -231,31 +231,16 @@ export default function UserListPage() {
       ) : (
         <>
           <div className="playlist-discovery-toolbar">
-            <div className="playlist-discovery-toolbar-heading">
-              <strong>发现歌单</strong>
-            </div>
-            <div className="playlist-discovery-controls">
-              <div className="playlist-discovery-tags" role="tablist" aria-label="热门歌单标签">
-                {[
-                { id: 0, name: "全部" },
-                ...discovery.highQualityTags,
-                ...discovery.hotTags,
-                ]
-                  .filter((tag, index, items) => items.findIndex((item) => item.name === tag.name) === index)
-                  .slice(0, 10)
-                  .map((tag) => (
-                    <button key={`${tag.id}-${tag.name}`} className={discovery.selectedTag === tag.name ? "active" : ""} onClick={() => void discovery.load(tag.name)}>{tag.name}</button>
-                  ))}
-              </div>
-              <label className="playlist-discovery-select">
-                <span>全部分类</span>
-                <select value={discovery.selectedTag} onChange={(event) => void discovery.load(event.target.value)}>
-                  <option value="全部">选择分类</option>
-                  {discoveryCategories.map((category) => (
-                    <option key={`${category.id}-${category.name}`} value={category.name}>{category.name}</option>
-                  ))}
-                </select>
-              </label>
+            <div className="playlist-discovery-tags" role="tablist" aria-label="歌单分类">
+              {[{ id: 0, name: "全部" }, ...discoveryCategories].map((tag) => (
+                <button
+                  key={`${tag.id}-${tag.name}`}
+                  className={discovery.selectedTag === tag.name ? "active" : ""}
+                  onClick={() => void discovery.load(tag.name)}
+                >
+                  {tag.name}
+                </button>
+              ))}
             </div>
           </div>
           <PlaylistGrid
