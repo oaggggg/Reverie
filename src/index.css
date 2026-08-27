@@ -2912,13 +2912,25 @@ textarea {
   border-radius: 50%;
   opacity: 0;
   transform: scale(1.06);
-  transition:
-    opacity 0.45s cubic-bezier(0.33, 0, 0.2, 1),
-    transform 0.45s cubic-bezier(0.33, 0, 0.2, 1);
 }
 .pb-cover-layer.on {
   opacity: 1;
   transform: scale(1);
+  /* 入场用关键帧动画而非 transition：缓存秒载（onLoad 先于首帧
+     绘制到达）或清理窗口内往返复用（挂载即带 .on 终态）时，
+     transition 会因初始样式从未绘制而退化成硬切；animation 在
+     首帧即带终态类时也照常播放，保证切歌方向无关的淡入。 */
+  animation: pb-cover-in 0.45s cubic-bezier(0.33, 0, 0.2, 1) both;
+}
+@keyframes pb-cover-in {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .pb-cover-ph {
   background: color-mix(in srgb, var(--bg-3) 45%, transparent);
