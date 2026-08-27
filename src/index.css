@@ -212,19 +212,6 @@ button {
   color: inherit;
 }
 
-:root[data-input-mode="keyboard"]
-  :is(
-    button,
-    a,
-    input,
-    textarea,
-    select,
-    [role="button"],
-    [role="tab"]
-  ):focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 72%, white);
-  outline-offset: 2px;
-}
 input {
   font-family: inherit;
   color: inherit;
@@ -6382,58 +6369,31 @@ textarea {
   background: var(--glass-popup-hover);
 }
 
-/* 播放器相关区域的控件不显示键盘焦点描边。加 :root 前缀抬高优先级：
-   全局键盘模式的 :root[data-input-mode] 红色 focus-visible 描边
-   （accent 绯红）优先级更高，会盖过下面不带前缀的抑制规则，
-   导致播放栏按钮在键盘操作后出现红色焦点框。 */
+/* 控件一律不显示焦点描边/阴影（含键盘输入模式）：桌面播放器追求
+   干净视觉，截图里用户胶囊上的红色框就是全局键盘模式描边所致。
+   输入框/文本域的编辑焦点与容器的 :focus-within 高亮不受影响。 */
 :root
-  .player-bar
-  :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
-:root
-  .player-bar
   :is(
     button,
-    input,
-    textarea,
+    a,
+    summary,
     [role="button"],
-    [role="menuitemradio"]
-  ):focus-visible,
+    [role="tab"],
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="option"]
+  ):focus,
 :root
-  .pb-queue-menu
-  :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
-:root
-  .pb-queue-menu
   :is(
     button,
-    input,
-    textarea,
+    a,
+    summary,
     [role="button"],
-    [role="menuitemradio"]
-  ):focus-visible,
-:root
-  .pb-quality-menu
-  :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
-:root
-  .pb-quality-menu
-  :is(
-    button,
-    input,
-    textarea,
-    [role="button"],
-    [role="menuitemradio"]
-  ):focus-visible,
-:root
-  .player-comments-drawer
-  :is(button, input, textarea, [role="button"], [role="tab"]):focus,
-:root
-  .player-comments-drawer
-  :is(button, input, textarea, [role="button"], [role="tab"]):focus-visible,
-:root .share-dialog :is(button, input, textarea, [role="button"]):focus,
-:root .share-dialog :is(button, input, textarea, [role="button"]):focus-visible,
-:root .np-visual-panel :is(button, input, textarea, [role="button"]):focus,
-:root
-  .np-visual-panel
-  :is(button, input, textarea, [role="button"]):focus-visible {
+    [role="tab"],
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="option"]
+  ):focus-visible {
   outline: none;
   box-shadow: none;
 }
