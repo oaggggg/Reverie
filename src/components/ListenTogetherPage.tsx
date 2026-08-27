@@ -45,6 +45,8 @@ export default function ListenTogetherPage({ modal = false, onClose }: { modal?:
   const endRoom = useListenTogetherStore((state) => state.endRoom);
   const currentSong = usePlayerStore((state) => state.currentSong);
   const playing = usePlayerStore((state) => state.playing);
+  const userId = usePlayerStore((state) => state.profile?.userId ?? 0);
+  const isOwner = Boolean(room?.ownerId && room.ownerId === userId);
 
   useEffect(() => {
     if (!room) return;
@@ -65,7 +67,8 @@ export default function ListenTogetherPage({ modal = false, onClose }: { modal?:
   const togglePlayback = async () => {
     const player = usePlayerStore.getState();
     player.togglePlay();
-    await sendPlaybackCommand(player.playing ? "pause" : "play");
+    const nextPlaying = usePlayerStore.getState().playing;
+    await sendPlaybackCommand(nextPlaying ? "play" : "pause");
   };
 
   return (
@@ -193,14 +196,25 @@ export default function ListenTogetherPage({ modal = false, onClose }: { modal?:
                 {playing ? <Pause size={16} /> : <Play size={16} />}
                 {playing ? "暂停并同步" : "播放并同步"}
               </button>
-              <button
-                className="danger-button"
-                onClick={() => void endRoom()}
-                disabled={loading}
-              >
-                <X size={16} />
-                结束房间
-              </button>
+              {isOwner ? (
+                <button
+                  className="danger-button"
+                  onClick={() => void endRoom()}
+                  disabled={loading}
+                >
+                  <X size={16} />
+                  结束房间
+                </button>
+              ) : (
+                <button
+                  className="danger-button"
+                  onClick={() => useListenTogetherStore.getState().leaveRoom()}
+                  disabled={loading}
+                >
+                  <X size={16} />
+                  离开房间
+                </button>
+              )}
             </div>
           </section>
 

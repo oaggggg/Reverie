@@ -143,8 +143,8 @@ export const useListenTogetherStore = create<ListenTogetherState>(
       try {
         const room = await checkListenTogetherRoom(roomId);
         if (token !== requestToken) return;
-        set({ room, loading: false });
-        await loadRoomData(room, token);
+        set({ loading: false });
+        usePlayerStore.getState().toast(`房间可加入（${room.memberCount}/${room.maxMemberCount}）`, "success");
       } catch (error) {
         if (token === requestToken) {
           set({
@@ -156,10 +156,19 @@ export const useListenTogetherStore = create<ListenTogetherState>(
     },
 
     joinRoom: async () => {
-      const room = get().room;
+      let room = get().room;
       if (!room) {
-        await get().checkRoom();
-        return;
+        const roomId = get().roomIdInput.trim();
+        if (!roomId) {
+          set({ error: "请输入房间号" });
+          return;
+        }
+        try {
+          room = await checkListenTogetherRoom(roomId);
+        } catch (error) {
+          set({ error: errorMessage(error, "一起听房间不存在") });
+          return;
+        }
       }
       const inviterId =
         Number(get().inviterIdInput.trim()) || room.inviterId || room.ownerId;
