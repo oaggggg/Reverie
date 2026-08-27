@@ -77,12 +77,15 @@ export default function UserMenu() {
   // 铭牌以统一身份档位为准（/vip/info 双包生效态 + 官方 redplus 品牌位），
   // 不再用 vipType 数字猜档位：11 实为年费 VIP 而非 SVIP。
   const tier = userQualityTier(usePlayerStore.getState());
-  // 昵称旁图片只认两类官方来源：佩戴中的个性化铭牌（plate），以及
-  // vipRights 品牌位图标（brand，与档位天然对应，SVIP 即 redplus 图）。
-  // 动态包图/深扫等其它来源无法自证身份档位——SVIP 账号就曾被下发
-  // "VIP·柒" 等级图——一律改用矢量铭牌按档位自绘，杜绝错标。
+  // 昵称旁图片必须是官方下发：佩戴中的个性化铭牌（plate）、官方包
+  // 动态铭牌（dynamic，动效图）、vipRights 品牌位图（brand，与档位
+  // 对应）三类可信来源直接展示；仅当全部落空时才用矢量铭牌按档位
+  // 自绘兜底。
   const imgBadge =
-    vipInfo && (vipInfo.badgeKind === "plate" || vipInfo.badgeKind === "brand")
+    vipInfo &&
+    (vipInfo.badgeKind === "plate" ||
+      vipInfo.badgeKind === "brand" ||
+      vipInfo.badgeKind === "dynamic")
       ? vipInfo.badgeUrl
       : undefined;
   const frameUrl = profile?.avatarFrameUrl;
