@@ -3342,9 +3342,6 @@ textarea {
   z-index: 3;
   background: color-mix(in srgb, var(--bg-2) 88%, transparent);
 }
-.listen-together-feature-modal {
-  width: min(760px, 94vw);
-}
 .origin-backdrop.origin-opening {
   animation: origin-backdrop-in var(--origin-duration, var(--motion-normal))
     ease both;

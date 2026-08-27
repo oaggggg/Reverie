@@ -77,8 +77,6 @@ const preloadView = (view: View) => {
       return import("./CloudPage");
     case "yunbei":
       return import("./YunbeiPage");
-    case "listenTogether":
-      return import("./ListenTogetherPage");
     case "voiceWorkbench":
       return import("./VoiceWorkbenchPage");
     case "lyricsMark":

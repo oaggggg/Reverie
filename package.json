@@ -44,7 +44,6 @@
     "test:comment-api": "node scripts/test-comment-api.cjs",
     "test:cloud-api": "node scripts/test-cloud-api.cjs",
     "test:yunbei-api": "node scripts/test-yunbei-api.cjs",
-    "test:listen-together-api": "node scripts/test-listen-together-api.cjs",
     "test:voice-api": "node scripts/test-voice-api.cjs",
     "test:playlist-import-api": "node scripts/test-playlist-import-api.cjs",
     "test:lyrics-mark-api": "node scripts/test-lyrics-mark-api.cjs",
