@@ -5886,6 +5886,12 @@ textarea {
 .toast-wrap .toast[data-stack-index="4"] {
   z-index: 5;
 }
+.toast-wrap .toast[data-stack-index="0"],
+.toast-wrap .toast[data-stack-index="1"],
+.toast-wrap .toast[data-stack-index="2"],
+.toast-wrap .toast[data-stack-index="3"] {
+  box-shadow: none;
+}
 .toast-wrap .toast-icon {
   color: var(--green);
 }
