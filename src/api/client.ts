@@ -1392,7 +1392,9 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
   const redplus = d.redplus as Record<string, unknown> | undefined;
   const redplusSvip =
     Number(redplus?.vipCode ?? NaN) === 300 && pkgActive(redplus);
-  const svip = Boolean(brand?.svip) || redplusSvip;
+  // 只有官方组合会员类型 110 才授予 SVIP 权益；普通 VIP 即使命中
+  // redplus 品牌位，也只能按 VIP 处理，避免误开放 SVIP 音质。
+  const svip = vipType === 110 && (Boolean(brand?.svip) || redplusSvip);
   return {
     vipType,
     vipLevel: redLevel,
