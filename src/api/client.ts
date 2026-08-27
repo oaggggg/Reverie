@@ -1024,10 +1024,10 @@ export interface VipInfo {
   /** official/custom member badge image url from the API */
   badgeUrl?: string;
   /**
-   * 徽标图片来源：plate=佩戴中的个性化铭牌；brand=vipRights 品牌位
-   * 图标（与档位天然对应，SVIP 即 redplus 官方图）。两者可作昵称旁
-   * 图片渲染；dynamic/fallback 等其它来源无法自证身份档位，客户端只
-   * 作缓存与诊断，渲染时改用矢量铭牌按 tier 自绘。
+   * 徽标图片来源：dynamic=官方包动态铭牌（动效图，黑胶>畅听包，
+   * 校验有效期）；plate=佩戴中的个性化铭牌；brand=vipRights 品牌位
+   * 图标（与档位天然对应，SVIP 即 redplus 官方图）。三者均为官方
+   * 下发、可作昵称旁图片渲染；fallback=深扫兜底，仅作缓存与诊断。
    */
   badgeKind?: "plate" | "dynamic" | "brand" | "fallback";
   /**
@@ -1238,14 +1238,16 @@ function deepFindCustomPlate(obj: unknown): string {
  * （associator 黑胶会员、musicPackage 畅听包等），每个都带自己的
  * dynamicIconUrl 与过期时间——已过期的包仍会残留旧图标，直接按字段名
  * 挑最优可能拿到失效的。此函数按官方展示优先级（黑胶 > 畅听包）逐个
- * 检查有效期，只返回仍在生效中的那个包的动态图标。
+ * 检查有效期，只返回仍在生效中的那个包的动态图标；包级都未命中时，
+ * 再对响应顶层做一次同口径扫描兜底。
  */
-function pickActiveDynamicBadge(data: Record<string, unknown>): string {
+export function pickActiveDynamicBadge(data: Record<string, unknown>): string {
   const now = Date.now();
   const sections: unknown[] = [
     data.associator,
     data.musicPackage,
     data.redVip ?? data.vipData,
+    data,
   ];
   for (const section of sections) {
     if (!section || typeof section !== "object") continue;
@@ -1299,13 +1301,18 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
   );
   const expireTime = deepFindExpireMs(d);
   // ── 官方徽标解析链 ─────────────────────────────────────────────
-  // 可作为昵称旁图片渲染的只有两类官方来源：①佩戴中的个性化铭牌
-  // （官方行为：佩戴时用它顶掉默认铭牌）②vipRights 品牌位图标
-  // （与档位天然对应，SVIP 即 redplus 官方图）。包动态图标/深扫产出
-  // 无法自证对应哪一档身份（SVIP 账号也曾被下发 "VIP·柒" 等级图），
-  // 记入 badgeKind 仅作诊断与缓存，渲染时由矢量铭牌按档位自绘。
+  // 昵称旁的动态铭牌必须是官方下发：①佩戴中的个性化铭牌（官方行为：
+  // 佩戴时用它顶掉默认铭牌）②官方包动态图标（/vip/info 各会员包的
+  // dynamicIconUrl 动效图，黑胶 > 畅听包，逐包校验有效期，已过期包
+  // 不再借用）③vipRights 品牌位静态图（与档位对应）④深扫兜底。
+  // 全部落空时才由矢量铭牌按档位自绘。
   let badgeUrl = deepFindCustomPlate(d);
   let badgeKind: VipInfo["badgeKind"] = badgeUrl ? "plate" : undefined;
+  const dynamicBadge = pickActiveDynamicBadge(d);
+  if (dynamicBadge && !badgeUrl) {
+    badgeUrl = dynamicBadge;
+    badgeKind = "dynamic";
+  }
   let vipRights: unknown = findVipRights(d);
   let detailRes: unknown = null;
   const fetchDetailOnce = async () => {
@@ -1341,16 +1348,11 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     }
   }
   const brand = pickOfficialBrandIcon(vipRights);
-  // 品牌位图标与档位天然对应（redplus→SVIP、associator→VIP…，均出自
-  // 官方模板分支），可信来源：允许作为昵称旁图片渲染。
+  // 品牌位静态图：动态铭牌缺失时的官方兜底（redplus→SVIP、
+  // associator→VIP…，均出自官方模板分支），可信可渲染。
   if (brand?.url && !badgeUrl) {
     badgeUrl = brand.url;
     badgeKind = "brand";
-  }
-  const dynamicBadge = pickActiveDynamicBadge(d);
-  if (dynamicBadge && !badgeUrl) {
-    badgeUrl = dynamicBadge;
-    badgeKind = "dynamic";
   }
   if (!brand?.url && !badgeUrl) {
     const res = await fetchDetailOnce();
