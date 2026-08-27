@@ -12031,6 +12031,17 @@ textarea {
 .playlist-import-modal > .playlist-import-tabs {
   margin-top: 18px;
 }
+.playlist-import-modal > .playlist-import-tabs button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+.playlist-import-modal > .playlist-import-name,
+.playlist-import-modal > textarea {
+  width: calc(100% - 44px);
+  max-width: calc(100% - 44px);
+}
 .playlist-import-modal > footer {
   margin-top: 8px;
 }
@@ -12048,6 +12059,11 @@ textarea {
   .playlist-import-modal > .playlist-import-error {
     margin-left: 16px;
     margin-right: 16px;
+  }
+  .playlist-import-modal > .playlist-import-name,
+  .playlist-import-modal > textarea {
+    width: calc(100% - 32px);
+    max-width: calc(100% - 32px);
   }
 }
 
