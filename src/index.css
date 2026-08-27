@@ -7806,6 +7806,8 @@ textarea {
   font-size: 12px;
 }
 .playlist-comments-dialog .comment-panel {
+  display: flex;
+  flex: 1;
   min-height: 0;
   overflow: hidden;
 }
@@ -7814,6 +7816,7 @@ textarea {
   background: var(--bg-2);
 }
 .playlist-comments-dialog .comment-list {
+  flex: 1;
   max-height: none;
   min-height: 260px;
   overflow: auto;
@@ -7833,6 +7836,8 @@ textarea {
   overflow: hidden;
 }
 .comments-modal .comment-panel {
+  display: flex;
+  flex: 1;
   min-height: 0;
   margin: 0;
   border: 0;
@@ -7842,6 +7847,7 @@ textarea {
   padding: 10px 0;
 }
 .comments-modal .comment-list {
+  flex: 1;
   min-height: 260px;
   padding: 4px 0 12px;
   overflow: auto;
