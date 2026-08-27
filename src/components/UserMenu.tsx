@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { userQualityTier, usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { CircleUserRound, X } from "lucide-react";
@@ -281,21 +282,23 @@ export default function UserMenu() {
           onClose={() => setFollowDialog(null)}
         />
       )}
-      {profileDialog && (
+      {profileDialog && createPortal(
         <div className="modal-backdrop user-feature-backdrop" onClick={() => setProfileDialog(false)}>
           <section className="modal user-feature-modal profile-feature-modal" role="dialog" aria-modal="true" aria-label="个人中心" onClick={(event) => event.stopPropagation()}>
             <button className="icon-btn user-feature-close" title="关闭" onClick={() => setProfileDialog(false)}><X size={18} /></button>
             <ProfilePage modal />
           </section>
-        </div>
+        </div>,
+        document.body,
       )}
-      {listenTogetherDialog && (
+      {listenTogetherDialog && createPortal(
         <div className="modal-backdrop user-feature-backdrop" onClick={() => setListenTogetherDialog(false)}>
           <section className="modal user-feature-modal listen-together-feature-modal" role="dialog" aria-modal="true" aria-label="一起听" onClick={(event) => event.stopPropagation()}>
             <button className="icon-btn user-feature-close" title="关闭" onClick={() => setListenTogetherDialog(false)}><X size={18} /></button>
             <ListenTogetherPage modal onClose={() => setListenTogetherDialog(false)} />
           </section>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
