@@ -267,7 +267,11 @@ export default function ParticleAlbumCover({
     let watchdogSkipGap = true;
     let frameId = 0;
     let running = false;
-    const isBackgrounded = () => document.hidden || !document.hasFocus();
+    // Losing window focus (for example when using another app) must not stop
+    // the player scene. Only a truly hidden document is backgrounded; audio
+    // playback and the visible scene continue while the desktop window is
+    // unfocused.
+    const isBackgrounded = () => document.hidden;
     const onVisibilityChange = () => {
       watchdogSkipGap = true;
       if (isBackgrounded()) {
@@ -280,7 +284,6 @@ export default function ParticleAlbumCover({
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("focus", onVisibilityChange);
-    window.addEventListener("blur", onVisibilityChange);
 
     let spin = 0;
     let pulse = 0;
@@ -397,7 +400,6 @@ export default function ParticleAlbumCover({
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onVisibilityChange);
-      window.removeEventListener("blur", onVisibilityChange);
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerup", finishDrag);
