@@ -13,6 +13,10 @@ export default function Toasts() {
   const visibleToasts = toasts.slice(-5);
   return (
     <div className="toast-wrap">
+      <span className="toast-size-sizer" aria-hidden="true">
+        <span className="toast-icon">{META[visibleToasts.reduce((longest, toast) => toast.text.length > longest.text.length ? toast : longest, visibleToasts[0]!).type]}</span>
+        {visibleToasts.reduce((longest, toast) => toast.text.length > longest.text.length ? toast : longest, visibleToasts[0]!).text}
+      </span>
       {visibleToasts.map((t, index) => (
         <div
           key={t.id}
