@@ -118,6 +118,7 @@ function showView(
   usePlayerStore.setState({
     activeView: view,
     prevView: previous === view ? player.prevView : previous,
+    viewHistory: previous === view ? player.viewHistory : [...player.viewHistory, previous],
   });
 }
 
