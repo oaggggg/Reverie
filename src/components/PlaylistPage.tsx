@@ -253,6 +253,7 @@ export default function PlaylistPage() {
                 id: String(playlistId),
                 title: playlistName || "歌单",
                 subtitle: `${playlistSongs.length} 首歌曲`,
+                coverUrl: playlistCover,
               },
               false,
             );
@@ -329,7 +330,9 @@ export default function PlaylistPage() {
               </span>
             )}
             {dynamicStats && (
-              <span>分享 {dynamicStats.shareCount.toLocaleString("zh-CN")}</span>
+              <span>
+                分享 {dynamicStats.shareCount.toLocaleString("zh-CN")}
+              </span>
             )}
           </div>
           <div className="detail-actions">{playlistActions}</div>
@@ -388,6 +391,13 @@ export default function PlaylistPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-header">
+              {playlistCover ? (
+                <img
+                  className="playlist-comments-cover"
+                  src={sizedImage(playlistCover, 120)}
+                  alt=""
+                />
+              ) : null}
               <div>
                 <h2 id="playlist-comments-title">歌单评论</h2>
                 <p>{playlistName || "歌单"}</p>
