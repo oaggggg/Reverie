@@ -74,11 +74,38 @@ export default function UserMenu() {
   const vipLevel = Number(vipInfo?.vipLevel ?? 0);
   const expireTime = Number(vipInfo?.expireTime ?? 0);
   const isVip = vipType > 0 || vipLevel > 0 || expireTime > 0;
-  // 徽标兜底文案以统一身份档位为准（/vip/info 双包生效态），
+  // 铭牌以统一身份档位为准（/vip/info 双包生效态 + 官方 redplus 品牌位），
   // 不再用 vipType 数字猜档位：11 实为年费 VIP 而非 SVIP。
   const tier = userQualityTier(usePlayerStore.getState());
-  const badgeUrl = vipInfo?.badgeUrl || profile?.badgeUrl;
+  // 昵称旁图片只认两类官方来源：佩戴中的个性化铭牌（plate），以及
+  // vipRights 品牌位图标（brand，与档位天然对应，SVIP 即 redplus 图）。
+  // 动态包图/深扫等其它来源无法自证身份档位——SVIP 账号就曾被下发
+  // "VIP·柒" 等级图——一律改用矢量铭牌按档位自绘，杜绝错标。
+  const imgBadge =
+    vipInfo && (vipInfo.badgeKind === "plate" || vipInfo.badgeKind === "brand")
+      ? vipInfo.badgeUrl
+      : undefined;
   const frameUrl = profile?.avatarFrameUrl;
+  // 官方铭牌为矢量渲染，等级数字用大写中文（VIP·柒 / SVIP·柒）。
+  const cnDigits = [
+    "零",
+    "一",
+    "二",
+    "三",
+    "四",
+    "五",
+    "六",
+    "七",
+    "八",
+    "九",
+    "十",
+  ];
+  const levelText =
+    vipLevel >= 1 && vipLevel <= 10
+      ? `·${cnDigits[vipLevel]}`
+      : vipLevel > 10
+        ? `·${vipLevel}`
+        : "";
 
   return (
     <div className="user-menu" ref={ref}>
@@ -118,18 +145,22 @@ export default function UserMenu() {
         <span className="user-nick">{profile?.nickname ?? ""}</span>
         {/* 铭牌与头像框是同一来源时只保留头像上的挂件展示，避免重复 */}
         {isVip &&
-        badgeUrl &&
-        brokenBadge !== badgeUrl &&
-        badgeUrl !== frameUrl ? (
+        imgBadge &&
+        brokenBadge !== imgBadge &&
+        imgBadge !== frameUrl ? (
           <img
             className="user-badge-api"
-            src={badgeUrl}
+            src={imgBadge}
             alt="会员"
-            onError={() => setBrokenBadge(badgeUrl)}
+            onError={() => setBrokenBadge(imgBadge)}
           />
         ) : isVip ? (
-          <span className="user-vip-fallback">
+          <span
+            className={`user-vip-fallback${tier === "svip" ? " svip" : ""}`}
+            aria-label={tier === "svip" ? "黑胶超级会员" : "黑胶会员"}
+          >
             {tier === "svip" ? "SVIP" : "VIP"}
+            {levelText}
           </span>
         ) : null}
       </button>
