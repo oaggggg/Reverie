@@ -868,7 +868,8 @@ textarea {
   /* 与用户胶囊同宽：胶囊本身有固定最小宽度，保证内容显示完整 */
   left: 0;
   right: 0;
-  width: auto;
+  width: 280px;
+  min-width: 280px;
   background: color-mix(in srgb, var(--bg-2) 68%, transparent);
   backdrop-filter: blur(24px) saturate(1.35);
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
@@ -882,8 +883,8 @@ textarea {
 .user-dropdown-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px 10px 14px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
 }
@@ -957,13 +958,14 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  padding: 4px 0;
+  padding: 6px 0;
 }
 .user-dropdown-cell {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-height: 38px;
   padding: 8px 6px;
   border-radius: 9px;
   font-size: 12.5px;
@@ -976,7 +978,7 @@ textarea {
 /* 底部账号操作：跟随面板宽度，窄时自动退为一列 */
 .user-dropdown-foot {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 4px;
   border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   padding-top: 8px;
@@ -997,7 +999,7 @@ textarea {
 .user-dropdown-item {
   display: block;
   width: 100%;
-  text-align: left;
+  text-align: center;
   padding: 9px 10px;
   border-radius: 9px;
   font-size: 13px;
