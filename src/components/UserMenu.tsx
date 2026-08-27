@@ -10,7 +10,6 @@ import {
 } from "../store/profileStore";
 import FollowListDialog from "./FollowListDialog";
 import ProfilePage from "./ProfilePage";
-import ListenTogetherPage from "./ListenTogetherPage";
 import {
   captureInteractionOrigin,
   useOriginTransition,
@@ -19,7 +18,6 @@ import {
 export default function UserMenu() {
   const [open, setOpen] = useState(false);
   const [profileDialog, setProfileDialog] = useState(false);
-  const [listenTogetherDialog, setListenTogetherDialog] = useState(false);
   const [brokenBadge, setBrokenBadge] = useState("");
   const profile = usePlayerStore((s) => s.profile);
   const vipInfo = usePlayerStore((s) => s.vipInfo);
@@ -250,15 +248,6 @@ export default function UserMenu() {
             >
               个人中心
             </button>
-            <button
-              className="user-dropdown-cell"
-              onClick={() => {
-                setOpen(false);
-                setListenTogetherDialog(true);
-              }}
-            >
-              一起听
-            </button>
           </div>
           <div className="user-dropdown-foot">
             <button className="user-dropdown-item" onClick={switchAccount}>
@@ -287,15 +276,6 @@ export default function UserMenu() {
           <section className="modal user-feature-modal profile-feature-modal" role="dialog" aria-modal="true" aria-label="个人中心" onClick={(event) => event.stopPropagation()}>
             <button className="icon-btn user-feature-close" title="关闭" onClick={() => setProfileDialog(false)}><X size={18} /></button>
             <ProfilePage modal />
-          </section>
-        </div>,
-        document.body,
-      )}
-      {listenTogetherDialog && createPortal(
-        <div className="modal-backdrop user-feature-backdrop" onClick={() => setListenTogetherDialog(false)}>
-          <section className="modal user-feature-modal listen-together-feature-modal" role="dialog" aria-modal="true" aria-label="一起听" onClick={(event) => event.stopPropagation()}>
-            <button className="icon-btn user-feature-close" title="关闭" onClick={() => setListenTogetherDialog(false)}><X size={18} /></button>
-            <ListenTogetherPage modal onClose={() => setListenTogetherDialog(false)} />
           </section>
         </div>,
         document.body,

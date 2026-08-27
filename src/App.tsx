@@ -76,9 +76,6 @@ const LikesModal = lazy(() => import("./components/LikesModal"));
 const RecentModal = lazy(() => import("./components/RecentModal"));
 const ArtistModal = lazy(() => import("./components/ArtistModal"));
 const AlbumModal = lazy(() => import("./components/AlbumModal"));
-const ListenTogetherPage = lazy(
-  () => import("./components/ListenTogetherPage"),
-);
 const VoiceWorkbenchPage = lazy(
   () => import("./components/VoiceWorkbenchPage"),
 );
@@ -1219,8 +1216,6 @@ export default function App() {
         return <CloudPage />;
       case "yunbei":
         return <YunbeiPage />;
-      case "listenTogether":
-        return <ListenTogetherPage />;
       case "voiceWorkbench":
         return <VoiceWorkbenchPage />;
       case "lyricsMark":

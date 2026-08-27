@@ -281,7 +281,6 @@ export type View =
   | "social"
   | "cloud"
   | "yunbei"
-  | "listenTogether"
   | "voiceWorkbench"
   | "lyricsMark"
   | "digitalAlbum"
@@ -437,25 +436,6 @@ export interface SongMusicDetail {
   format: string;
   size: number;
   url?: string;
-}
-
-export interface ListenTogetherRoom {
-  roomId: string;
-  inviterId?: number;
-  ownerId?: number;
-  status: string;
-  memberCount: number;
-  maxMemberCount: number;
-  createdAt: number;
-}
-
-export interface ListenTogetherState {
-  room: ListenTogetherRoom | null;
-  inRoom?: boolean;
-  currentSongId: number;
-  playing: boolean;
-  progress: number;
-  playlist: Song[];
 }
 
 export interface VoiceListInfo {
