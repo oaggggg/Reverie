@@ -384,13 +384,13 @@ export default function PlaylistPage() {
         >
           <div
             ref={commentsSurfaceRef}
-            className="modal playlist-comments-dialog"
+            className="modal comments-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="playlist-comments-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="modal-header">
+            <header className="comments-modal-head playlist-comments-head">
               {playlistCover ? (
                 <img
                   className="playlist-comments-cover"
@@ -398,9 +398,14 @@ export default function PlaylistPage() {
                   alt=""
                 />
               ) : null}
-              <div>
-                <h2 id="playlist-comments-title">歌单评论</h2>
-                <p>{playlistName || "歌单"}</p>
+              <div className="comments-modal-titles">
+                <span className="comments-modal-kind">歌单评论</span>
+                <strong
+                  id="playlist-comments-title"
+                  className="comments-modal-title"
+                >
+                  {playlistName || "歌单"}
+                </strong>
               </div>
               <button
                 className="modal-close"
@@ -409,7 +414,7 @@ export default function PlaylistPage() {
               >
                 <X size={18} />
               </button>
-            </div>
+            </header>
             <CommentPanel compact />
           </div>
         </div>

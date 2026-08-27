@@ -40,7 +40,7 @@ export default function CommentsModal() {
     >
       <div
         ref={transition.surfaceRef}
-        className={`modal detail-modal comments-modal ${transition.surfaceClassName}`}
+        className={`modal comments-modal ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-label="评论"
@@ -53,7 +53,7 @@ export default function CommentsModal() {
         >
           <X size={16} />
         </button>
-        <div className="detail-modal-inner comments-modal-inner">
+        <div className="comments-modal-inner">
           <header className="comments-modal-head">
             <span className="comments-modal-cover">
               {resource?.coverUrl ? (
@@ -69,7 +69,7 @@ export default function CommentsModal() {
               </strong>
             </div>
           </header>
-          <div className="detail-modal-body comments-modal-body">
+          <div className="comments-modal-body">
             <CommentPanel />
           </div>
         </div>

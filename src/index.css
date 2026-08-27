@@ -7869,6 +7869,79 @@ textarea {
   .comments-modal-head { padding-right: 28px; }
 }
 
+/* Unified playlist comment dialog: one shell for every playlist entry point. */
+.modal.comments-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, calc(100vw - 32px));
+  height: min(680px, calc(100vh - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: hidden;
+}
+.comments-modal-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  padding: 18px 20px 16px;
+}
+.comments-modal-head {
+  min-height: 46px;
+  padding-right: 38px;
+}
+.comments-modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.comments-modal-body .comment-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+.comments-modal-body .comment-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0 12px;
+}
+.comments-modal-body .comment-toolbar {
+  padding: 10px 0;
+}
+.comments-modal-body .comment-composer {
+  flex: none;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border);
+}
+.comments-modal .modal-close,
+.comments-modal .detail-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 5;
+}
+.playlist-comments-head {
+  flex: none;
+}
+@media (max-width: 560px) {
+  .modal.comments-modal {
+    width: calc(100vw - 20px);
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+  }
+  .comments-modal-inner {
+    padding: 14px;
+  }
+  .comments-modal-head {
+    padding-right: 30px;
+  }
+}
+
 .pb-quality-wrap {
   position: relative;
   display: inline-flex;
@@ -8964,6 +9037,43 @@ textarea {
 @media (max-width: 700px) {
   .recent-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Final precedence for the unified playlist comment shell. */
+.modal.comments-modal {
+  height: min(680px, calc(100vh - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: hidden;
+}
+.comments-modal .comments-modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.comments-modal .comments-modal-body .comment-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+.comments-modal .comments-modal-body .comment-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+.comments-modal .comments-modal-body .comment-composer {
+  flex: none;
+}
+@media (max-width: 560px) {
+  .modal.comments-modal {
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
   }
 }
 @media (max-width: 700px) {
