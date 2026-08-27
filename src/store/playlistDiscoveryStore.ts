@@ -52,10 +52,15 @@ export const usePlaylistDiscoveryStore = create<PlaylistDiscoveryState>()(
             : getPlaylistDiscoveryCategories(),
           getHighQualityPlaylists(selectedTag),
         ]);
+        const hasPlaylists = page.playlists.length > 0;
+        const removeEmptyTag = (items: PlaylistCategory[]) =>
+          selectedTag === "全部" || hasPlaylists
+            ? items
+            : items.filter((item) => item.name !== selectedTag);
         set({
-          categories: categories.categories,
-          hotTags: categories.hotTags,
-          highQualityTags: categories.highQualityTags,
+          categories: removeEmptyTag(categories.categories),
+          hotTags: removeEmptyTag(categories.hotTags),
+          highQualityTags: removeEmptyTag(categories.highQualityTags),
           playlists: page.playlists,
           more: page.more,
           before: page.before,
