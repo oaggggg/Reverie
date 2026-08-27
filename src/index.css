@@ -7942,6 +7942,42 @@ textarea {
   }
 }
 
+/* Keep every comment surface on one shared content grid. */
+.modal.comments-modal .comment-toolbar,
+.modal.comments-modal .comment-list,
+.modal.comments-modal .comment-composer {
+  padding-left: 28px;
+  padding-right: 28px;
+}
+.modal.comments-modal .comments-modal-header {
+  padding-left: 28px;
+  padding-right: 28px;
+}
+.modal.comments-modal .comment-toolbar {
+  min-height: 56px;
+  border-bottom: 1px solid var(--border-light);
+}
+.modal.comments-modal .comment-list {
+  padding-top: 8px;
+  padding-bottom: 18px;
+}
+.modal.comments-modal .comment-composer {
+  padding-top: 14px;
+  padding-bottom: 16px;
+}
+@media (max-width: 560px) {
+  .modal.comments-modal .comments-modal-header {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .modal.comments-modal .comment-toolbar,
+  .modal.comments-modal .comment-list,
+  .modal.comments-modal .comment-composer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
 .pb-quality-wrap {
   position: relative;
   display: inline-flex;
