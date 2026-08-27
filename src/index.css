@@ -6206,7 +6206,8 @@ textarea {
   object-fit: cover;
   pointer-events: none;
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
-  will-change: left, top, width, height, opacity, border-radius;
+  will-change: transform, opacity;
+  transform-origin: center center;
 }
 
 .now-playing-3d .np-stage-3d {
