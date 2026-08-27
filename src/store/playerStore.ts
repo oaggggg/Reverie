@@ -1264,12 +1264,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     get().playQueueAt(ni);
   },
   prev: () => {
-    const { queue, index, progress } = get();
+    // 上一首始终直接切歌，不做"播放中先回到开头"的二次确认：
+    // 想重听当前曲用进度条拖回开头，避免连点两下才能切上一首。
+    const { queue, index } = get();
     if (!queue.length) return;
-    if (progress > 3000) {
-      get().seek(0);
-      return;
-    }
     let pi = index - 1;
     if (pi < 0) pi = queue.length - 1;
     get().playQueueAt(pi);
