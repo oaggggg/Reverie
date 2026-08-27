@@ -4,7 +4,7 @@
 
 Reverie 是一款音乐播放器，使用 Tauri 2、React、TypeScript 和 Rust 构建。应用通过随包分发的本地 API sidecar 访问音乐服务，播放器本身不依赖 Reverie 自建后端。
 
-> Reverie 仅支持 Windows 与 macOS。GitHub Release 同时提供 Windows x64 安装包和兼容 Intel/Apple 芯片的 macOS Universal 安装包，不提供 Linux 版本。
+> Reverie 仅提供 Windows 与 macOS 桌面客户端，不提供 Android、iOS 或其他移动端版本。GitHub Release 同时提供 Windows x64 安装包和兼容 Intel/Apple 芯片的 macOS Universal 安装包。
 
 ## 目录
 
@@ -27,7 +27,7 @@ Reverie 是一款音乐播放器，使用 Tauri 2、React、TypeScript 和 Rust 
 - **沉浸式播放页**：专辑封面、歌词同步、高亮、译文、歌词字号和可切换的歌词视觉效果。
 - **账号能力**：网易云音乐扫码登录；登录后可使用个性化推荐、收藏内容、评论和需要账号权限的播放能力。
 - **接口覆盖**：基于 `NeteaseCloudMusicApi` 接入 357 条非账号接口，统一提供搜索、播放、歌词、歌单、社交、播客、视频、会员和云贝等客户端能力。
-- **桌面能力**：自定义标题栏、主题切换、窗口控制、启动更新检查和应用内更新安装。
+- **桌面能力**：自定义标题栏、主题切换、窗口控制、启动更新检查和应用内更新安装；客户端仅面向 Windows 与 macOS。
 - **本地优先**：界面设置、播放队列、最近播放和登录 Cookie 默认保存在当前设备。
 
 未登录时仍可浏览部分公开内容；需要账号权限的功能会在界面中提示登录。歌曲是否可播放取决于第三方接口返回的权限和版权状态。
@@ -73,7 +73,7 @@ Windows 版本需要可用的 WebView2 运行时。安装包通常会由系统�
 - Node.js 22 LTS 或更高版本，npm 10 或更高版本。
 - Rust stable，且版本不低于 `src-tauri/Cargo.toml` 中声明的 `rust-version`。
 - Windows 开发需要 WebView2，macOS 开发需要 Xcode Command Line Tools。
-- 首次构建需要能够下载 npm、Cargo 和 sidecar 打包依赖；Linux 不在支持范围内。
+- 首次构建需要能够下载 npm、Cargo 和 sidecar 打包依赖；仅构建 Windows 与 macOS 桌面版本，Linux 和移动端不在支持范围内。
 
 ### 快速开始
 
