@@ -3314,6 +3314,37 @@ textarea {
   -webkit-backdrop-filter: var(--glass-surface-filter);
   backdrop-filter: var(--glass-surface-filter);
 }
+.user-feature-backdrop {
+  z-index: 180;
+  padding: 24px;
+}
+.user-feature-modal {
+  position: relative;
+  width: min(920px, 94vw);
+  height: min(760px, 88vh);
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+}
+.user-feature-modal > .page {
+  height: 100%;
+}
+.user-feature-modal .page-scroll {
+  height: 100%;
+  padding: 28px;
+  overflow-y: auto;
+}
+.user-feature-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  background: color-mix(in srgb, var(--bg-2) 88%, transparent);
+}
+.listen-together-feature-modal {
+  width: min(760px, 94vw);
+}
 .origin-backdrop.origin-opening {
   animation: origin-backdrop-in var(--origin-duration, var(--motion-normal))
     ease both;

@@ -28,7 +28,7 @@ function formatDate(timestamp: number) {
   });
 }
 
-export default function ProfilePage() {
+export default function ProfilePage({ modal = false }: { modal?: boolean }) {
   const [brokenAvatar, setBrokenAvatar] = useState("");
   const [brokenBackground, setBrokenBackground] = useState("");
   const [followDialog, setFollowDialog] = useState<
@@ -73,7 +73,7 @@ export default function ProfilePage() {
 
   return (
     <Page>
-      <BackButton />
+      {!modal && <BackButton />}
       <section className="profile-hero">
         {detail.backgroundUrl && brokenBackground !== detail.backgroundUrl && (
           <img
