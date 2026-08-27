@@ -35,7 +35,16 @@ import {
 const FALLBACK_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='18' fill='%23e9eaf0'/%3E%3Ccircle cx='80' cy='80' r='42' fill='%23c9cad4'/%3E%3Ccircle cx='80' cy='80' r='14' fill='%23f5f5f8'/%3E%3Cpath d='M94 42v46.5a20 20 0 1 1-8-16V42h8Z' fill='%237b7f92'/%3E%3C/svg%3E";
 
+/** 淡入淡出进行中的句柄：rAF 主驱动 + 墙钟 interval 兜底。 */
+interface ActiveFade {
+  frame: number;
+  timer: number;
+}
+
 const SEAMLESS_CROSSFADE_MS = 260;
+// 无缝过渡交接链的总预算。超出说明渐变回调被系统冻结或 play() 卡死，
+// 必须放弃交叉淡化走兜底，不能让下一首永久卡在“已起播未接管”。
+const SEAMLESS_WATCHDOG_MS = SEAMLESS_CROSSFADE_MS * 4 + 3000;
 // 淡入淡出时长由设置驱动（audioFadeSeconds，1~12 秒）；无缝切歌过渡
 // 是独立机制，保持短促避免拖沓。
 const fadeMs = () => usePlayerStore.getState().audioFadeSeconds * 1000;
@@ -97,9 +106,13 @@ const UpdateModal = lazy(() => import("./components/UpdateModal"));
 export default function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadAudioRef = useRef<HTMLAudioElement>(null);
-  const fadeFramesRef = useRef(new Map<HTMLAudioElement, number>());
+  const fadeFramesRef = useRef(new Map<HTMLAudioElement, ActiveFade>());
   const playbackSyncRef = useRef(0);
   const seamlessTransitionRef = useRef(false);
+  // 无缝过渡的尝试序号：交接链成功/失败/看门狗放弃都会推进它，
+  // 使同一次尝试的迟到回调全部失效，防止旧链覆盖新状态。
+  const seamlessAttemptRef = useRef(0);
+  const seamlessWatchdogRef = useRef<number | null>(null);
   const skipNextFadeInRef = useRef(false);
   const handledEndedUrlRef = useRef<string | null>(null);
   // 音质切换两阶段交接：记录已对哪个目标 URL 完成寻址（第一阶段 seek）。
@@ -114,9 +127,10 @@ export default function App() {
   const silentToastShownRef = useRef(false);
 
   const cancelAudioFade = (audio: HTMLAudioElement) => {
-    const frame = fadeFramesRef.current.get(audio);
-    if (frame !== undefined) {
-      window.cancelAnimationFrame(frame);
+    const fade = fadeFramesRef.current.get(audio);
+    if (fade) {
+      window.cancelAnimationFrame(fade.frame);
+      window.clearInterval(fade.timer);
       fadeFramesRef.current.delete(audio);
     }
   };
@@ -139,18 +153,33 @@ export default function App() {
     }
     return new Promise<void>((resolve) => {
       const startedAt = performance.now();
-      const step = (now: number) => {
-        const progress = Math.min(1, (now - startedAt) / effective);
+      let settled = false;
+      let frame = 0;
+      let timer = 0;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.cancelAnimationFrame(frame);
+        window.clearInterval(timer);
+        if (fadeFramesRef.current.get(audio)?.frame === frame)
+          fadeFramesRef.current.delete(audio);
+        resolve();
+      };
+      // 进度按墙钟计算：窗口隐藏时 rAF 会整体冻结、interval 被节流，
+      // 但只要二者其一能跑起来，渐变就会推进并最终 resolve——
+      // 无缝切歌的交接链绝不能被后台窗口卡死。
+      const step = () => {
+        const progress = Math.min(
+          1,
+          (performance.now() - startedAt) / effective,
+        );
         const eased = 1 - Math.pow(1 - progress, 3);
         audio.volume = start + (end - start) * eased;
-        if (progress >= 1) {
-          fadeFramesRef.current.delete(audio);
-          resolve();
-          return;
-        }
-        fadeFramesRef.current.set(audio, window.requestAnimationFrame(step));
+        if (progress >= 1) finish();
       };
-      fadeFramesRef.current.set(audio, window.requestAnimationFrame(step));
+      frame = window.requestAnimationFrame(step);
+      timer = window.setInterval(step, 400);
+      fadeFramesRef.current.set(audio, { frame, timer });
     });
   };
 
@@ -713,6 +742,23 @@ export default function App() {
       if (!nextSong || nextAudio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
         return;
       seamlessTransitionRef.current = true;
+      const attemptId = ++seamlessAttemptRef.current;
+      const cancelWatchdog = () => {
+        if (seamlessWatchdogRef.current !== null) {
+          window.clearTimeout(seamlessWatchdogRef.current);
+          seamlessWatchdogRef.current = null;
+        }
+      };
+      // 看门狗：交接链迟迟不结算（后台冻结 / play() 卡死）就放弃本次
+      // 交叉淡化，回到 ended 兜底路径完成切换。切到下一首永远比挂着强。
+      seamlessWatchdogRef.current = window.setTimeout(() => {
+        seamlessWatchdogRef.current = null;
+        if (seamlessAttemptRef.current !== attemptId) return;
+        seamlessAttemptRef.current++;
+        seamlessTransitionRef.current = false;
+        nextAudio.pause();
+        nextAudio.currentTime = 0;
+      }, SEAMLESS_WATCHDOG_MS);
       nextAudio.currentTime = 0;
       nextAudio.volume = 0;
       nextAudio
@@ -728,6 +774,9 @@ export default function App() {
           ]),
         )
         .then(() => {
+          if (seamlessAttemptRef.current !== attemptId) return;
+          seamlessAttemptRef.current++;
+          cancelWatchdog();
           current.pause();
           current.currentTime = 0;
           skipNextFadeInRef.current = true;
@@ -742,6 +791,9 @@ export default function App() {
           seamlessTransitionRef.current = false;
         })
         .catch(() => {
+          if (seamlessAttemptRef.current !== attemptId) return;
+          seamlessAttemptRef.current++;
+          cancelWatchdog();
           nextAudio.pause();
           nextAudio.volume = state.muted ? 0 : state.volume;
           seamlessTransitionRef.current = false;
@@ -755,6 +807,20 @@ export default function App() {
   useEffect(() => {
     if (!playing) skipNextFadeInRef.current = false;
   }, [playing]);
+
+  // 组件卸载时清掉仍可能计时的交接看门狗与进行中的渐变句柄。
+  // 注意交接链（含其看门狗）生命周期长于触发它的轮询 effect，
+  // 因此只在真正的 unmount 里统一收口。
+  useEffect(
+    () => () => {
+      if (seamlessWatchdogRef.current !== null)
+        window.clearTimeout(seamlessWatchdogRef.current);
+      const fades = [...fadeFramesRef.current.keys()];
+      fades.forEach((el) => cancelAudioFade(el));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   // Fill the inactive decoder while the current track plays. The URL comes
   // directly from Netease's official song URL endpoint.
@@ -962,7 +1028,16 @@ export default function App() {
     }
     if (!audio || !currentUrl) return;
     const timer = window.setInterval(() => {
-      if (audio.ended) advanceAfterEnded(audio);
+      // WebView 在解码器交接窗口可能直接丢掉 ended 事件；此外个别流
+      // 结尾会停在最后 <120ms 处、ended 永不置位。两种残局都按“已播完”
+      // 兜底推进（试听截断与此无关，previewEnd 时绝不插手）。
+      const st = usePlayerStore.getState();
+      const nearEnd =
+        st.previewEnd === null &&
+        !audio.paused &&
+        Number.isFinite(audio.duration) &&
+        audio.duration - audio.currentTime <= 0.12;
+      if (audio.ended || nearEnd) advanceAfterEnded(audio);
     }, 200);
     return () => window.clearInterval(timer);
   }, [activeAudio, currentUrl, playing, preloadedSongId, preloadedUrl]);
