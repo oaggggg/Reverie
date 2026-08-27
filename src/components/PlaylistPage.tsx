@@ -415,7 +415,9 @@ export default function PlaylistPage() {
                 <X size={18} />
               </button>
             </header>
-            <CommentPanel compact />
+            <div className="comments-modal-body">
+              <CommentPanel compact />
+            </div>
           </div>
         </div>
       )}
