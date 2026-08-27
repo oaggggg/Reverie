@@ -15,7 +15,6 @@ import { getPlaylistDetail } from "../api/client";
 import { getRelatedPlaylists } from "../api/related";
 import {
   getPlaylistDynamicStats,
-  getPlaylistSubscribers,
   getPlaylistAllTracks,
   manipulatePlaylistTracks,
   updatePlaylistOrder,
@@ -23,8 +22,7 @@ import {
 import { useExploreStore } from "../store/exploreStore";
 import { usePlayerStore } from "../store/playerStore";
 import { useCommentStore } from "../store/commentStore";
-import type { PlaylistDynamicStats, SocialUser } from "../api/types";
-import { sizedImage } from "../utils/image";
+import type { PlaylistDynamicStats } from "../api/types";
 import { Page, PageHeader } from "./Page";
 import SongList from "./SongList";
 import PlaylistEditorModal from "./PlaylistEditorModal";
@@ -65,8 +63,6 @@ export default function PlaylistPage() {
   );
   const [relatedPlaylists, setRelatedPlaylists] = useState<PlaylistInfo[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
-  const [subscribers, setSubscribers] = useState<SocialUser[]>([]);
-  const [subscribersLoading, setSubscribersLoading] = useState(false);
   const openPlaylist = usePlayerStore((s) => s.openPlaylist);
 
   useEffect(() => {
@@ -80,25 +76,6 @@ export default function PlaylistPage() {
       })
       .catch(() => {
         if (alive) setDynamicStats(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [playlistId]);
-
-  useEffect(() => {
-    let alive = true;
-    if (!playlistId) return;
-    setSubscribersLoading(true);
-    void getPlaylistSubscribers(playlistId)
-      .then((items) => {
-        if (alive) setSubscribers(items);
-      })
-      .catch(() => {
-        if (alive) setSubscribers([]);
-      })
-      .finally(() => {
-        if (alive) setSubscribersLoading(false);
       });
     return () => {
       alive = false;
@@ -332,36 +309,6 @@ export default function PlaylistPage() {
           <span>评论 {dynamicStats.commentCount.toLocaleString("zh-CN")}</span>
           <span>分享 {dynamicStats.shareCount.toLocaleString("zh-CN")}</span>
         </div>
-      )}
-      {(subscribersLoading || subscribers.length > 0) && (
-        <section className="playlist-subscribers">
-          <div className="list-header">
-            <h3>收藏者</h3>
-            <span className="count">
-              {subscribersLoading ? "加载中…" : `${subscribers.length} 人`}
-            </span>
-          </div>
-          <div className="playlist-subscriber-list">
-            {subscribers.map((user) => (
-              <div
-                className="playlist-subscriber"
-                key={user.userId}
-                title={user.signature || user.nickname}
-              >
-                {user.avatarUrl ? (
-                  <img
-                    src={sizedImage(user.avatarUrl, 80)}
-                    alt=""
-                    loading="lazy"
-                  />
-                ) : (
-                  <span>{user.nickname.slice(0, 1)}</span>
-                )}
-                <strong>{user.nickname}</strong>
-              </div>
-            ))}
-          </div>
-        </section>
       )}
       <SongList
         songs={playlistSongs}

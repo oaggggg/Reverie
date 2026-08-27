@@ -7234,50 +7234,6 @@ textarea {
   gap: 4px;
   color: var(--accent-2);
 }
-.playlist-subscribers {
-  margin: 0 0 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-2);
-}
-.playlist-subscriber-list {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-.playlist-subscriber {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  width: 58px;
-  flex: 0 0 58px;
-  min-width: 0;
-}
-.playlist-subscriber img,
-.playlist-subscriber > span {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.playlist-subscriber > span {
-  display: grid;
-  place-items: center;
-  background: var(--bg-4);
-  color: var(--text-faint);
-  font-size: 14px;
-}
-.playlist-subscriber strong {
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-dim);
-  font-size: 10px;
-  text-align: center;
-}
 .artist-introduction {
   margin: 0 0 18px;
   padding: 14px 16px;
