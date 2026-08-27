@@ -18,21 +18,33 @@ const vipInfo = (over: Partial<VipInfo>): VipInfo => ({
 });
 
 test("userQualityTier maps membership state to free/vip/svip", () => {
-  assert.equal(userQualityTier({ ...base, loggedIn: false, vipInfo: null }), "free");
+  assert.equal(
+    userQualityTier({ ...base, loggedIn: false, vipInfo: null }),
+    "free",
+  );
   // 未登录即使带残留 vipInfo 也按非会员
   assert.equal(
-    userQualityTier({ loggedIn: false, profile: null, vipInfo: vipInfo({ svip: true }) }),
+    userQualityTier({
+      loggedIn: false,
+      profile: null,
+      vipInfo: vipInfo({ svip: true }),
+    }),
     "free",
   );
   // 无会员信息 + 无 profile → 非会员
   assert.equal(userQualityTier({ ...base, vipInfo: null }), "free");
   // 普通黑胶 VIP
   assert.equal(userQualityTier({ ...base, vipInfo: vipInfo({}) }), "vip");
-  // SVIP：双包生效
+  // SVIP：客户端已判定的 svip 标志（redplus vipCode=300 在期）
   assert.equal(
-    userQualityTier({ ...base, vipInfo: vipInfo({ vipType: 110, svip: true }) }),
+    userQualityTier({
+      ...base,
+      vipInfo: vipInfo({ vipType: 110, svip: true }),
+    }),
     "svip",
   );
+  // 双包同真但无 svip 标志（真实采样中年费 VIP 常见）→ 不升档
+  assert.equal(userQualityTier({ ...base, vipInfo: vipInfo({}) }), "vip");
   // 会员过期（login/status 的 vipType 可能仍 >0）→ 非会员口径
   assert.equal(
     userQualityTier({
@@ -55,8 +67,16 @@ test("userQualityTier maps membership state to free/vip/svip", () => {
 
 test("qualityAllowedFor enforces free<vip<svip with downward compatibility", () => {
   for (const [quality, need] of Object.entries(PLAYBACK_QUALITY_TIER)) {
-    assert.equal(qualityAllowedFor(quality as never, "free"), need === "free", quality);
-    assert.equal(qualityAllowedFor(quality as never, "vip"), need !== "svip", quality);
+    assert.equal(
+      qualityAllowedFor(quality as never, "free"),
+      need === "free",
+      quality,
+    );
+    assert.equal(
+      qualityAllowedFor(quality as never, "vip"),
+      need !== "svip",
+      quality,
+    );
     assert.equal(qualityAllowedFor(quality as never, "svip"), true, quality);
   }
 });

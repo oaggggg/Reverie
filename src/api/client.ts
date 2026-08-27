@@ -1024,6 +1024,13 @@ export interface VipInfo {
   /** official/custom member badge image url from the API */
   badgeUrl?: string;
   /**
+   * 徽标图片来源：plate=佩戴中的个性化铭牌；brand=vipRights 品牌位
+   * 图标（与档位天然对应，SVIP 即 redplus 官方图）。两者可作昵称旁
+   * 图片渲染；dynamic/fallback 等其它来源无法自证身份档位，客户端只
+   * 作缓存与诊断，渲染时改用矢量铭牌按 tier 自绘。
+   */
+  badgeKind?: "plate" | "dynamic" | "brand" | "fallback";
+  /**
    * 黑胶超级会员（SVIP）：黑胶 VIP 与畅听包同时生效——对应官方
    * vipType 110 组合态，是沉浸环绕声/超清母带等 SVIP 特权的判定依据。
    */
@@ -1291,12 +1298,14 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     d.vipType ?? d.redVipType ?? d.vipStatus ?? (redLevel > 0 ? 10 : 0),
   );
   const expireTime = deepFindExpireMs(d);
-  // ── 官方徽标解析链（对齐官方客户端口径）────────────────────────
-  // ①佩戴中的个性化铭牌 → ②包动态图标(校验有效期) → ③官方品牌位
-  // (vipRights 树，SVIP 的权威证据在 redplus.vipCode===300 节点)
-  // → ④资料深扫兜底。此前把头像挂件(avatarDetail)混进徽标来源、且读
-  // 不到 redplus 节点，导致 SVIP 显示成 "VIP·柒" 等级胶囊或非官方图。
+  // ── 官方徽标解析链 ─────────────────────────────────────────────
+  // 可作为昵称旁图片渲染的只有两类官方来源：①佩戴中的个性化铭牌
+  // （官方行为：佩戴时用它顶掉默认铭牌）②vipRights 品牌位图标
+  // （与档位天然对应，SVIP 即 redplus 官方图）。包动态图标/深扫产出
+  // 无法自证对应哪一档身份（SVIP 账号也曾被下发 "VIP·柒" 等级图），
+  // 记入 badgeKind 仅作诊断与缓存，渲染时由矢量铭牌按档位自绘。
   let badgeUrl = deepFindCustomPlate(d);
+  let badgeKind: VipInfo["badgeKind"] = badgeUrl ? "plate" : undefined;
   let vipRights: unknown = findVipRights(d);
   let detailRes: unknown = null;
   const fetchDetailOnce = async () => {
@@ -1313,23 +1322,42 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     return detailRes;
   };
   const firstDetail = await fetchDetailOnce();
-  if (!badgeUrl && firstDetail) badgeUrl = deepFindCustomPlate(firstDetail);
+  if (!badgeUrl && firstDetail) {
+    badgeUrl = deepFindCustomPlate(firstDetail);
+    if (badgeUrl) badgeKind = "plate";
+  }
   if (!vipRights) vipRights = findVipRights(firstDetail);
-  if (!vipRights) {
+  if (!vipRights || !badgeUrl) {
     // user/detail/new 拿不到资料时的次级来源（内含 profile.vipRights）
     try {
       const res = await request<unknown>("/user/detail", { uid }, false);
-      badgeUrl ||= deepFindCustomPlate(res);
-      vipRights = findVipRights(res);
+      if (!badgeUrl) {
+        badgeUrl = deepFindCustomPlate(res);
+        if (badgeUrl) badgeKind = "plate";
+      }
+      vipRights ||= findVipRights(res);
     } catch {
       /* ignore */
     }
   }
   const brand = pickOfficialBrandIcon(vipRights);
-  if (!badgeUrl) badgeUrl = pickActiveDynamicBadge(d);
+  // 品牌位图标与档位天然对应（redplus→SVIP、associator→VIP…，均出自
+  // 官方模板分支），可信来源：允许作为昵称旁图片渲染。
+  if (brand?.url && !badgeUrl) {
+    badgeUrl = brand.url;
+    badgeKind = "brand";
+  }
+  const dynamicBadge = pickActiveDynamicBadge(d);
+  if (dynamicBadge && !badgeUrl) {
+    badgeUrl = dynamicBadge;
+    badgeKind = "dynamic";
+  }
   if (!brand?.url && !badgeUrl) {
     const res = await fetchDetailOnce();
-    if (res) badgeUrl = deepFindBadgeUrl(res);
+    if (res) {
+      badgeUrl = deepFindBadgeUrl(res);
+      if (badgeUrl) badgeKind = "fallback";
+    }
   }
   if (!badgeUrl) {
     // 诊断：所有来源都未命中时打印可用字段名，便于用开发者工具
@@ -1341,14 +1369,12 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
       uid,
     );
   }
-  // SVIP 判定双通道：
-  // a) 官方品牌位 redplus.vipCode===300 && rights（vipRights 树）——
-  //    官方口径里黑胶超级会员的权威证据，最优先；
-  // b) /vip/info 双包（黑胶+畅听）同时生效的组合态兜底。
-  // 到期判定与 pickActiveDynamicBadge 同一口径：包内任意过期类字段的
-  // 最大值即该包到期时间（秒/毫秒/日期串经 parseEpoch 归一）。此前只认
-  // expireTime 且按毫秒直读，字段名变体或秒级时间戳会把在期的包误判为
-  // 已过期，导致 SVIP 被降档显示成 VIP。
+  // SVIP 判定唯一权威口径：redplus（黑胶超级会员）节点在期，
+  // 即 vipCode===300 且未过期。真实账号采样证明「双包同时生效」不成立
+  // （年费 VIP 普遍被捆绑畅听包、双包 rights 同真），不得作为依据；
+  // 品牌位解析命中 redplus 分支时等价可靠，作并联信号。
+  // 到期判定与 pickActiveDynamicBadge 同一口径：节点内任意过期类字段的
+  // 最大值即到期时间（秒/毫秒/日期串经 parseEpoch 归一）。
   const now = Date.now();
   const pkgActive = (o: unknown): boolean => {
     if (!o || typeof o !== "object") return false;
@@ -1361,18 +1387,19 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     }
     return expires.length === 0 || Math.max(...expires) > now;
   };
-  const svip =
-    Boolean(brand?.svip) ||
-    (pkgActive(d.associator) && pkgActive(d.musicPackage));
+  const redplus = d.redplus as Record<string, unknown> | undefined;
+  const redplusSvip =
+    Number(redplus?.vipCode ?? NaN) === 300 && pkgActive(redplus);
+  const svip = Boolean(brand?.svip) || redplusSvip;
   return {
     vipType,
     vipLevel: redLevel,
     expireTime,
     badgeUrl: badgeUrl || brand?.url || undefined,
+    badgeKind,
     svip,
   };
 }
-
 export async function getSongsByIds(ids: number[]): Promise<Song[]> {
   if (!ids.length) return [];
   // Song metadata is stable; cache aggressively so re-entering a large liked

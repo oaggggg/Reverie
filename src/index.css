@@ -386,17 +386,20 @@ textarea {
    33%，与光带行至词中央的时刻对齐。 */
 @keyframes reverie-glow {
   0% {
-    filter: drop-shadow(-5px 0 7px
-        color-mix(in srgb, var(--accent-2) 14%, transparent));
+    filter: drop-shadow(
+      -5px 0 7px color-mix(in srgb, var(--accent-2) 14%, transparent)
+    );
   }
   33% {
-    filter: drop-shadow(0 0 15px
-        color-mix(in srgb, var(--accent-2) 38%, transparent));
+    filter: drop-shadow(
+      0 0 15px color-mix(in srgb, var(--accent-2) 38%, transparent)
+    );
   }
   66%,
   100% {
-    filter: drop-shadow(5px 0 7px
-        color-mix(in srgb, var(--accent-2) 12%, transparent));
+    filter: drop-shadow(
+      5px 0 7px color-mix(in srgb, var(--accent-2) 12%, transparent)
+    );
   }
 }
 /* 单次跳跃铺满周期的前 9%（≈0.65s），略长于相邻字母的起跳间隔
@@ -6383,9 +6386,11 @@ textarea {
    全局键盘模式的 :root[data-input-mode] 红色 focus-visible 描边
    （accent 绯红）优先级更高，会盖过下面不带前缀的抑制规则，
    导致播放栏按钮在键盘操作后出现红色焦点框。 */
-:root .player-bar
+:root
+  .player-bar
   :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
-:root .player-bar
+:root
+  .player-bar
   :is(
     button,
     input,
@@ -6393,9 +6398,11 @@ textarea {
     [role="button"],
     [role="menuitemradio"]
   ):focus-visible,
-:root .pb-queue-menu
+:root
+  .pb-queue-menu
   :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
-:root .pb-queue-menu
+:root
+  .pb-queue-menu
   :is(
     button,
     input,
@@ -6403,9 +6410,11 @@ textarea {
     [role="button"],
     [role="menuitemradio"]
   ):focus-visible,
-:root .pb-quality-menu
+:root
+  .pb-quality-menu
   :is(button, input, textarea, [role="button"], [role="menuitemradio"]):focus,
-:root .pb-quality-menu
+:root
+  .pb-quality-menu
   :is(
     button,
     input,
@@ -6413,14 +6422,17 @@ textarea {
     [role="button"],
     [role="menuitemradio"]
   ):focus-visible,
-:root .player-comments-drawer
+:root
+  .player-comments-drawer
   :is(button, input, textarea, [role="button"], [role="tab"]):focus,
-:root .player-comments-drawer
+:root
+  .player-comments-drawer
   :is(button, input, textarea, [role="button"], [role="tab"]):focus-visible,
 :root .share-dialog :is(button, input, textarea, [role="button"]):focus,
 :root .share-dialog :is(button, input, textarea, [role="button"]):focus-visible,
 :root .np-visual-panel :is(button, input, textarea, [role="button"]):focus,
-:root .np-visual-panel
+:root
+  .np-visual-panel
   :is(button, input, textarea, [role="button"]):focus-visible {
   outline: none;
   box-shadow: none;
@@ -6494,6 +6506,16 @@ textarea {
   font-size: 9px;
   font-weight: 800;
   line-height: 1;
+}
+
+/* 黑胶超级会员铭牌：官方黑金配色，与普通 VIP 的金字描边区分 */
+.user-vip-fallback.svip {
+  padding: 2.5px 6px;
+  border-color: transparent;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #26262e, #453a2c 60%, #6b5636);
+  color: #f3ddab;
+  letter-spacing: 0.2px;
 }
 
 .loading-hint,
