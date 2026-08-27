@@ -2,7 +2,7 @@ const root = document.documentElement;
 
 function updateWindowState() {
   root.dataset.windowActive =
-    document.visibilityState === "visible" && document.hasFocus()
+    document.visibilityState === "visible"
       ? "true"
       : "false";
 }
