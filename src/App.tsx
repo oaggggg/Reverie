@@ -218,7 +218,6 @@ export default function App() {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const reportedSongRef = useRef<number | null>(null);
-  const scrollPositionsRef = useRef(new Map<string, number>());
   const [NowPlayingView, setNowPlayingView] = useState<ComponentType | null>(
     null,
   );
@@ -286,21 +285,6 @@ export default function App() {
     showArtistModal,
     showAlbumModal,
   ]);
-
-  useLayoutEffect(() => {
-    if (currentPage !== "browse") return;
-    const key = activeView;
-    const frame = window.requestAnimationFrame(() => {
-      const scroller = document.querySelector<HTMLElement>(".page-scroll");
-      if (scroller)
-        scroller.scrollTop = scrollPositionsRef.current.get(key) ?? 0;
-    });
-    return () => {
-      window.cancelAnimationFrame(frame);
-      const scroller = document.querySelector<HTMLElement>(".page-scroll");
-      if (scroller) scrollPositionsRef.current.set(key, scroller.scrollTop);
-    };
-  }, [activeView, currentPage]);
 
   useEffect(() => {
     if (!currentSong) return;
