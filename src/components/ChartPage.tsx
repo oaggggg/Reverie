@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { ArrowLeft, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import { useChartStore } from "../store/chartStore";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { Page, PageHeader } from "./Page";
+import BackButton from "./BackButton";
 
 /** 卡片网格里最多展示多少个官方榜单 */
 const MAX_CARDS = 8;
@@ -59,41 +60,55 @@ export default function ChartPage() {
       <PageHeader title="排行榜" subtitle="官方榜单 · 每天更新" />
       {selectedChart ? (
         <section className="chart-detail">
-          <div className="chart-detail-head">
-            <button
-              className="icon-button"
-              title="返回榜单目录"
-              onClick={() => void select(0)}
-            >
-              <ArrowLeft size={17} />
-            </button>
+          {/* 与歌单/专辑/电台详情页统一的 detail-hero 布局 */}
+          <BackButton onClick={() => void select(0)} />
+          <section
+            className={`detail-hero${selectedChart.coverUrl ? "" : " no-cover"}`}
+            aria-label="榜单信息"
+          >
             {selectedChart.coverUrl ? (
-              <img src={sizedImage(selectedChart.coverUrl, 180)} alt="" />
+              <img
+                className="detail-cover"
+                src={sizedImage(selectedChart.coverUrl, 480)}
+                alt=""
+              />
             ) : null}
-            <div>
-              <h2>{selectedChart.name}</h2>
+            <div className="detail-copy">
+              <span className="detail-kind">官方榜单</span>
+              <h1>{selectedChart.name}</h1>
               <p>
                 {selectedChart.description ||
                   selectedChart.updateFrequency ||
                   "官方榜单"}
               </p>
+              <div className="detail-meta">
+                {selectedChart.trackCount > 0 && (
+                  <span>{selectedChart.trackCount} 首</span>
+                )}
+                {selectedChart.updateFrequency && (
+                  <span>{selectedChart.updateFrequency}</span>
+                )}
+              </div>
+              <div className="detail-actions">
+                <button
+                  className="btn primary"
+                  onClick={() =>
+                    detailSongs.length && playSong(detailSongs[0]!, detailSongs)
+                  }
+                  disabled={!detailSongs.length}
+                >
+                  <Play size={15} /> 播放全部
+                </button>
+              </div>
             </div>
-            <button
-              className="btn primary"
-              onClick={() =>
-                detailSongs.length && playSong(detailSongs[0]!, detailSongs)
-              }
-            >
-              <Play size={15} /> 播放全部
-            </button>
-          </div>
+          </section>
           {songsLoading ? (
             <div className="loading-hint">正在加载榜单歌曲…</div>
           ) : detailSongs.length ? (
             <ol className="chart-detail-list">
               {detailSongs.map((song, index) => (
                 <li key={song.id} onClick={() => playSong(song, detailSongs)}>
-                  <b>{index + 1}</b>
+                  <b className={index < 3 ? "top" : ""}>{index + 1}</b>
                   <span>{song.name}</span>
                   <small>{song.artists}</small>
                 </li>

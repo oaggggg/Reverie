@@ -4148,6 +4148,9 @@ textarea {
   margin-bottom: 20px;
   border-bottom: 1px solid var(--border);
 }
+.detail-hero.no-cover {
+  grid-template-columns: minmax(0, 1fr);
+}
 .detail-back {
   margin-bottom: 14px;
 }
@@ -4208,6 +4211,9 @@ textarea {
   margin: 16px 0;
   color: var(--text-faint);
   font-size: 12px;
+}
+.detail-actions {
+  flex-wrap: wrap;
 }
 
 .content-section + .content-section {
@@ -4436,6 +4442,14 @@ textarea {
   .detail-copy h1 {
     font-size: 22px;
   }
+  .detail-hero.no-cover { grid-template-columns: minmax(0, 1fr); }
+  .chart-detail { padding-inline: 0; }
+  .chart-detail-list li {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+    padding-inline: 6px;
+  }
+  .chart-detail-list small { display: none; }
   .song-row-actions {
     opacity: 1;
   }
@@ -7519,6 +7533,44 @@ textarea {
   color: var(--text-faint);
   font-size: 11px;
 }
+.chart-detail {
+  padding: 0 var(--layout-gutter);
+}
+
+@media (max-width: 1100px) {
+  .playlist-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .playlist-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .playlist-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; }
+}
+.chart-detail-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chart-detail-list li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(100px, 32%);
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.chart-detail-list li:hover { background: var(--hover); }
+.chart-detail-list b { color: var(--text-faint); font-size: 12px; text-align: center; }
+.chart-detail-list b.top { color: var(--accent-2); }
+.chart-detail-list span, .chart-detail-list small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart-detail-list span { color: var(--text); font-size: 13px; }
+.chart-detail-list small { color: var(--text-faint); font-size: 11px; }
+
 .search-suggestions {
   display: grid;
   gap: 2px;
