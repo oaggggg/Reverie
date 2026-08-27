@@ -239,21 +239,25 @@ export const useListenTogetherStore = create<ListenTogetherState>(
           get().room?.inviterId ??
           player.profile?.userId ??
           0;
+        let commandUnavailable = false;
         if (ownerId > 0 && localIds.length) {
           const version = get().syncPlaylistVersion + 1;
-          await syncListenTogetherPlaylist({
+          try { await syncListenTogetherPlaylist({
             roomId,
             userId: ownerId,
             version,
             songIds: localIds,
-          });
-          set({ syncPlaylistVersion: version });
+          }); } catch (error) {
+            if (error instanceof Error && /404|Not Found/i.test(error.message)) commandUnavailable = true;
+            else throw error;
+          }
+          if (!commandUnavailable) set({ syncPlaylistVersion: version });
         }
         const playlist = await getListenTogetherPlaylist(roomId);
         set({ playlist, syncing: false });
         usePlayerStore
           .getState()
-          .toast(`已同步 ${playlist.length} 首歌曲`, "success");
+          .toast(commandUnavailable ? `当前服务暂不支持推送歌单，已读取房间歌单（${playlist.length} 首）` : `已同步 ${playlist.length} 首歌曲`, commandUnavailable ? "info" : "success");
       } catch (error) {
         set({ syncing: false, error: errorMessage(error, "同步歌单失败") });
       }

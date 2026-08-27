@@ -9417,6 +9417,11 @@ textarea {
 }
 .listen-together-room-id strong {
   font-size: 27px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.15;
   letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
 }
