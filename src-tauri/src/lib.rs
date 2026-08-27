@@ -13,6 +13,63 @@ struct ApiServer(Mutex<Option<CommandChild>>);
 const API_PORT: u16 = 3939;
 const API_HOST: &str = "127.0.0.1";
 
+/// 开发模式防白屏：dev 窗口加载 devUrl（tauri.conf.json 的 devUrl，
+/// 两处需保持一致）失败时页面是 ERR_CONNECTION_REFUSED 白屏且不会
+/// 自行恢复。这里在启动前等待 vite 就绪，并对失败加载自动重试。
+#[cfg(debug_assertions)]
+mod dev_guard {
+    use std::net::TcpStream;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
+
+    pub const DEV_URL: &str = "http://127.0.0.1:5173";
+    /// vite 不可达时的重导航上限：超过后放弃并显示错误页，不再无限白屏。
+    const MAX_NAV_RETRIES: usize = 60;
+
+    static NAV_RETRIES: AtomicUsize = AtomicUsize::new(0);
+
+    fn reachable() -> bool {
+        let addr = "127.0.0.1:5173".parse().expect("static dev addr");
+        TcpStream::connect_timeout(&addr, Duration::from_millis(400)).is_ok()
+    }
+
+    /// 阻塞等待 dev server 就绪（最多 ~40s）。tauri CLI 通常已保证
+    /// 就绪，这里兜住手动启动 app.exe、vite 重启竞态、孤儿窗口重开等
+    /// 仍然会撞上"先起窗、后起服务"的场景。
+    pub fn wait_for_dev_server() {
+        for _ in 0..200 {
+            if reachable() {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        log::warn!("dev server {DEV_URL} 在 40s 内未就绪，仍继续启动");
+    }
+
+    /// 页面加载结束后调用：vite 可达则复位重试计数并放行显示；
+    /// 不可达则延迟 1s 重新导航（错误页对用户无意义），超过上限才
+    /// 放行显示连接错误页。返回 true 表示可以显示窗口。
+    pub fn on_page_finished(webview: &tauri::Webview) -> bool {
+        if reachable() {
+            NAV_RETRIES.store(0, Ordering::Relaxed);
+            return true;
+        }
+        if NAV_RETRIES.load(Ordering::Relaxed) >= MAX_NAV_RETRIES {
+            log::error!("dev server {DEV_URL} 持续不可达，停止重试");
+            return true;
+        }
+        NAV_RETRIES.fetch_add(1, Ordering::Relaxed);
+        let w = webview.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(1000));
+            if let Ok(url) = tauri::Url::parse(DEV_URL) {
+                let _ = w.navigate(url);
+            }
+        });
+        false
+    }
+}
+
 /// 每次启动随机生成的共享密钥：本地 sidecar 只接受携带该密钥的请求，
 /// 防止用户浏览器中的任意网页跨域驱动本机 API。
 struct ApiAuthToken(String);
@@ -264,6 +321,9 @@ fn start_ncm_api_server(app: &AppHandle) -> Result<Option<CommandChild>, String>
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(debug_assertions)]
+    dev_guard::wait_for_dev_server();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
@@ -271,6 +331,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .on_page_load(|webview, payload| {
             if payload.event() == PageLoadEvent::Finished {
+                #[cfg(debug_assertions)]
+                if !dev_guard::on_page_finished(webview) {
+                    // dev server 不可达：已安排重导航，窗口保持隐藏，
+                    // 避免把 ERR_CONNECTION_REFUSED 白屏闪给用户。
+                    return;
+                }
                 if let Err(error) = webview.window().show() {
                     log::error!("Failed to show the main window: {error}");
                 }
