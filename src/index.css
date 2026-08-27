@@ -3770,6 +3770,26 @@ textarea {
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg-2) 78%, transparent);
 }
+.playlist-discovery-toolbar-heading {
+  display: grid;
+  flex: none;
+  gap: 4px;
+  min-width: 132px;
+}
+.playlist-discovery-toolbar-heading strong {
+  font-size: 14px;
+}
+.playlist-discovery-toolbar-heading span {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.playlist-discovery-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
 .playlist-discovery-tags {
   display: flex;
   align-items: center;
@@ -7694,6 +7714,17 @@ textarea {
   }
 }
 @media (max-width: 700px) {
+  .playlist-discovery-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .playlist-discovery-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .playlist-discovery-select select {
+    flex: 1;
+  }
   .cloud-song-row {
     align-items: flex-start;
   }

@@ -214,51 +214,33 @@ export default function UserListPage() {
       ) : (
         <>
           <div className="playlist-discovery-toolbar">
-            <div
-              className="playlist-discovery-tags"
-              role="tablist"
-              aria-label="热门歌单标签"
-            >
-              {[
+            <div className="playlist-discovery-toolbar-heading">
+              <strong>发现歌单</strong>
+              <span>按风格浏览精选歌单</span>
+            </div>
+            <div className="playlist-discovery-controls">
+              <div className="playlist-discovery-tags" role="tablist" aria-label="热门歌单标签">
+                {[
                 { id: 0, name: "全部" },
                 ...discovery.highQualityTags,
                 ...discovery.hotTags,
-              ]
-                .filter(
-                  (tag, index, items) =>
-                    items.findIndex((item) => item.name === tag.name) === index,
-                )
-                .map((tag) => (
-                  <button
-                    key={`${tag.id}-${tag.name}`}
-                    className={
-                      discovery.selectedTag === tag.name ? "active" : ""
-                    }
-                    onClick={() => void discovery.load(tag.name)}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-            </div>
-            <label className="playlist-discovery-select">
-              <span>分类</span>
-              <select
-                value={discovery.selectedTag}
-                onChange={(event) => void discovery.load(event.target.value)}
-              >
-                <option value="全部">全部分类</option>
-                {discovery.categories
-                  .filter((category) => category.name !== "全部")
-                  .map((category) => (
-                    <option
-                      key={`${category.id}-${category.name}`}
-                      value={category.name}
-                    >
-                      {category.name}
-                    </option>
+                ]
+                  .filter((tag, index, items) => items.findIndex((item) => item.name === tag.name) === index)
+                  .slice(0, 10)
+                  .map((tag) => (
+                    <button key={`${tag.id}-${tag.name}`} className={discovery.selectedTag === tag.name ? "active" : ""} onClick={() => void discovery.load(tag.name)}>{tag.name}</button>
                   ))}
-              </select>
-            </label>
+              </div>
+              <label className="playlist-discovery-select">
+                <span>全部分类</span>
+                <select value={discovery.selectedTag} onChange={(event) => void discovery.load(event.target.value)}>
+                  <option value="全部">选择分类</option>
+                  {discovery.categories.filter((category) => category.name !== "全部").map((category) => (
+                    <option key={`${category.id}-${category.name}`} value={category.name}>{category.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
           <PlaylistGrid
             playlists={discovery.playlists}
