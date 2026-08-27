@@ -205,11 +205,18 @@ export default function PlayerBar() {
   }, [coverLayers]);
 
   const handleCoverLoad = (url: string) => {
-    setCoverLayers((current) =>
-      current.map((layer) =>
+    setCoverLayers((current) => {
+      // 幂等：层已就绪时必须返回原引用。内联 ref 每次渲染都会重跑，
+      // 图片 complete 后 attachCoverRef 会在 commit 阶段同步走到这里，
+      // 若每次都产出新数组就会形成 setState→重渲染→ref→setState 的
+      // 嵌套更新死循环（Maximum update depth），React 卸载整棵树，
+      // 表现为启动白屏。
+      const target = current.find((layer) => layer.url === url);
+      if (!target || target.ready) return current;
+      return current.map((layer) =>
         layer.url === url ? { ...layer, ready: true } : layer,
-      ),
-    );
+      );
+    });
   };
   const handleCoverError = (url: string) => {
     setFailedCovers((current) =>
