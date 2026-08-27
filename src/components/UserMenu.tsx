@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { usePlayerStore } from "../store/playerStore";
+import { userQualityTier, usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { CircleUserRound } from "lucide-react";
 import { getProfileCenter } from "../api/profile";
@@ -54,6 +54,9 @@ export default function UserMenu() {
   useEffect(() => {
     if (!open) return;
     prefetchDetails();
+    // 每次展开都静默刷新会员信息（loadVipInfo 内部 10 分钟节流兜底）：
+    // 用户刚升级 SVIP 后打开菜单即可同步身份，不必等到点开音质菜单。
+    void loadVipInfo();
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node))
         setOpen(false);
@@ -71,6 +74,9 @@ export default function UserMenu() {
   const vipLevel = Number(vipInfo?.vipLevel ?? 0);
   const expireTime = Number(vipInfo?.expireTime ?? 0);
   const isVip = vipType > 0 || vipLevel > 0 || expireTime > 0;
+  // 徽标兜底文案以统一身份档位为准（/vip/info 双包生效态），
+  // 不再用 vipType 数字猜档位：11 实为年费 VIP 而非 SVIP。
+  const tier = userQualityTier(usePlayerStore.getState());
   const badgeUrl = vipInfo?.badgeUrl || profile?.badgeUrl;
   const frameUrl = profile?.avatarFrameUrl;
 
@@ -120,7 +126,7 @@ export default function UserMenu() {
           />
         ) : isVip ? (
           <span className="user-vip-fallback">
-            {vipType === 11 ? "SVIP" : "VIP"}
+            {tier === "svip" ? "SVIP" : "VIP"}
           </span>
         ) : null}
       </button>
