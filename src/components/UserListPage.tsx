@@ -81,6 +81,23 @@ export default function UserListPage() {
   const minePlaylists =
     accountListMode === "all" ? userPlaylists : accountPlaylists;
 
+  // 精品歌单接口返回的标签才是下拉筛选真正支持的分类；
+  // 分类列表接口还会包含无法加载精品歌单的占位分类。
+  const discoveryCategories = (() => {
+    const tagged = [...discovery.highQualityTags, ...discovery.hotTags];
+    const source = tagged.length
+      ? tagged
+      : discovery.categories.filter((category) => category.resourceCount > 0);
+    const seen = new Set<string>();
+    return source.filter((category) => {
+      if (!category.name || category.name === "全部" || seen.has(category.name)) {
+        return false;
+      }
+      seen.add(category.name);
+      return true;
+    });
+  })();
+
   return (
     <Page>
       <PageHeader
@@ -216,7 +233,6 @@ export default function UserListPage() {
           <div className="playlist-discovery-toolbar">
             <div className="playlist-discovery-toolbar-heading">
               <strong>发现歌单</strong>
-              <span>按风格浏览精选歌单</span>
             </div>
             <div className="playlist-discovery-controls">
               <div className="playlist-discovery-tags" role="tablist" aria-label="热门歌单标签">
@@ -235,7 +251,7 @@ export default function UserListPage() {
                 <span>全部分类</span>
                 <select value={discovery.selectedTag} onChange={(event) => void discovery.load(event.target.value)}>
                   <option value="全部">选择分类</option>
-                  {discovery.categories.filter((category) => category.name !== "全部").map((category) => (
+                  {discoveryCategories.map((category) => (
                     <option key={`${category.id}-${category.name}`} value={category.name}>{category.name}</option>
                   ))}
                 </select>
