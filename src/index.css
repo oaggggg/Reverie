@@ -3765,11 +3765,15 @@ textarea {
   align-items: flex-start;
   gap: 18px;
   margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-2) 78%, transparent);
 }
 .playlist-discovery-tags {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
   overflow-x: auto;
@@ -3784,7 +3788,8 @@ textarea {
   font-size: 12px;
 }
 .playlist-discovery-select select {
-  min-width: 120px;
+  min-width: 148px;
+  min-height: 34px;
   padding: 7px 9px;
   border: 1px solid var(--border);
   border-radius: 8px;
