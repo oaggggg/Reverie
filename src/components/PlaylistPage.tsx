@@ -376,21 +376,16 @@ export default function PlaylistPage() {
         onClose={() => setEditing(false)}
       />
       {commentsOpen && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) =>
-            event.target === event.currentTarget && setCommentsOpen(false)
-          }
-        >
-          <div
+        <div className="modal-backdrop" onClick={() => setCommentsOpen(false)}>
+          <section
             ref={commentsSurfaceRef}
-            className="modal comments-modal"
+            className="modal comments-modal playlist-comments-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="playlist-comments-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <header className="comments-modal-head playlist-comments-head">
+            <header className="comments-modal-header">
               {playlistCover ? (
                 <img
                   className="playlist-comments-cover"
@@ -398,17 +393,14 @@ export default function PlaylistPage() {
                   alt=""
                 />
               ) : null}
-              <div className="comments-modal-titles">
-                <span className="comments-modal-kind">歌单评论</span>
-                <strong
-                  id="playlist-comments-title"
-                  className="comments-modal-title"
-                >
+              <div className="comments-modal-title-block">
+                <span>歌单评论</span>
+                <strong id="playlist-comments-title">
                   {playlistName || "歌单"}
                 </strong>
               </div>
               <button
-                className="modal-close"
+                className="icon-btn"
                 title="关闭"
                 onClick={() => setCommentsOpen(false)}
               >
@@ -418,7 +410,7 @@ export default function PlaylistPage() {
             <div className="comments-modal-body">
               <CommentPanel compact />
             </div>
-          </div>
+          </section>
         </div>
       )}
       <ConfirmModal

@@ -38,7 +38,7 @@ export default function CommentsModal() {
       className={`modal-backdrop ${transition.backdropClassName}`}
       onClick={() => setShow(false)}
     >
-      <div
+      <section
         ref={transition.surfaceRef}
         className={`modal comments-modal ${transition.surfaceClassName}`}
         role="dialog"
@@ -47,33 +47,29 @@ export default function CommentsModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          className="topnav-icon-btn detail-modal-close"
+          className="icon-btn"
           title="关闭"
           onClick={() => setShow(false)}
         >
           <X size={16} />
         </button>
-        <div className="comments-modal-inner">
-          <header className="comments-modal-head">
-            <span className="comments-modal-cover">
-              {resource?.coverUrl ? (
-                <img src={sizedImage(resource.coverUrl, 120)} alt="" />
-              ) : (
-                <MessageCircle size={18} />
-              )}
-            </span>
-            <div className="comments-modal-titles">
-              <span className="comments-modal-kind">{label}评论</span>
-              <strong className="comments-modal-title">
-                {resource?.title || "未选择评论资源"}
-              </strong>
-            </div>
-          </header>
-          <div className="comments-modal-body">
-            <CommentPanel />
+        <header className="comments-modal-header">
+          <span className="comments-modal-cover">
+            {resource?.coverUrl ? (
+              <img src={sizedImage(resource.coverUrl, 120)} alt="" />
+            ) : (
+              <MessageCircle size={18} />
+            )}
+          </span>
+          <div className="comments-modal-titles">
+            <span className="comments-modal-kind">{label}评论</span>
+            <strong className="comments-modal-title">
+              {resource?.title || "未选择评论资源"}
+            </strong>
           </div>
-        </div>
-      </div>
+        </header>
+        <CommentPanel compact />
+      </section>
     </div>
   );
 }
