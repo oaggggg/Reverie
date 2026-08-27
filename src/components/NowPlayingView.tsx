@@ -120,29 +120,28 @@ export default function NowPlayingView() {
     const targetSize = Math.min(window.innerWidth * 0.34, 380);
     const targetLeft = (window.innerWidth - targetSize) / 2;
     const targetTop = (window.innerHeight - targetSize) / 2 - 20;
-    const from = {
-      left: `${origin.left}px`,
-      top: `${origin.top}px`,
-      width: `${origin.width}px`,
-      height: `${origin.height}px`,
-      borderRadius: "50%",
-      opacity: 1,
-    };
-    const center = {
-      left: `${targetLeft}px`,
-      top: `${targetTop}px`,
-      width: `${targetSize}px`,
-      height: `${targetSize}px`,
-      borderRadius: "28px",
-    };
+    // Animate only composited properties to avoid layout work per frame.
+    const originCenterX = origin.left + origin.width / 2;
+    const originCenterY = origin.top + origin.height / 2;
+    const targetCenterX = targetLeft + targetSize / 2;
+    const targetCenterY = targetTop + targetSize / 2;
+    const scaleX = targetSize / Math.max(origin.width, 1);
+    const scaleY = targetSize / Math.max(origin.height, 1);
+    const fromTransform = "translate(" + originCenterX + "px, " + originCenterY + "px) translate(-50%, -50%) scale(1)";
+    const centerTransform = "translate(" + targetCenterX + "px, " + targetCenterY + "px) translate(-50%, -50%) scale(" + scaleX + ", " + scaleY + ")";
+    cover.style.left = "0px";
+    cover.style.top = "0px";
+    cover.style.width = origin.width + "px";
+    cover.style.height = origin.height + "px";
+    cover.style.borderRadius = "50%";
 
     if (transitionPhase === "opening") {
       setFadedIn(true);
       const animation = cover.animate(
         [
-          from,
-          { ...center, opacity: 1, offset: 0.78 },
-          { ...center, opacity: 0 },
+          { transform: fromTransform, borderRadius: "50%", opacity: 1 },
+          { transform: centerTransform, borderRadius: "28px", opacity: 1, offset: 0.78 },
+          { transform: centerTransform, borderRadius: "28px", opacity: 0 },
         ],
         { duration: 520, easing: EASE, fill: "forwards" },
       );
@@ -155,9 +154,9 @@ export default function NowPlayingView() {
     if (transitionPhase === "closing") {
       const animation = cover.animate(
         [
-          { ...center, opacity: 0 },
-          { ...center, opacity: 1, offset: 0.18 },
-          from,
+          { transform: centerTransform, borderRadius: "28px", opacity: 0 },
+          { transform: centerTransform, borderRadius: "28px", opacity: 1, offset: 0.18 },
+          { transform: fromTransform, borderRadius: "50%", opacity: 1 },
         ],
         { duration: 420, easing: EASE, fill: "forwards" },
       );
