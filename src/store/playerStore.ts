@@ -704,6 +704,7 @@ interface PlayerState {
   // --- ui / data ---
   activeView: View;
   prevView: View;
+  viewHistory: View[];
   currentPage: "browse" | "nowplaying";
   searchOpen: boolean;
   searchKeyword: string;
@@ -812,6 +813,7 @@ interface PlayerState {
   setShowPlayerComments: (v: boolean) => void;
   setShowCommentsModal: (v: boolean) => void;
   setActiveView: (v: View) => void;
+  goBack: () => void;
   setPage: (p: "browse" | "nowplaying") => void;
   setSearchOpen: (v: boolean) => void;
   saveViewScroll: (view: View, top: number) => void;
@@ -1124,6 +1126,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   // --- ui / data ---
   activeView: "home",
   prevView: "home",
+  viewHistory: [],
   currentPage: "browse",
   searchOpen: false,
   searchKeyword: "",
@@ -1864,7 +1867,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setShowPlayerComments: (v) =>
     set({ showPlayerComments: v, ...(v ? { showSettings: false } : {}) }),
   setShowCommentsModal: (v) => set({ showCommentsModal: v }),
-  setActiveView: (v) => set({ activeView: v }),
+  setActiveView: (v) =>
+    set((state) => ({ activeView: v, prevView: state.activeView, viewHistory: [] })),
+  goBack: () =>
+    set((state) => {
+      const history = [...state.viewHistory];
+      const previous = history.pop() ?? state.prevView ?? "home";
+      return {
+        activeView: previous,
+        prevView: history.at(-1) ?? "home",
+        viewHistory: history,
+      };
+    }),
   setPage: (p) => set({ currentPage: p }),
   setSearchOpen: (v) => {
     if (!v) searchToken++;
@@ -2062,10 +2076,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   openPlaylist: async (id, name) => {
     const requestToken = ++playlistRequestToken;
+    const previousView = get().activeView;
     set({
       activeView: "playlist",
       playlistName: name,
-      prevView: get().activeView,
+      prevView: previousView,
+      viewHistory: [...get().viewHistory, previousView],
       // Keep the previous rows visible while the next playlist loads. Clearing
       // them first causes a visible blank/loading flash during navigation.
       playlistLoading: true,
@@ -2101,7 +2117,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playlistDescription: "",
       playlistCreatorId: 0,
       playlistSubscribed: false,
-      activeView: get().prevView || "home",
+      activeView: get().viewHistory.at(-1) ?? get().prevView ?? "home",
+      prevView: get().viewHistory.length > 1 ? get().viewHistory.at(-2)! : "home",
+      viewHistory: get().viewHistory.slice(0, -1),
     });
   },
 
