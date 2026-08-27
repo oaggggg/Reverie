@@ -60,7 +60,7 @@ export default function PlaylistEditorModal({
     >
       <div
         ref={transition.surfaceRef}
-        className={`modal entity-editor ${transition.surfaceClassName}`}
+        className={`modal playlist-modal-shell entity-editor ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-label={playlist ? "编辑歌单" : "创建歌单"}

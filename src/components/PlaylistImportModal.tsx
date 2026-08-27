@@ -150,7 +150,7 @@ export default function PlaylistImportModal({
     >
       <section
         ref={transition.surfaceRef}
-        className={`playlist-import-modal ${transition.surfaceClassName}`}
+        className={`modal playlist-modal-shell playlist-import-modal ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-label="导入歌单"

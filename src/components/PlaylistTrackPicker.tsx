@@ -74,7 +74,7 @@ export default function PlaylistTrackPicker({
     >
       <div
         ref={transition.surfaceRef}
-        className={`modal playlist-track-picker ${transition.surfaceClassName}`}
+        className={`modal playlist-modal-shell playlist-track-picker ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="playlist-picker-title"
