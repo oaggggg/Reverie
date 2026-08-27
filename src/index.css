@@ -5849,7 +5849,10 @@ textarea {
   width: max-content;
   max-width: min(560px, calc(100vw - 32px));
   min-width: 0;
+  height: 48px;
   min-height: 48px;
+  max-height: 48px;
+  overflow: hidden;
   box-sizing: border-box;
   grid-template-columns: 24px minmax(0, auto);
   gap: 10px;
@@ -5897,7 +5900,9 @@ textarea {
 }
 .toast-wrap .toast-copy span {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .toast-wrap .toast-life {
   display: none;
