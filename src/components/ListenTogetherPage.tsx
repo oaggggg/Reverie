@@ -84,9 +84,7 @@ export default function ListenTogetherPage({ modal = false, onClose }: { modal?:
             >
               <RefreshCw size={17} className={syncing ? "spin" : undefined} />
             </button>
-          ) : (
-            <Link2 size={18} aria-hidden="true" />
-          )
+          ) : undefined
         }
       />
 
