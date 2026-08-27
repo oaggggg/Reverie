@@ -7779,6 +7779,7 @@ textarea {
   display: flex;
   flex-direction: column;
   width: min(760px, calc(100vw - 32px));
+  height: auto;
   max-height: min(86vh, 760px);
   overflow: hidden;
   padding: 0;
@@ -7806,8 +7807,6 @@ textarea {
   font-size: 12px;
 }
 .playlist-comments-dialog .comment-panel {
-  display: flex;
-  flex: 1;
   min-height: 0;
   overflow: hidden;
 }
@@ -7816,9 +7815,8 @@ textarea {
   background: var(--bg-2);
 }
 .playlist-comments-dialog .comment-list {
-  flex: 1;
-  max-height: none;
-  min-height: 260px;
+  max-height: min(52vh, 460px);
+  min-height: 180px;
   overflow: auto;
   padding: 4px 18px 12px;
 }
@@ -7828,16 +7826,15 @@ textarea {
   border-top: 1px solid var(--border);
   background: var(--bg-2);
 }
-.comments-modal {
+.modal.detail-modal.comments-modal {
   width: min(760px, calc(100vw - 32px));
+  height: auto;
   max-height: min(86vh, 760px);
 }
 .comments-modal .comments-modal-body {
   overflow: hidden;
 }
 .comments-modal .comment-panel {
-  display: flex;
-  flex: 1;
   min-height: 0;
   margin: 0;
   border: 0;
@@ -7847,8 +7844,8 @@ textarea {
   padding: 10px 0;
 }
 .comments-modal .comment-list {
-  flex: 1;
-  min-height: 260px;
+  max-height: min(52vh, 460px);
+  min-height: 180px;
   padding: 4px 0 12px;
   overflow: auto;
 }
@@ -7860,6 +7857,7 @@ textarea {
 @media (max-width: 560px) {
   .playlist-comments-dialog, .comments-modal {
     width: calc(100vw - 20px);
+    height: auto;
     max-height: calc(100vh - 24px);
   }
   .playlist-comments-dialog .modal-header,
