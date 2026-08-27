@@ -20,7 +20,7 @@ export default function Toasts() {
           data-stack-index={index}
           // Keep the first toast at its current position; each newer toast
           // sits slightly lower so the older toast's top edge remains visible.
-          style={{ top: `calc(8px * ${index})` }}
+          style={{ top: `calc(14px * ${index})` }}
           role="status"
         >
           <span className="toast-icon">{META[t.type]}</span>
