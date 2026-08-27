@@ -16,7 +16,10 @@ import {
   captureInteractionOrigin,
   useOriginTransition,
 } from "../utils/originTransition";
-import { preloadNowPlayingAssets, warmCoverImage } from "../utils/nowPlayingPreload";
+import {
+  preloadNowPlayingAssets,
+  warmCoverImage,
+} from "../utils/nowPlayingPreload";
 import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
 import {
@@ -106,7 +109,9 @@ export default function PlayerBar() {
     return () => el.removeEventListener("wheel", handler);
   }, []);
   // 未登录时不展示任何歌曲：本地会话恢复的 currentSong 只属于已登录会话。
-  const currentSong = usePlayerStore((s) => (s.loggedIn ? s.currentSong : null));
+  const currentSong = usePlayerStore((s) =>
+    s.loggedIn ? s.currentSong : null,
+  );
   const previewEnd = usePlayerStore((s) => s.previewEnd);
   const playing = usePlayerStore((s) => s.playing);
   const loadingUrl = usePlayerStore((s) => s.loadingUrl);
@@ -214,13 +219,11 @@ export default function PlayerBar() {
   };
   // 预热命中的图片可能在 load 事件派发前就已 complete：
   // 挂载时兜底检查，避免前层永远停留在透明状态导致旧图滞留。
-  // 双 rAF 推迟一帧再标记，确保初始透明态先完成一次绘制，
-  // 否则挂载与就绪合并进同一次样式计算，淡入会退化成硬切。
+  // 淡入本身由 .on 的关键帧动画驱动（首帧即带终态也会播放），
+  // 因此无需再推迟标记时序。
   const attachCoverRef = (url: string, el: HTMLImageElement | null) => {
     if (!el || !el.complete || el.naturalWidth <= 0) return;
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => handleCoverLoad(url)),
-    );
+    handleCoverLoad(url);
   };
 
   useEffect(() => {
