@@ -7981,6 +7981,10 @@ textarea {
   margin-left: auto;
   flex: none;
 }
+.playlist-modal-shell > .modal-header > .modal-close {
+  margin-left: auto;
+  flex: none;
+}
 .playlist-modal-shell .modal-actions,
 .playlist-modal-shell > footer {
   flex: none;
@@ -11991,6 +11995,60 @@ textarea {
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* Playlist modal content grid: keep controls and actions off the glass edge. */
+.modal.playlist-modal-shell.playlist-track-picker {
+  padding: 0;
+}
+.playlist-track-picker > .playlist-picker-search,
+.playlist-track-picker > .playlist-picker-summary,
+.playlist-track-picker > .playlist-picker-results {
+  margin-left: 22px;
+  margin-right: 22px;
+}
+.playlist-track-picker > .playlist-picker-search {
+  margin-top: 18px;
+  margin-bottom: 12px;
+}
+.playlist-track-picker > .playlist-picker-results {
+  margin-bottom: 0;
+}
+.playlist-track-picker > .modal-actions {
+  margin-top: 14px;
+}
+.modal.playlist-modal-shell.playlist-import-modal {
+  padding: 0;
+}
+.playlist-import-modal > .playlist-import-tabs,
+.playlist-import-modal > .playlist-import-name,
+.playlist-import-modal > textarea,
+.playlist-import-modal > .playlist-import-status,
+.playlist-import-modal > .playlist-import-error {
+  margin-left: 22px;
+  margin-right: 22px;
+}
+.playlist-import-modal > .playlist-import-tabs {
+  margin-top: 18px;
+}
+.playlist-import-modal > footer {
+  margin-top: 8px;
+}
+.modal.playlist-modal-shell.entity-editor {
+  padding-top: 18px;
+}
+@media (max-width: 560px) {
+  .playlist-track-picker > .playlist-picker-search,
+  .playlist-track-picker > .playlist-picker-summary,
+  .playlist-track-picker > .playlist-picker-results,
+  .playlist-import-modal > .playlist-import-tabs,
+  .playlist-import-modal > .playlist-import-name,
+  .playlist-import-modal > textarea,
+  .playlist-import-modal > .playlist-import-status,
+  .playlist-import-modal > .playlist-import-error {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
 }
 
 /* Keep legacy transparent controls on the same appearance controls as the
