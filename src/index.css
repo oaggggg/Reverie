@@ -865,11 +865,12 @@ textarea {
 .user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  /* 与用户胶囊同宽：胶囊本身有固定最小宽度，保证内容显示完整 */
+  /* 下拉面板始终跟随用户胶囊宽度 */
   left: 0;
   right: 0;
-  width: 280px;
-  min-width: 280px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: color-mix(in srgb, var(--bg-2) 68%, transparent);
   backdrop-filter: blur(24px) saturate(1.35);
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
@@ -953,10 +954,10 @@ textarea {
   padding: 7px 10px;
 }
 /* 头部昵称下的一行式会员信息 */
-/* 功能区固定两列，保证下拉长度最短 */
+/* 当前仅保留个人中心，使用整行居中布局 */
 .user-dropdown-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 4px;
   padding: 6px 0;
 }
@@ -975,10 +976,10 @@ textarea {
 .user-dropdown-cell:hover {
   background: color-mix(in srgb, var(--hover) 70%, transparent);
 }
-/* 底部账号操作：跟随面板宽度，窄时自动退为一列 */
+/* 底部账号操作统一水平居中 */
 .user-dropdown-foot {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 4px;
   border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   padding-top: 8px;
