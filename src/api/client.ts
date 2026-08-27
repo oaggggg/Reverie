@@ -1031,8 +1031,8 @@ export interface VipInfo {
    */
   badgeKind?: "plate" | "dynamic" | "brand" | "fallback";
   /**
-   * 黑胶超级会员（SVIP）：黑胶 VIP 与畅听包同时生效——对应官方
-   * vipType 110 组合态，是沉浸环绕声/超清母带等 SVIP 特权的判定依据。
+   * 黑胶超级会员（SVIP）：以官方 redplus 权益节点/品牌位为准；不同
+   * 月卡、季卡套餐可能使用不同 vipType 编码。
    */
   svip?: boolean;
 }
@@ -1392,9 +1392,9 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
   const redplus = d.redplus as Record<string, unknown> | undefined;
   const redplusSvip =
     Number(redplus?.vipCode ?? NaN) === 300 && pkgActive(redplus);
-  // 只有官方组合会员类型 110 才授予 SVIP 权益；普通 VIP 即使命中
-  // redplus 品牌位，也只能按 VIP 处理，避免误开放 SVIP 音质。
-  const svip = vipType === 110 && (Boolean(brand?.svip) || redplusSvip);
+  // 以官方 SVIP 权益节点/品牌位判定，不限定 vipType 数值，兼容月卡、
+  // 季卡等套餐编码；普通 VIP 不会命中 redplus SVIP 标识。
+  const svip = Boolean(brand?.svip) || redplusSvip;
   return {
     vipType,
     vipLevel: redLevel,
