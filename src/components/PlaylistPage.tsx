@@ -23,7 +23,8 @@ import { useExploreStore } from "../store/exploreStore";
 import { usePlayerStore } from "../store/playerStore";
 import { useCommentStore } from "../store/commentStore";
 import type { PlaylistDynamicStats } from "../api/types";
-import { Page, PageHeader } from "./Page";
+import { sizedImage } from "../utils/image";
+import { Page } from "./Page";
 import SongList from "./SongList";
 import PlaylistEditorModal from "./PlaylistEditorModal";
 import BackButton from "./BackButton";
@@ -38,6 +39,7 @@ export default function PlaylistPage() {
   const playlistName = usePlayerStore((s) => s.playlistName);
   const playlistId = usePlayerStore((s) => s.playlistId);
   const playlistDescription = usePlayerStore((s) => s.playlistDescription);
+  const playlistCover = usePlayerStore((s) => s.playlistCover);
   const playlistCreatorId = usePlayerStore((s) => s.playlistCreatorId);
   const playlistSubscribed = usePlayerStore((s) => s.playlistSubscribed);
   const playlistLoading = usePlayerStore((s) => s.playlistLoading);
@@ -218,7 +220,7 @@ export default function PlaylistPage() {
   const owned = playlistCreatorId > 0 && playlistCreatorId === uid;
   const playlistActions =
     !playlistLoading && playlistId > 0 ? (
-      <div className="page-action-row">
+      <>
         <button
           className="btn primary"
           onClick={() => {
@@ -289,29 +291,53 @@ export default function PlaylistPage() {
             {playlistSubscribed ? "已收藏" : "收藏歌单"}
           </button>
         )}
-      </div>
+      </>
     ) : null;
 
   return (
     <Page>
       <BackButton onClick={closePlaylist} />
-      <PageHeader
-        title={playlistName || "歌单"}
-        subtitle={playlistDescription || `${playlistSongs.length} 首`}
-        actions={playlistActions}
-      />
-      {dynamicStats && (
-        <div className="playlist-dynamic-stats" aria-label="歌单动态统计">
-          <span>播放 {dynamicStats.playCount.toLocaleString("zh-CN")}</span>
-          <span>
-            收藏 {dynamicStats.subscribedCount.toLocaleString("zh-CN")}
-          </span>
-          <span>评论 {dynamicStats.commentCount.toLocaleString("zh-CN")}</span>
-          <span>分享 {dynamicStats.shareCount.toLocaleString("zh-CN")}</span>
+      {/* 与专辑/电台详情页统一的 detail-hero 布局 */}
+      <section
+        className={`detail-hero${playlistCover ? "" : " no-cover"}`}
+        aria-label="歌单信息"
+      >
+        {playlistCover ? (
+          <img
+            className="detail-cover"
+            src={sizedImage(playlistCover, 480)}
+            alt=""
+          />
+        ) : null}
+        <div className="detail-copy">
+          <span className="detail-kind">歌单</span>
+          <h1>{playlistName || "歌单"}</h1>
+          <p>{playlistDescription || `${playlistSongs.length} 首歌曲`}</p>
+          <div className="detail-meta">
+            <span>{playlistSongs.length} 首</span>
+            {dynamicStats && (
+              <span>播放 {dynamicStats.playCount.toLocaleString("zh-CN")}</span>
+            )}
+            {dynamicStats && (
+              <span>
+                收藏 {dynamicStats.subscribedCount.toLocaleString("zh-CN")}
+              </span>
+            )}
+            {dynamicStats && (
+              <span>
+                评论 {dynamicStats.commentCount.toLocaleString("zh-CN")}
+              </span>
+            )}
+            {dynamicStats && (
+              <span>分享 {dynamicStats.shareCount.toLocaleString("zh-CN")}</span>
+            )}
+          </div>
+          <div className="detail-actions">{playlistActions}</div>
         </div>
-      )}
+      </section>
       <SongList
         songs={playlistSongs}
+        title="歌曲列表"
         loading={playlistLoading}
         emptyText="歌单为空"
         onRemove={owned ? (song) => void removeSong(song) : undefined}
