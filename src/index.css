@@ -8346,13 +8346,19 @@ textarea {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 280px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  max-height: min(60vh, 560px);
+  overflow: hidden;
   background: #08090f;
 }
 .media-detail-video video {
   display: block;
   width: 100%;
-  max-height: min(60vh, 560px);
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
   background: #08090f;
 }
 /* Both videos occupy the same grid cell: the preloading one is fully painted
@@ -8385,6 +8391,7 @@ textarea {
 .media-video-stage {
   position: relative;
   width: 100%;
+  height: 100%;
 }
 .media-video-stage video {
   cursor: pointer;
