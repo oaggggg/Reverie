@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
+import { getDynamicSongCover, getSongLikeStatus, getSongCollectionCounts } from "../api/songStatus";
 import { getResourceComments } from "../api/comment";
 import {
   ALL_PLAYBACK_QUALITIES,
@@ -74,6 +74,7 @@ export default function PlayerBar() {
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
   const [remoteCommentCount, setRemoteCommentCount] = useState<number | null>(null);
+  const [remoteCollectionCount, setRemoteCollectionCount] = useState<number | null>(null);
   const [qualityOpen, setQualityOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [volumeOpen, setVolumeOpen] = useState(false);
@@ -153,6 +154,7 @@ export default function PlayerBar() {
     setDynamicCover("");
     setRemoteLiked(null);
     setRemoteCommentCount(null);
+    setRemoteCollectionCount(null);
     if (!currentSong) return;
     // 预热播放栏 120px 缩略图与队列下一曲：封面在真正挂载前已进缓存。
     warmCoverImage(currentSong.picUrl, 120);
@@ -176,6 +178,11 @@ export default function PlayerBar() {
     void getResourceComments({ type: "song", id: String(currentSong.id), title: currentSong.name }, 1, "hot", "", 1)
       .then((result) => {
         if (alive && Number.isFinite(result.total)) setRemoteCommentCount(Math.max(0, result.total));
+      })
+      .catch(() => {});
+    void getSongCollectionCounts([currentSong.id])
+      .then((counts) => {
+        if (alive && currentSong.id in counts) setRemoteCollectionCount(counts[currentSong.id]!);
       })
       .catch(() => {});
     return () => {
@@ -586,7 +593,7 @@ export default function PlayerBar() {
               style={liked ? { color: "#ec4141" } : undefined}
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
-              <span className="player-stat-count">{formatCount(currentSong?.likedCount)}</span>
+              <span className="player-stat-count">{formatCount(remoteCollectionCount ?? currentSong?.likedCount)}</span>
             </button>
             <div
               className="vol-wrap"

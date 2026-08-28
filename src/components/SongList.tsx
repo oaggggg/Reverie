@@ -31,6 +31,7 @@ import { downloadSongFile } from "../api/client";
 import { likeSong } from "../api/client";
 import { useCommentStore } from "../store/commentStore";
 import { getResourceComments } from "../api/comment";
+import { getSongCollectionCounts } from "../api/songStatus";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { openAlbumModal, openArtistModal } from "../utils/detailModals";
@@ -84,6 +85,7 @@ export default function SongList({
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadQualityOpen, setDownloadQualityOpen] = useState(false);
   const [commentCounts, setCommentCounts] = useState<Record<number, number>>({});
+  const [collectionCounts, setCollectionCounts] = useState<Record<number, number>>({});
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
   const vipInfo = usePlayerStore((s) => s.vipInfo);
@@ -101,7 +103,7 @@ export default function SongList({
     let alive = true;
     const candidates = songs.filter((song) => !(song.commentCount && song.commentCount > 0)).slice(0, 40);
     if (!candidates.length) return;
-    void Promise.all(
+    const commentsPromise = Promise.all(
       candidates.map(async (song) => {
         try {
           const result = await getResourceComments(
@@ -116,11 +118,16 @@ export default function SongList({
           return null;
         }
       }),
-    ).then((entries) => {
+    );
+    void Promise.all([
+      commentsPromise,
+      getSongCollectionCounts(candidates.map((song) => song.id)).catch(() => ({})),
+    ]).then(([entries, counts]) => {
       if (!alive) return;
       const next: Record<number, number> = {};
       for (const entry of entries) if (entry) next[entry[0]] = entry[1];
       if (Object.keys(next).length) setCommentCounts((current) => ({ ...current, ...next }));
+      if (Object.keys(counts).length) setCollectionCounts((current) => ({ ...current, ...counts }));
     });
     return () => {
       alive = false;
@@ -298,7 +305,7 @@ export default function SongList({
                       usePlayerStore.setState((state) => ({ likedIds: nextLiked ? [...new Set([...state.likedIds, song.id])] : state.likedIds.filter((id) => id !== song.id) }));
                     }).catch(() => usePlayerStore.getState().toast("喜欢操作失败", "error"));
                   }}>
-                    <Heart size={13} fill={likedIds.includes(song.id) ? "currentColor" : "none"} />{formatCount(song.likedCount)}
+                    <Heart size={13} fill={likedIds.includes(song.id) ? "currentColor" : "none"} />{formatCount(collectionCounts[song.id] ?? song.likedCount)}
                   </button>
                   <button className="song-stat-btn" title="查看歌曲评论" onClick={() => {
                     void openSongComments(song);

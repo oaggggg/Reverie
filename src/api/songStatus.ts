@@ -32,6 +32,47 @@ export async function getSongLikeStatus(
   return result;
 }
 
+/** 读取歌曲的官方收藏总数（不是当前用户是否收藏）。 */
+export async function getSongCollectionCounts(
+  songIds: number[],
+): Promise<Record<number, number>> {
+  const ids = songIds.filter((id) => Number.isSafeInteger(id) && id > 0);
+  if (!ids.length) return {};
+  const response = await request<Obj>(
+    "/song/like/check",
+    { ids: ids.join(","), count: "true" },
+    false,
+  );
+  const value = response.data ?? response.result ?? response;
+  const result: Record<number, number> = {};
+  const read = (item: Obj, fallbackId?: number) => {
+    const id = Number(item.id ?? item.songId ?? fallbackId ?? 0);
+    const count = Number(
+      item.likedCount ??
+        item.likeCount ??
+        item.collectCount ??
+        item.collectionCount ??
+        item.count ??
+        item.total ??
+        NaN,
+    );
+    if (id > 0 && Number.isFinite(count)) result[id] = Math.max(0, count);
+  };
+  if (Array.isArray(value)) {
+    for (const raw of value) read(obj(raw));
+  } else {
+    for (const [key, raw] of Object.entries(obj(value))) {
+      if (raw && typeof raw === "object") read(obj(raw), Number(key));
+      else {
+        const count = Number(raw);
+        if (Number.isFinite(count) && Number(key) > 0)
+          result[Number(key)] = Math.max(0, count);
+      }
+    }
+  }
+  return result;
+}
+
 export async function getDynamicSongCover(songId: number): Promise<string> {
   if (!songId) return "";
   const response = await request<Obj>(
