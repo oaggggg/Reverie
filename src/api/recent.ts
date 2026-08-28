@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, normalizeSong } from "./client.ts";
 import type {
   RecentAlbum,
   RecentCategory,
@@ -13,27 +13,30 @@ const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
+/** 最近播放列表短缓存：切页重进不再全量重拉，60s 后重新拉取。 */
+const RECENT_TTL = 60 * 1000;
+
 function listOf(response: Obj): unknown[] {
   const data = obj(response.data ?? response);
   return arr(data.list ?? data.records ?? response.list ?? response.data);
 }
 
 export async function getRecentSongs(limit = 100): Promise<Song[]> {
-  const response = await request<Obj>("/record/recent/song", { limit }, false);
+  const response = await cachedRequest<Obj>("/record/recent/song", { limit }, RECENT_TTL);
   return listOf(response)
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
     .filter((song): song is Song => song !== null);
 }
 
 export async function getRecentListenSongs(limit = 100): Promise<Song[]> {
-  const response = await request<Obj>("/recent/listen/list", { limit }, false);
+  const response = await cachedRequest<Obj>("/recent/listen/list", { limit }, RECENT_TTL);
   return listOf(response)
     .map((raw) => normalizeSong(obj(raw).song ?? obj(raw).resource ?? raw))
     .filter((song): song is Song => song !== null);
 }
 
 export async function getRecentAlbums(limit = 100): Promise<RecentAlbum[]> {
-  const response = await request<Obj>("/record/recent/album", { limit }, false);
+  const response = await cachedRequest<Obj>("/record/recent/album", { limit }, RECENT_TTL);
   return listOf(response)
     .map((raw) => {
       const value = obj(raw);
@@ -52,11 +55,7 @@ export async function getRecentAlbums(limit = 100): Promise<RecentAlbum[]> {
 export async function getRecentPlaylists(
   limit = 100,
 ): Promise<RecentPlaylist[]> {
-  const response = await request<Obj>(
-    "/record/recent/playlist",
-    { limit },
-    false,
-  );
+  const response = await cachedRequest<Obj>("/record/recent/playlist", { limit }, RECENT_TTL);
   return listOf(response)
     .map((raw) => {
       const value = obj(raw);
@@ -74,7 +73,7 @@ export async function getRecentPlaylists(
 }
 
 export async function getRecentRadios(limit = 100): Promise<RecentRadio[]> {
-  const response = await request<Obj>("/record/recent/dj", { limit }, false);
+  const response = await cachedRequest<Obj>("/record/recent/dj", { limit }, RECENT_TTL);
   return listOf(response)
     .map((raw) => {
       const value = obj(raw);
@@ -117,7 +116,7 @@ export async function getRecentMedia(
 ): Promise<SearchMediaInfo[]> {
   const route =
     category === "videos" ? "/record/recent/video" : "/record/recent/voice";
-  return mediaList(await request<Obj>(route, { limit }, false), "video");
+  return mediaList(await cachedRequest<Obj>(route, { limit }, RECENT_TTL), "video");
 }
 
 export async function getRecentCategory(category: RecentCategory) {

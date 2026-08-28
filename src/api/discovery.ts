@@ -1,10 +1,13 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, normalizeSong } from "./client.ts";
 import type { PlaylistInfo, SearchMediaInfo, Song } from "./types.ts";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** 推荐内容缓存：推荐内容低频变化，切页重进不再全量重拉。 */
+const DISCOVERY_TTL = 10 * 60 * 1000;
 
 function normalizePlaylist(raw: unknown): PlaylistInfo | null {
   const value = obj(raw);
@@ -26,7 +29,11 @@ function normalizePlaylist(raw: unknown): PlaylistInfo | null {
 }
 
 export async function getRecommendResources(): Promise<PlaylistInfo[]> {
-  const response = await request<Obj>("/recommend/resource", {}, true);
+  const response = await cachedRequest<Obj>(
+    "/recommend/resource",
+    {},
+    DISCOVERY_TTL,
+  );
   const data = obj(response.data ?? response.result);
   return arr(response.recommend ?? data.recommend ?? response.data ?? response)
     .map(normalizePlaylist)
@@ -34,10 +41,10 @@ export async function getRecommendResources(): Promise<PlaylistInfo[]> {
 }
 
 export async function getPersonalizedNewSongs(limit = 12): Promise<Song[]> {
-  const response = await request<Obj>(
+  const response = await cachedRequest<Obj>(
     "/personalized/newsong",
     { limit },
-    false,
+    DISCOVERY_TTL,
   );
   return arr(response.result ?? response.data)
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
@@ -66,12 +73,19 @@ function mediaList(response: Obj, kind: "mv" | "video"): SearchMediaInfo[] {
 }
 
 export async function getPersonalizedMvs(): Promise<SearchMediaInfo[]> {
-  return mediaList(await request<Obj>("/personalized/mv", {}, false), "mv");
+  return mediaList(
+    await cachedRequest<Obj>("/personalized/mv", {}, DISCOVERY_TTL),
+    "mv",
+  );
 }
 
 export async function getPrivateContent(): Promise<SearchMediaInfo[]> {
   return mediaList(
-    await request<Obj>("/personalized/privatecontent", {}, false),
+    await cachedRequest<Obj>(
+      "/personalized/privatecontent",
+      {},
+      DISCOVERY_TTL,
+    ),
     "video",
   );
 }
@@ -81,10 +95,10 @@ export async function getPrivateContentList(
   offset = 0,
 ): Promise<SearchMediaInfo[]> {
   return mediaList(
-    await request<Obj>(
+    await cachedRequest<Obj>(
       "/personalized/privatecontent/list",
       { limit, offset },
-      false,
+      DISCOVERY_TTL,
     ),
     "video",
   );

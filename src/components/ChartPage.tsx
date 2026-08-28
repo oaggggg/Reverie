@@ -29,18 +29,13 @@ export default function ChartPage() {
     if (!charts.length) void load();
   }, [charts.length, load]);
 
-  // 榜单目录就绪后错峰拉取各卡片歌曲，避免瞬时并发
+  // 榜单目录就绪后并发拉取各卡片歌曲：本地 sidecar 并发无压力，
+  // 接口层已有缓存与去重；旧的 250ms 错峰让最后一张卡晚 1.75s 才开始
   useEffect(() => {
     if (!charts.length) return;
-    let cancelled = false;
-    charts.slice(0, MAX_CARDS).forEach((chart, index) => {
-      setTimeout(() => {
-        if (!cancelled) void loadCard(chart.id);
-      }, index * 250);
+    charts.slice(0, MAX_CARDS).forEach((chart) => {
+      void loadCard(chart.id);
     });
-    return () => {
-      cancelled = true;
-    };
   }, [charts, loadCard]);
 
   const playChart = async (id: number) => {
