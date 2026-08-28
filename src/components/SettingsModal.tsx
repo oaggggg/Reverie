@@ -34,6 +34,7 @@ import {
   createFeedbackIssue,
   openGitHubIssue,
 } from "../utils/diagnostics";
+import { getSavedAccounts, MAX_SAVED_ACCOUNTS, type SavedAccount } from "../store/accountStore";
 
 const APP_THEMES: Array<{ id: ThemePreference; name: string }> = [
   { id: "system", name: "跟随系统" },
@@ -219,12 +220,16 @@ export default function SettingsModal() {
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
   const setLyricFontSize = usePlayerStore((s) => s.setLyricFontSize);
   const logout = usePlayerStore((s) => s.logout);
+  const switchAccount = usePlayerStore((s) => s.switchAccount);
+  const removeAccount = usePlayerStore((s) => s.removeAccount);
+  const setShowLogin = usePlayerStore((s) => s.setShowLogin);
   const clearAppCache = usePlayerStore((s) => s.clearAppCache);
   const checkUpdate = usePlayerStore((s) => s.checkUpdate);
   const updatePhase = usePlayerStore((s) => s.updatePhase);
   const [accountOverview, setAccountOverview] =
     useState<AccountOverview | null>(null);
   const [accountLoading, setAccountLoading] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
   const [neteaseVersion, setNeteaseVersion] = useState("");
   const [neteaseSettings, setNeteaseSettings] = useState<Record<
     string,
@@ -238,6 +243,10 @@ export default function SettingsModal() {
   useModalBehavior(showSettings, transition.surfaceRef, () =>
     setShowSettings(false),
   );
+
+  useEffect(() => {
+    if (showSettings && category === "account") setSavedAccounts(getSavedAccounts());
+  }, [category, loggedIn, profile, showSettings]);
 
   useEffect(() => {
     if (!showSettings || category !== "account" || !loggedIn) return;
@@ -670,20 +679,47 @@ export default function SettingsModal() {
             )}
 
             {category === "account" && (
+              <>
               <div className="settings-section">
-                <h3>账号</h3>
+                <h3>账号管理</h3>
                 <SettingRow
                   title={profile?.nickname || "未登录"}
                   hint={loggedIn ? "网易云音乐账号" : "登录后同步收藏内容"}
                 >
                   {loggedIn ? (
-                    <button className="btn danger" onClick={logout}>
-                      退出登录
-                    </button>
+                    <div className="saved-account-actions">
+                      <button className="btn" onClick={() => setShowLogin(true)}>
+                        添加账号
+                      </button>
+                      <button className="btn danger" onClick={logout}>
+                        退出登录
+                      </button>
+                    </div>
                   ) : (
-                    <span className="setting-status">未登录</span>
+                    <button className="btn" onClick={() => setShowLogin(true)}>
+                      添加账号
+                    </button>
                   )}
                 </SettingRow>
+                <div className="saved-accounts" aria-live="polite">
+                  <div className="saved-accounts-header">
+                    <span>已保存账号</span>
+                    <small>{savedAccounts.length}/{MAX_SAVED_ACCOUNTS}</small>
+                  </div>
+                  {savedAccounts.length ? savedAccounts.map((account) => (
+                    <div className={`saved-account ${account.userId === profile?.userId ? "current" : ""}`} key={account.userId}>
+                      {account.avatarUrl ? <img src={account.avatarUrl} alt="" /> : <CircleUserRound size={22} />}
+                      <div className="saved-account-copy">
+                        <strong>{account.nickname || "网易云用户"}</strong>
+                        <span>ID {account.userId}{account.userId === profile?.userId ? " · 当前使用" : ""}</span>
+                      </div>
+                      <div className="saved-account-actions">
+                        {account.userId !== profile?.userId && <button className="btn" onClick={() => void switchAccount(account.userId)}>切换</button>}
+                        <button className="icon-btn" title="删除账号" onClick={() => { removeAccount(account.userId); setSavedAccounts(getSavedAccounts()); }}><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                  )) : <p className="setting-status">暂无保存的账号</p>}
+                </div>
                 {loggedIn && (
                   <div className="account-overview" aria-live="polite">
                     {accountLoading ? (
@@ -736,6 +772,7 @@ export default function SettingsModal() {
                   </div>
                 )}
               </div>
+              </>
             )}
 
             {category === "about" && (

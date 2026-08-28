@@ -45,6 +45,12 @@ import {
 } from "../utils/gpuBenchmark.ts";
 import type { CoverQuality } from "../utils/gpuBenchmark.ts";
 import { recordDiagnostic } from "../utils/diagnostics.ts";
+import {
+  getSavedAccount,
+  hasReachedAccountLimit,
+  removeSavedAccount,
+  saveAccount,
+} from "./accountStore.ts";
 
 export type UpdatePhase =
   | "idle"
@@ -849,6 +855,8 @@ interface PlayerState {
   clearRecent: () => void;
   loadHomeQuote: () => Promise<void>;
   applyLogin: (cookie: string) => Promise<boolean>;
+  switchAccount: (userId: number) => Promise<boolean>;
+  removeAccount: (userId: number) => void;
   logout: () => void;
   refreshLogin: () => Promise<void>;
 }
@@ -2572,6 +2580,8 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   // --- auth ---
   applyLogin: async (c) => {
     if (!c) return false;
+    const previousCookie = getCookie();
+    const previousProfile = get().profile;
     setCookie(c);
     // Permissions (VIP levels, region blocks) change with the account.
     clearResponseCache();
@@ -2585,6 +2595,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       profile = null;
     }
     if (profile && profile.userId > 0) {
+      if (hasReachedAccountLimit(profile.userId)) {
+        setCookie(previousCookie);
+        set({ authReady: true, loggedIn: Boolean(previousProfile), profile: previousProfile });
+        get().toast("最多保存 3 个网易云音乐账号，请先删除一个账号", "error");
+        return false;
+      }
+      saveAccount(profile, getCookie());
       accountDataGeneration++;
       // Switching accounts: wipe the previous account's cached data first,
       // otherwise its likes / recommendations stay on screen.
@@ -2622,6 +2639,19 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
     set({ loggedIn: false, authReady: true, profile: null });
     return false;
+  },
+  switchAccount: async (userId) => {
+    const account = getSavedAccount(userId);
+    if (!account) return false;
+    setCookie(account.cookie);
+    set({ authReady: false });
+    await get().refreshLogin();
+    return get().loggedIn && get().profile?.userId === userId;
+  },
+  removeAccount: (userId) => {
+    const isCurrent = get().profile?.userId === userId;
+    removeSavedAccount(userId);
+    if (isCurrent) get().logout();
   },
   logout: () => {
     accountDataGeneration++;
@@ -2692,6 +2722,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     try {
       const profile = await loginStatusWithRetry();
       if (profile && profile.userId > 0) {
+        saveAccount(profile, getCookie());
         const accountChanged = get().profile?.userId !== profile.userId;
         if (accountChanged) {
           accountDataGeneration++;

@@ -5477,6 +5477,36 @@ select option:checked {
   opacity: 0.42;
   cursor: default;
 }
+.saved-accounts {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.saved-accounts-header {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+.saved-accounts-header small { color: var(--text-faint); font-weight: 500; }
+.saved-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-3) 48%, transparent);
+}
+.saved-account.current { border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border)); }
+.saved-account > img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.saved-account-copy { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.saved-account-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.saved-account-copy span { color: var(--text-faint); font-size: 11px; }
+.saved-account-actions { display: flex; align-items: center; gap: 6px; }
+.saved-account-actions .btn { min-height: 28px; padding: 0 9px; font-size: 11px; }
 .settings-slider {
   width: 180px;
 }
