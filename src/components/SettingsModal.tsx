@@ -21,6 +21,8 @@ import type {
   GlassOpacity,
   ThemePreference,
 } from "../store/playerStore";
+import { getAccountOverview } from "../api/account";
+import type { AccountOverview } from "../api/account";
 import { getNeteaseApiVersion, getNeteaseSettings } from "../api/appMeta";
 import {
   captureInteractionOrigin,
@@ -213,6 +215,7 @@ export default function SettingsModal() {
   const setCrossDeviceResume = usePlayerStore((s) => s.setCrossDeviceResume);
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
+  const vipInfo = usePlayerStore((s) => s.vipInfo);
   const showTranslation = usePlayerStore((s) => s.showTranslation);
   const setShowTranslation = usePlayerStore((s) => s.setShowTranslation);
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
@@ -225,6 +228,8 @@ export default function SettingsModal() {
   const checkUpdate = usePlayerStore((s) => s.checkUpdate);
   const updatePhase = usePlayerStore((s) => s.updatePhase);
   const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
+  const [accountOverview, setAccountOverview] = useState<AccountOverview | null>(null);
+  const [accountLoading, setAccountLoading] = useState(false);
   const [neteaseVersion, setNeteaseVersion] = useState("");
   const [neteaseSettings, setNeteaseSettings] = useState<Record<
     string,
@@ -242,6 +247,20 @@ export default function SettingsModal() {
   useEffect(() => {
     if (showSettings && category === "account") setSavedAccounts(getSavedAccounts());
   }, [category, loggedIn, profile, showSettings]);
+
+  useEffect(() => {
+    if (!showSettings || category !== "account" || !loggedIn) {
+      setAccountOverview(null);
+      return;
+    }
+    let alive = true;
+    setAccountLoading(true);
+    void getAccountOverview()
+      .then((value) => { if (alive) setAccountOverview(value); })
+      .catch(() => { if (alive) setAccountOverview(null); })
+      .finally(() => { if (alive) setAccountLoading(false); });
+    return () => { alive = false; };
+  }, [category, loggedIn, showSettings, profile?.userId]);
 
   useEffect(() => {
     if (!showSettings || category !== "about") return;
@@ -263,6 +282,11 @@ export default function SettingsModal() {
 
   const close = () => setShowSettings(false);
   const checking = updatePhase === "checking";
+  const vipActive = Boolean(
+    vipInfo &&
+      vipInfo.vipType > 0 &&
+      (vipInfo.expireTime <= 0 || vipInfo.expireTime > Date.now()),
+  );
 
   const openFeedback = async () => {
     setFeedbackOpening(true);
@@ -696,6 +720,26 @@ export default function SettingsModal() {
                     </div>
                   )) : <p className="setting-status">暂无保存的账号</p>}
                 </div>
+                {loggedIn && (
+                  <div className="account-details" aria-live="polite">
+                    <div className="account-details-header">
+                      <h3>账号信息</h3>
+                      {accountLoading && <span className="setting-status">同步中…</span>}
+                    </div>
+                    <div className="account-details-grid">
+                      <div><span>账号 ID</span><strong>{accountOverview?.userId || profile?.userId || "—"}</strong></div>
+                      <div><span>账号类型</span><strong>{accountOverview?.accountType === 1000 ? "游客" : "网易云音乐账号"}</strong></div>
+                      <div><span>等级</span><strong>Lv.{accountOverview?.level || 0}</strong></div>
+                      <div><span>会员类型</span><strong>{vipInfo?.svip && vipActive ? "黑胶 SVIP" : vipActive || accountOverview?.vipType ? "黑胶 VIP" : "普通账号"}</strong></div>
+                      <div><span>会员等级</span><strong>{vipInfo?.vipLevel ? `Lv.${vipInfo.vipLevel}` : "—"}</strong></div>
+                      <div><span>会员到期</span><strong>{vipInfo?.expireTime ? new Date(vipInfo.expireTime).toLocaleDateString("zh-CN") : "未开通"}</strong></div>
+                      <div><span>绑定方式</span><strong>{accountOverview?.bindings?.length ? accountOverview.bindings.join("、") : "未读取到"}</strong></div>
+                      {accountOverview?.phone && <div><span>手机号</span><strong>{accountOverview.phone}</strong></div>}
+                      {accountOverview?.email && <div><span>邮箱</span><strong>{accountOverview.email}</strong></div>}
+                    </div>
+                    {accountOverview?.detail && <p className="account-details-signature">{accountOverview.detail}</p>}
+                  </div>
+                )}
               </div>
               </>
             )}

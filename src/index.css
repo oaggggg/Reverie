@@ -5510,6 +5510,46 @@ select option:checked {
 .saved-account-copy span { color: var(--text-faint); font-size: 11px; }
 .saved-account-actions { display: flex; align-items: center; gap: 6px; }
 .saved-account-actions .btn { min-height: 28px; padding: 0 9px; font-size: 11px; }
+.account-details {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.account-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.account-details-header h3 { margin: 0; }
+.account-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+}
+.account-details-grid > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  font-size: 12px;
+}
+.account-details-grid span { color: var(--text-faint); }
+.account-details-grid strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+}
+.account-details-signature {
+  margin: 12px 0 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
 .settings-slider {
   width: 180px;
 }
