@@ -13162,6 +13162,24 @@ img[data-reverie-fallback="true"] {
   filter: none !important;
   transform: none !important;
 }
+.comments-modal-header .playlist-comments-cover {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--shadow) 30%, transparent);
+}
+.comments-modal-cover-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+}
+.comments-modal-header > .icon-btn {
+  flex: none;
+  margin-left: auto;
+}
 
 /* All native selects share the download dialog's glass control language. */
 .styled-select { position: relative; min-width: 170px; }

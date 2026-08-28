@@ -46,27 +46,31 @@ export default function CommentsModal() {
         aria-label="评论"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          className="icon-btn"
-          title="关闭"
-          onClick={() => setShow(false)}
-        >
-          <X size={16} />
-        </button>
         <header className="comments-modal-header">
-          <span className="comments-modal-cover">
-            {resource?.coverUrl ? (
-              <img src={sizedImage(resource.coverUrl, 120)} alt="" />
-            ) : (
+          {resource?.coverUrl ? (
+            <img
+              className="playlist-comments-cover"
+              src={sizedImage(resource.coverUrl, 120)}
+              alt=""
+            />
+          ) : (
+            <span className="playlist-comments-cover comments-modal-cover-placeholder">
               <MessageCircle size={18} />
-            )}
-          </span>
-          <div className="comments-modal-titles">
-            <span className="comments-modal-kind">{label}评论</span>
-            <strong className="comments-modal-title">
+            </span>
+          )}
+          <div className="comments-modal-title-block">
+            <span>{label}评论</span>
+            <strong id="resource-comments-title">
               {resource?.title || "未选择评论资源"}
             </strong>
           </div>
+          <button
+            className="icon-btn"
+            title="关闭"
+            onClick={() => setShow(false)}
+          >
+            <X size={18} />
+          </button>
         </header>
         <CommentPanel compact />
       </section>
