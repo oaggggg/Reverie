@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { Play } from "lucide-react";
+import { Play, RefreshCw } from "lucide-react";
 import { useChartStore } from "../store/chartStore";
 import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { Page, PageHeader } from "./Page";
 import BackButton from "./BackButton";
+import SongList from "./SongList";
 
 /** 卡片网格里最多展示多少个官方榜单 */
 const MAX_CARDS = 8;
@@ -54,10 +55,30 @@ export default function ChartPage() {
     else usePlayerStore.getState().toast("榜单暂无歌曲", "info");
   };
   const selectedChart = charts.find((chart) => chart.id === selectedId);
+  const refreshCharts = () => {
+    if (selectedId) return;
+    void load();
+  };
 
   return (
     <Page>
-      <PageHeader title="排行榜" subtitle="官方榜单 · 每天更新" />
+      <PageHeader
+        title="排行榜"
+        subtitle="官方榜单 · 每天更新"
+        actions={
+          !selectedChart ? (
+            <button
+              className="icon-btn"
+              title="刷新排行榜"
+              aria-label="刷新排行榜"
+              onClick={refreshCharts}
+              disabled={loading}
+            >
+              <RefreshCw size={16} className={loading ? "spin" : ""} />
+            </button>
+          ) : null
+        }
+      />
       {selectedChart ? (
         <section className="chart-detail">
           {/* 与歌单/专辑/电台详情页统一的 detail-hero 布局 */}
@@ -102,21 +123,15 @@ export default function ChartPage() {
               </div>
             </div>
           </section>
-          {songsLoading ? (
-            <div className="loading-hint">正在加载榜单歌曲…</div>
-          ) : detailSongs.length ? (
-            <ol className="chart-detail-list">
-              {detailSongs.map((song, index) => (
-                <li key={song.id} onClick={() => playSong(song, detailSongs)}>
-                  <b className={index < 3 ? "top" : ""}>{index + 1}</b>
-                  <span>{song.name}</span>
-                  <small>{song.artists}</small>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <div className="empty">暂无歌曲</div>
-          )}
+          <div className="chart-detail-songs">
+            <SongList
+              songs={detailSongs}
+              title="榜单歌曲"
+              loading={songsLoading}
+              emptyText="暂无歌曲"
+              showCover
+            />
+          </div>
         </section>
       ) : loading && !charts.length ? (
         <div className="loading-hint">正在加载榜单…</div>
