@@ -7614,7 +7614,32 @@ textarea {
   font-size: 11px;
 }
 .chart-detail {
-  padding: 0 var(--layout-gutter);
+  padding: 0 var(--layout-gutter) 28px;
+  display: grid;
+  gap: 18px;
+}
+.chart-detail .detail-hero {
+  margin: 0;
+  border-radius: 14px;
+  padding: 22px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--bg-2) 94%, var(--accent) 6%), var(--bg-2));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--shadow) 55%, transparent);
+}
+.chart-detail-songs {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+}
+.chart-detail-songs .song-list {
+  border-top: 1px solid var(--border-light);
+}
+.chart-detail-songs .list-header {
+  margin: 0 0 10px;
+}
+.chart-detail-songs .song-item {
+  min-height: 52px;
 }
 
 @media (max-width: 1100px) {
