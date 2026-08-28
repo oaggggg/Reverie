@@ -1,6 +1,9 @@
-import { request } from "./client.ts";
+import { cachedRequest } from "./client.ts";
 
 type Obj = Record<string, unknown>;
+/** 首页入口/版块缓存：返回首页不再每次全量重拉。 */
+const HOMEPAGE_TTL = 5 * 60 * 1000;
+
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
@@ -28,11 +31,7 @@ export async function getHomepageBlockPage(
   refresh = false,
   cursor = "",
 ): Promise<HomepageBlockPage> {
-  const response = await request<Obj>(
-    "/homepage/block/page",
-    { refresh, cursor: cursor || undefined },
-    false,
-  );
+  const response = await cachedRequest<Obj>("/homepage/block/page", { refresh, cursor: cursor || undefined }, HOMEPAGE_TTL);
   const value = obj(response.data ?? response.result ?? response);
   const blocks = arr(value.blocks ?? response.blocks ?? value.list)
     .map((raw) => {
@@ -52,7 +51,7 @@ export async function getHomepageBlockPage(
 }
 
 export async function getHomepageDragonBall(): Promise<HomepageEntry[]> {
-  const response = await request<Obj>("/homepage/dragon/ball", {}, false);
+  const response = await cachedRequest<Obj>("/homepage/dragon/ball", {}, HOMEPAGE_TTL);
   const value = obj(response.data ?? response.result ?? response);
   return arr(
     value.data ?? value.list ?? response.data ?? response.list ?? response,

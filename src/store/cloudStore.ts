@@ -67,7 +67,8 @@ export const useCloudStore = create<CloudState>()((set, get) => ({
   load: async (refresh = false) => {
     const token = ++requestToken;
     const offset = refresh ? 0 : get().offset;
-    if (refresh || !get().songs.length) set({ loading: true });
+    // 已有数据时静默刷新，不再整页 loading 挡住重进页面的用户。
+    if (!get().songs.length) set({ loading: true });
     try {
       const result = await getCloudSongs(pageSize, offset);
       if (token !== requestToken) return;

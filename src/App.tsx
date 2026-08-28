@@ -377,16 +377,32 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      await refreshLogin();
+      const startHomeLoads = () => {
+        if (!cancelled)
+          void Promise.allSettled([loadHome(true), loadHomeQuote()]);
+      };
+      // 本地已有缓存档案时，首屏数据与登录校验并行：首页接口只依赖
+      // 本地 cookie，无需等 /login/status 的重试链走完（sidecar 冷启动
+      // 时该链最坏十几秒，曾把首页一直挡在空白）。
+      const cachedProfile = usePlayerStore.getState().profile;
+      let loginDone: Promise<void>;
+      if (cachedProfile) {
+        loginDone = refreshLogin();
+        startHomeLoads();
+      } else {
+        loginDone = refreshLogin().then(startHomeLoads);
+      }
+      await loginDone;
       if (cancelled) return;
-      // 登录完成后立即并行拉取首屏数据，不再等待浏览器空闲回调。
-      // 空闲调度适合后台刷新，但会让首次登录后的页面长时间空白。
-      if (!cancelled)
-        void Promise.allSettled([loadHome(true), loadHomeQuote()]);
+      // 并行路径下账号若真的变了，refreshLogin 会自增 homeRequestToken
+      // 丢弃预取结果，这里补拉一次新账号的首屏。
+      const after = usePlayerStore.getState();
+      if (cachedProfile && after.profile?.userId !== cachedProfile.userId) {
+        startHomeLoads();
+      }
       // 启动直达私人漫游：设置开启且当前没有恢复的在播内容时才触发；
       // 未登录时静默跳过，不在启动流程里弹登录框打扰。
-      const boot = usePlayerStore.getState();
-      if (boot.launchFmOnStart && !boot.currentSong && boot.loggedIn) {
+      if (after.launchFmOnStart && !after.currentSong && after.loggedIn) {
         void usePlayerStore.getState().loadPersonalFm();
       }
     })();

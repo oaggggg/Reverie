@@ -1,10 +1,13 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, invalidateResponseCache, normalizeSong, request } from "./client.ts";
 import type { CloudSong, Song } from "./types.ts";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** 云盘列表短缓存：重进云盘页不重拉（上传/删除/匹配后主动失效）。 */
+const CLOUD_TTL = 60 * 1000;
 
 function normalizeCloudSong(raw: unknown): CloudSong | null {
   const item = obj(raw);
@@ -40,7 +43,11 @@ export async function getCloudSongs(
   limit = 30,
   offset = 0,
 ): Promise<{ songs: CloudSong[]; total: number; hasMore: boolean }> {
-  const res = await request<Obj>("/user/cloud", { limit, offset }, true);
+  const res = await cachedRequest<Obj>(
+    "/user/cloud",
+    { limit, offset },
+    CLOUD_TTL,
+  );
   const songs = arr(res.data ?? res.songs ?? res.cloudSongs)
     .map(normalizeCloudSong)
     .filter((item): item is CloudSong => item !== null);
@@ -64,6 +71,7 @@ export async function getCloudSongDetails(ids: number[]): Promise<CloudSong[]> {
 
 export async function deleteCloudSong(id: number): Promise<void> {
   await request("/user/cloud/del", { id }, false, { method: "POST" });
+  invalidateResponseCache(["/user/cloud"]);
 }
 
 export async function matchCloudSong(
@@ -74,6 +82,7 @@ export async function matchCloudSong(
   await request("/cloud/match", { uid, sid, asid: adjustSongId }, false, {
     method: "POST",
   });
+  invalidateResponseCache(["/user/cloud"]);
 }
 
 export async function uploadCloudSong(file: File): Promise<Obj> {

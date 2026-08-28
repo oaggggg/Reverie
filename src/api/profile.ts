@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, normalizeSong } from "./client.ts";
 import type { RadioInfo, Song } from "./types";
 
 type Obj = Record<string, unknown>;
@@ -78,14 +78,19 @@ function normalizeRecords(value: unknown): ListeningRecord[] {
     .filter((record): record is ListeningRecord => record !== null);
 }
 
+/** 个人中心读接口缓存：重进个人页不再全量重拉（听歌排行 2min，其余 5min）。 */
+const RECORD_TTL = 2 * 60 * 1000;
+const PROFILE_TTL = 5 * 60 * 1000;
+
 export async function getListeningRecords(
   uid: number,
   period: "week" | "all",
 ): Promise<ListeningRecord[]> {
-  const response = await request<Obj>("/user/record", {
-    uid,
-    type: period === "week" ? 1 : 0,
-  });
+  const response = await cachedRequest<Obj>(
+    "/user/record",
+    { uid, type: period === "week" ? 1 : 0 },
+    RECORD_TTL,
+  );
   return normalizeRecords(
     period === "week" ? response.weekData : response.allData,
   );
@@ -98,9 +103,15 @@ export async function getProfileCenter(
   // 由调用方（profileStore）叠加本地缓存的基础身份信息。
   const [detailResponse, levelResponse, subcountResponse, records] =
     await Promise.all([
-      request<Obj>("/user/detail", { uid }).catch(() => ({}) as Obj),
-      request<Obj>("/user/level", {}, false).catch(() => ({}) as Obj),
-      request<Obj>("/user/subcount", {}, false).catch(() => ({}) as Obj),
+      cachedRequest<Obj>("/user/detail", { uid }, PROFILE_TTL).catch(
+        () => ({}) as Obj,
+      ),
+      cachedRequest<Obj>("/user/level", {}, PROFILE_TTL).catch(
+        () => ({}) as Obj,
+      ),
+      cachedRequest<Obj>("/user/subcount", {}, PROFILE_TTL).catch(
+        () => ({}) as Obj,
+      ),
       getListeningRecords(uid, "week").catch(() => []),
     ]);
   const profile = obj(detailResponse.profile);
@@ -144,7 +155,11 @@ export async function getProfileCenter(
 
 export async function getUserMedals(uid: number): Promise<UserMedal[]> {
   if (!uid) return [];
-  const response = await request<Obj>("/user/medal", { uid }, false);
+  const response = await cachedRequest<Obj>(
+    "/user/medal",
+    { uid },
+    PROFILE_TTL,
+  );
   const value = obj(response.data ?? response.result ?? response);
   return arr(value.medals ?? value.list ?? response.data ?? response)
     .map((raw) => {
@@ -163,7 +178,7 @@ export async function getUserMedals(uid: number): Promise<UserMedal[]> {
 
 export async function getUserCreatedRadios(uid: number): Promise<RadioInfo[]> {
   if (!uid) return [];
-  const response = await request<Obj>("/user/audio", { uid }, false);
+  const response = await cachedRequest<Obj>("/user/audio", { uid }, PROFILE_TTL);
   const value = obj(response.data ?? response.result ?? response);
   return arr(
     value.djRadios ?? value.radios ?? value.list ?? response.data ?? response,
@@ -194,10 +209,10 @@ export async function getUserDjPrograms(
   offset = 0,
 ): Promise<Song[]> {
   if (!uid) return [];
-  const response = await request<Obj>(
+  const response = await cachedRequest<Obj>(
     "/user/dj",
     { uid, limit, offset },
-    false,
+    PROFILE_TTL,
   );
   const value = obj(response.data ?? response.result ?? response);
   return arr(value.programs ?? value.list ?? response.programs ?? response.data)

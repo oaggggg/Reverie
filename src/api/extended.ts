@@ -1,4 +1,5 @@
 import {
+  cachedRequest,
   getUserPlaylists,
   invalidateResponseCache,
   normalizeSong,
@@ -21,6 +22,10 @@ type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** 社交读接口缓存：重进社交页/关注列表不再全量重拉。 */
+const SOCIAL_TTL = 2 * 60 * 1000;
+const EVENT_TTL = 60 * 1000;
 
 function normalizeArtist(raw: unknown): ArtistInfo {
   const a = obj(raw);
@@ -430,7 +435,11 @@ export async function subscribeRadio(
 }
 
 export async function getFollows(uid: number): Promise<SocialUser[]> {
-  const res = await request<Obj>("/user/follows", { uid, limit: 100 }, true);
+  const res = await cachedRequest<Obj>(
+    "/user/follows",
+    { uid, limit: 100 },
+    SOCIAL_TTL,
+  );
   const data = obj(res.data ?? res.result);
   const rows =
     res.follow ??
@@ -445,7 +454,11 @@ export async function getFollows(uid: number): Promise<SocialUser[]> {
 }
 
 export async function getFollowers(uid: number): Promise<SocialUser[]> {
-  const res = await request<Obj>("/user/followeds", { uid, limit: 100 }, true);
+  const res = await cachedRequest<Obj>(
+    "/user/followeds",
+    { uid, limit: 100 },
+    SOCIAL_TTL,
+  );
   const data = obj(res.data ?? res.result);
   const rows =
     res.followeds ??
@@ -473,10 +486,10 @@ export async function getMixedFollows(
   size = 100,
   cursor = 0,
 ): Promise<MixedFollowResult> {
-  const res = await request<Obj>(
+  const res = await cachedRequest<Obj>(
     "/user/follow/mixed",
     { scene, size, cursor },
-    true,
+    SOCIAL_TTL,
   );
   const data = obj(res.data ?? res.result);
   const rows =
@@ -507,6 +520,12 @@ export async function getMutualFollow(uid: number): Promise<boolean> {
 
 export async function followUser(id: number, follow: boolean): Promise<void> {
   await request("/follow", { id, t: follow ? 1 : 0 }, false);
+  // 关注关系变化，立即失效三类关注列表缓存。
+  invalidateResponseCache([
+    "/user/follows",
+    "/user/followeds",
+    "/user/follow/mixed",
+  ]);
 }
 
 export async function likeEvent(
@@ -538,13 +557,14 @@ export async function forwardEvent(
 export async function deleteEvent(eventId: number): Promise<void> {
   if (!eventId) return;
   await request("/event/del", { evId: eventId }, false, { method: "POST" });
+  invalidateResponseCache(["/event", "/user/event"]);
 }
 
 export async function getEvents(): Promise<SocialEvent[]> {
-  const res = await request<Obj>(
+  const res = await cachedRequest<Obj>(
     "/event",
     { pagesize: 40, lasttime: -1 },
-    true,
+    EVENT_TTL,
   );
   return arr(res.event ?? res.events ?? res.data).map(normalizeSocialEvent);
 }
@@ -574,7 +594,11 @@ export async function getUserEvents(
   limit = 30,
 ): Promise<SocialEvent[]> {
   if (!uid) return [];
-  const res = await request<Obj>("/user/event", { uid, lasttime, limit }, true);
+  const res = await cachedRequest<Obj>(
+    "/user/event",
+    { uid, lasttime, limit },
+    EVENT_TTL,
+  );
   return arr(res.events ?? res.event ?? res.data).map(normalizeSocialEvent);
 }
 

@@ -114,9 +114,13 @@ interface CacheEntry {
 
 const responseCache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<unknown>>();
-const MAX_CACHE_ENTRIES = 120;
-const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
-const MAX_GET_ATTEMPTS = 4;
+// 一屏列表页（首页+榜单+歌单分块）就能产生上百个不同键，容量太小会
+// 互相驱逐、重进页面命中率骤降，反而放大"每次都重拉"的感知。
+const MAX_CACHE_ENTRIES = 500;
+const DEFAULT_REQUEST_TIMEOUT_MS = 8_000;
+// 上游抖动时 4 次×15s 的重试最坏要 ~48s 才报错，把一次慢请求放大成
+// 整页长时间 loading；收敛为 2 次短重试，确实慢的端点用 timeoutMs 单独放宽。
+const MAX_GET_ATTEMPTS = 2;
 const MAX_STALE_CACHE_AGE_MS = 6 * 60 * 60 * 1000;
 
 class ApiRequestError extends Error {
@@ -953,7 +957,7 @@ export async function getUserPlaylists(uid: number): Promise<PlaylistInfo[]> {
       code?: number;
       playlist?: unknown[];
       more?: boolean;
-    }>("/user/playlist", { uid, limit: PAGE, offset }, 2 * 60 * 1000);
+    }>("/user/playlist", { uid, limit: PAGE, offset }, 10 * 60 * 1000);
     const page = res.playlist ?? [];
     let added = 0;
     for (const item of page) {
@@ -1358,26 +1362,41 @@ export function pickActiveDynamicBadge(data: Record<string, unknown>): string {
   return "";
 }
 
+/** getVipInfo 结果短缓存：会员信息低频变化，启动与用户菜单展开都会调用。 */
+let vipInfoMemo: { key: string; at: number; data: VipInfo } | null = null;
+const VIP_INFO_TTL = 5 * 60 * 1000;
+
 export async function getVipInfo(uid: number): Promise<VipInfo> {
+  const memoKey = `${authGeneration}:${uid}`;
+  if (
+    vipInfoMemo &&
+    vipInfoMemo.key === memoKey &&
+    Date.now() - vipInfoMemo.at < VIP_INFO_TTL
+  ) {
+    return vipInfoMemo.data;
+  }
+  // 三个来源全部并行：串行链（v2→v1→detail/new→detail）最坏 4 轮请求，
+  // 启动时直接拖慢首屏。
+  const [vipRes, firstDetail] = await Promise.all([
+    Promise.allSettled([
+      request<{ data?: Record<string, unknown> }>("/vip/info/v2", { uid }, false),
+      request<{ data?: Record<string, unknown> }>("/vip/info", { uid }, false),
+    ]),
+    request<unknown>("/user/detail/new", { uid, all: "true" }, false).catch(
+      () => null,
+    ),
+  ]);
   let d: Record<string, unknown> = {};
   // /vip/info (v1) carries the official member badge icons — including the
   // animated dynamicIconUrl (associator.dynamicIconUrl, an animated webp).
   // /vip/info/v2 only returns codes/levels/expire times (no icon urls), so it
   // must NOT be used alone. Merge both, letting v1's richer objects win.
-  for (const ep of ["/vip/info/v2", "/vip/info"] as const) {
-    try {
-      const res = await request<{ data?: Record<string, unknown> }>(
-        ep,
-        { uid },
-        false,
-      );
-      if (res?.data && typeof res.data === "object") {
-        d = { ...d, ...res.data };
-      }
-    } catch {
-      /* ignore */
+  for (const outcome of vipRes) {
+    if (outcome.status === "fulfilled" && outcome.value?.data) {
+      d = { ...d, ...outcome.value.data };
     }
   }
+  const detailRes: unknown = firstDetail;
   const redLevel = Number(d.redVipLevel ?? d.level ?? 0);
   const vipType = Number(
     d.vipType ?? d.redVipType ?? d.vipStatus ?? (redLevel > 0 ? 10 : 0),
@@ -1397,26 +1416,11 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     badgeKind = "dynamic";
   }
   let vipRights: unknown = findVipRights(d);
-  let detailRes: unknown = null;
-  const fetchDetailOnce = async () => {
-    if (detailRes) return detailRes;
-    try {
-      detailRes = await request<unknown>(
-        "/user/detail/new",
-        { uid, all: "true" },
-        false,
-      );
-    } catch {
-      /* ignore */
-    }
-    return detailRes;
-  };
-  const firstDetail = await fetchDetailOnce();
-  if (!badgeUrl && firstDetail) {
-    badgeUrl = deepFindCustomPlate(firstDetail);
+  if (!badgeUrl && detailRes) {
+    badgeUrl = deepFindCustomPlate(detailRes);
     if (badgeUrl) badgeKind = "plate";
   }
-  if (!vipRights) vipRights = findVipRights(firstDetail);
+  if (!vipRights) vipRights = findVipRights(detailRes);
   if (!vipRights || !badgeUrl) {
     // user/detail/new 拿不到资料时的次级来源（内含 profile.vipRights）
     try {
@@ -1437,12 +1441,9 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     badgeUrl = brand.url;
     badgeKind = "brand";
   }
-  if (!brand?.url && !badgeUrl) {
-    const res = await fetchDetailOnce();
-    if (res) {
-      badgeUrl = deepFindBadgeUrl(res);
-      if (badgeUrl) badgeKind = "fallback";
-    }
+  if (!brand?.url && !badgeUrl && detailRes) {
+    badgeUrl = deepFindBadgeUrl(detailRes);
+    if (badgeUrl) badgeKind = "fallback";
   }
   if (!badgeUrl) {
     // 诊断：所有来源都未命中时打印可用字段名，便于用开发者工具
@@ -1478,7 +1479,7 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
   // 以官方 SVIP 权益节点/品牌位判定，不限定 vipType 数值，兼容月卡、
   // 季卡等套餐编码；普通 VIP 不会命中 redplus SVIP 标识。
   const svip = Boolean(brand?.svip) || redplusSvip;
-  return {
+  const result: VipInfo = {
     vipType,
     vipLevel: redLevel,
     expireTime,
@@ -1486,6 +1487,8 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     badgeKind,
     svip,
   };
+  vipInfoMemo = { key: memoKey, at: Date.now(), data: result };
+  return result;
 }
 export async function getSongsByIds(ids: number[]): Promise<Song[]> {
   if (!ids.length) return [];

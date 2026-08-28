@@ -1061,9 +1061,9 @@ async function resolveUrl(
           : [preferredQuality, "lossless", "exhigh", "higher", "standard"];
   const levels = previewOnly ? (["standard"] as const) : requestedLevels;
   let lastReason = "";
-  for (const level of levels) {
+  if (levels.length === 1) {
     try {
-      const result = await getSongUrl(song.id, level);
+      const result = await getSongUrl(song.id, levels[0]);
       if (result.url) {
         return {
           url: normalizePlaybackUrl(result.url),
@@ -1077,6 +1077,32 @@ async function resolveUrl(
       if (reason) lastReason = reason;
     } catch {
       lastReason = "播放地址服务暂时不可用，请检查网络连接后重试";
+    }
+  } else {
+    // 多档音质并行取址：串行级联最坏 5 个请求排队（每个还带重试），
+    // 是切歌"感觉慢"的最大来源。全部同时发起、按优先级取第一个
+    // 有地址的结果，最坏耗时从各档之和收敛为单次请求超时。
+    const settled = await Promise.allSettled(
+      levels.map((level) => getSongUrl(song.id, level)),
+    );
+    for (let i = 0; i < levels.length; i++) {
+      const outcome = settled[i];
+      if (outcome.status === "fulfilled") {
+        if (outcome.value.url) {
+          return {
+            url: normalizePlaybackUrl(outcome.value.url),
+            reason: "",
+            previewEnd: previewOnly ? PREVIEW_DURATION_MS : undefined,
+          };
+        }
+        const reason = reasonFromApi(
+          outcome.value.code ?? 0,
+          outcome.value.message ?? "",
+        );
+        if (reason) lastReason = reason;
+      } else {
+        lastReason = "播放地址服务暂时不可用，请检查网络连接后重试";
+      }
     }
   }
   try {
@@ -2625,15 +2651,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const run = (async () => {
       const pool = [186016, 347230, 509781655, 3414449762, 168160, 193535];
       const candidates = shuffle(pool);
-      for (const id of candidates) {
-        try {
-          const songs = await getSongsByIds([id]);
-          const song = songs[0];
+      try {
+        // 候选曲目详情一次批量拉取（/song/detail 支持逗号分隔 id），
+        // 旧的逐个串行"详情+歌词"最多 12 个请求排队，拖慢首页。
+        const songs = await getSongsByIds(candidates);
+        for (const song of songs) {
           // skip multi-artist (duet) songs so no singer names leak into the quote
-          if (!song || song.artistNames.length !== 1) continue;
-          const { lrc } = await getLyric(id);
-          const line = pickRandomLyricLine(lrc);
-          if (line) {
+          if (song.artistNames.length !== 1) continue;
+          try {
+            const { lrc } = await getLyric(song.id);
+            const line = pickRandomLyricLine(lrc);
+            if (!line) continue;
             const quote = {
               text: line,
               source: `《${song.name}》· ${song.artists}`,
@@ -2644,10 +2672,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
             writeJson(HOME_QUOTE_CACHE_KEY, quote);
             touchCache(HOME_QUOTE_CACHE_AT_KEY);
             return;
+          } catch {
+            /* try next */
           }
-        } catch {
-          /* try next */
         }
+      } catch {
+        /* fall through to unavailable */
       }
       // 整个候选池都失败（网络受限/歌曲下架）：标记不可用，
       // 首页不再无限期停留在“正在挑选…”的加载文案。

@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, normalizeSong } from "./client.ts";
 import type {
   ArtistInfo,
   ChartCity,
@@ -11,6 +11,9 @@ type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** 榜单目录与榜单歌曲缓存：每天更新的数据无需每次进页重拉。 */
+const CHART_TTL = 5 * 60 * 1000;
 
 function firstArray(response: Obj, ...keys: string[]): unknown[] {
   const candidates = [response, obj(response.data), obj(response.result)];
@@ -42,14 +45,14 @@ function normalizeChart(raw: unknown): ChartSummary | null {
 }
 
 export async function getChartSummaries(): Promise<ChartSummary[]> {
-  const response = await request<Obj>("/toplist/detail", {}, false);
+  const response = await cachedRequest<Obj>("/toplist/detail", {}, CHART_TTL);
   return arr(response.list ?? response.data ?? response.result)
     .map(normalizeChart)
     .filter((item): item is ChartSummary => item !== null);
 }
 
 export async function getChartSummariesV2(): Promise<ChartSummary[]> {
-  const response = await request<Obj>("/toplist/detail/v2", {}, false);
+  const response = await cachedRequest<Obj>("/toplist/detail/v2", {}, CHART_TTL);
   const value = obj(response.data ?? response.result ?? response);
   return firstArray(value, "list", "charts", "rankings", "data")
     .map(normalizeChart)
@@ -58,7 +61,7 @@ export async function getChartSummariesV2(): Promise<ChartSummary[]> {
 
 export async function getChartSongs(id: number): Promise<Song[]> {
   if (!id) return [];
-  const response = await request<Obj>("/top/list", { id }, false);
+  const response = await cachedRequest<Obj>("/top/list", { id }, CHART_TTL);
   const playlist = obj(response.playlist ?? response.data);
   const rows = arr(playlist.tracks ?? response.tracks ?? response.data);
   return rows
@@ -67,7 +70,7 @@ export async function getChartSongs(id: number): Promise<Song[]> {
 }
 
 export async function getArtistToplist(type = 1): Promise<ArtistInfo[]> {
-  const response = await request<Obj>("/toplist/artist", { type }, false);
+  const response = await cachedRequest<Obj>("/toplist/artist", { type }, CHART_TTL);
   // 该接口实际形状为 {list: {artists: [...]}}，artists 嵌套在 list 下。
   const value = obj(
     response.data ?? response.result ?? response.list ?? response,
@@ -108,7 +111,7 @@ function normalizeCity(raw: unknown, parentId?: string): ChartCity | null {
 }
 
 export async function getChartCities(bizCode?: "chart"): Promise<ChartCity[]> {
-  const response = await request<Obj>("/lbs/city/code", { bizCode }, false);
+  const response = await cachedRequest<Obj>("/lbs/city/code", { bizCode }, CHART_TTL);
   return firstArray(response, "cities", "list", "data", "children")
     .map((item) => normalizeCity(item))
     .filter((item): item is ChartCity => item !== null);
@@ -123,7 +126,7 @@ export interface DimensionChartQuery {
 export async function getDimensionChartDetail(
   query: DimensionChartQuery,
 ): Promise<DimensionChartDetail> {
-  const response = await request<Obj>("/chart/detail", { ...query }, false);
+  const response = await cachedRequest<Obj>("/chart/detail", { ...query }, CHART_TTL);
   const value = obj(response.data ?? response.result ?? response);
   return {
     chartCode: query.chartCode,
@@ -141,11 +144,7 @@ export async function getDimensionChartDetail(
 export async function getDimensionChartSongs(
   query: DimensionChartQuery,
 ): Promise<Song[]> {
-  const response = await request<Obj>(
-    "/chart/song/detail",
-    { ...query },
-    false,
-  );
+  const response = await cachedRequest<Obj>("/chart/song/detail", { ...query }, CHART_TTL);
   return firstArray(response, "songs", "list", "data", "records")
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
     .filter((song): song is Song => song !== null);

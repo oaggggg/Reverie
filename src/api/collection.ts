@@ -1,4 +1,4 @@
-import { request } from "./client.ts";
+import { cachedRequest, invalidateResponseCache, request } from "./client.ts";
 import { getSubscribedAlbums } from "./extended.ts";
 import type {
   ArtistInfo,
@@ -13,6 +13,9 @@ type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** 收藏列表短缓存：重进收藏页不重拉（分页参数在缓存键内）。 */
+const COLLECTION_TTL = 2 * 60 * 1000;
 
 function normalizeArtist(raw: unknown): ArtistInfo {
   const value = obj(raw);
@@ -92,10 +95,7 @@ export async function getCollection(
     };
   }
   if (category === "artists") {
-    const response = await request<Obj>("/artist/sublist", {
-      limit,
-      offset,
-    });
+    const response = await cachedRequest<Obj>("/artist/sublist", { limit, offset }, COLLECTION_TTL);
     const artists = arr(response.data)
       .map(normalizeArtist)
       .filter((item) => item.id > 0);
@@ -110,10 +110,7 @@ export async function getCollection(
     };
   }
   if (category === "mvs") {
-    const response = await request<Obj>("/mv/sublist", {
-      limit,
-      offset,
-    });
+    const response = await cachedRequest<Obj>("/mv/sublist", { limit, offset }, COLLECTION_TTL);
     const media = arr(response.data)
       .map(normalizeMedia)
       .filter((item) => item.id);
@@ -127,7 +124,7 @@ export async function getCollection(
       hasMore: Boolean(response.hasMore) || offset + media.length < total,
     };
   }
-  const response = await request<Obj>("/dj/sublist", { limit, offset });
+  const response = await cachedRequest<Obj>("/dj/sublist", { limit, offset }, COLLECTION_TTL);
   const radios = arr(response.djRadios)
     .map(normalizeRadio)
     .filter((item) => item.id > 0);
@@ -156,4 +153,6 @@ export async function subscribeCollection(
   } else {
     await request("/dj/sub", { rid: id, t: subscribe ? 1 : 0 }, false);
   }
+  // 收藏状态变了，立刻失效对应列表缓存，下次读取不再等 TTL。
+  invalidateResponseCache(["/artist/sublist", "/mv/sublist", "/dj/sublist"]);
 }

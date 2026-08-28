@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { cachedRequest, normalizeSong, request } from "./client.ts";
 import type {
   AlbumInfo,
   ArtistInfo,
@@ -17,6 +17,9 @@ type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 const arr = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** 热搜词/默认关键词缓存：每次聚焦搜索框不再重拉。 */
+const HOT_SEARCH_TTL = 10 * 60 * 1000;
 
 const SEARCH_TYPE: Record<SearchCategory, number> = {
   songs: 1,
@@ -194,7 +197,11 @@ export async function searchContent(
 }
 
 export async function getHotSearchTerms(limit = 20): Promise<string[]> {
-  const response = await request<Obj>("/search/hot/detail", {}, false);
+  const response = await cachedRequest<Obj>(
+    "/search/hot/detail",
+    {},
+    HOT_SEARCH_TTL,
+  );
   return arr(response.data)
     .map((item) => String(obj(item).searchWord ?? ""))
     .filter(Boolean)
@@ -202,7 +209,11 @@ export async function getHotSearchTerms(limit = 20): Promise<string[]> {
 }
 
 export async function getDefaultSearchKeyword(): Promise<string> {
-  const response = await request<Obj>("/search/default", {}, false);
+  const response = await cachedRequest<Obj>(
+    "/search/default",
+    {},
+    HOT_SEARCH_TTL,
+  );
   const value = obj(response.data ?? response.result ?? response);
   return String(value.showKeyword ?? value.realkeyword ?? value.keyword ?? "");
 }
