@@ -1592,6 +1592,33 @@ select option:checked {
   margin-top: 3px;
 }
 
+.playlist-play-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgb(255 255 255 / 32%);
+  border-radius: 999px;
+  background: rgb(18 20 28 / 78%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(10px);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.playlist-play-count-icon {
+  color: #ff6670;
+  font-size: 9px;
+}
+
 .loading-hint {
   color: var(--text-faint);
   text-align: center;

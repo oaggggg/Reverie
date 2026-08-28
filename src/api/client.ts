@@ -909,6 +909,7 @@ export async function getHotPlaylists(
         name: String(o.name ?? ""),
         coverImgUrl: String(o.coverImgUrl ?? ""),
         trackCount: Number(o.trackCount ?? 0),
+        playCount: Number(o.playCount ?? o.playcount ?? 0),
         description: String(o.description ?? ""),
         creatorId: Number(creator.userId ?? 0),
         creatorName: String(creator.nickname ?? ""),

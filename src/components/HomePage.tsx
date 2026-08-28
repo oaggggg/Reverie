@@ -282,6 +282,7 @@ export default function HomePage() {
               playlists={dailyPlaylists}
               onOpen={openPlaylist}
               loading={hotPlaylistsLoading}
+              showPlayCount
             />
           </section>
 

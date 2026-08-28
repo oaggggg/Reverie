@@ -56,6 +56,7 @@ export interface PlaylistInfo {
   name: string;
   coverImgUrl: string;
   trackCount: number;
+  playCount?: number;
   description?: string;
   creatorId?: number;
   creatorName?: string;

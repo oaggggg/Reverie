@@ -16,6 +16,7 @@ function normalizePlaylist(raw: unknown): PlaylistInfo | null {
     name: String(value.name ?? "推荐歌单"),
     coverImgUrl: String(value.picUrl ?? value.coverImgUrl ?? value.cover ?? ""),
     trackCount: Number(value.trackCount ?? 0),
+    playCount: Number(value.playCount ?? value.playcount ?? 0),
     description: String(value.copywriter ?? value.description ?? ""),
     creatorId: Number(creator.userId ?? creator.id ?? 0),
     creatorName: String(creator.nickname ?? creator.name ?? ""),
