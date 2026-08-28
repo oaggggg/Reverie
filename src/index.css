@@ -13000,6 +13000,20 @@ select option:checked {
 .player-bar .pb-right {
   overflow: visible;
 }
+
+/* 播放栏保持稳定，不使用上浮、缩放、呼吸和波纹动画。 */
+.player-bar .pb-cover:hover,
+.player-bar .icon-btn:not(.primary):hover svg,
+.player-bar .icon-btn:active svg,
+.player-bar .icon-btn.primary:hover svg {
+  transform: none;
+  filter: none;
+}
+.player-bar .icon-btn:not(.primary):hover::after,
+.player-bar .icon-btn.active:not(.primary) svg,
+.player-bar .icon-btn.primary {
+  animation: none;
+}
 .digital-album-board-grid {
   display: grid;
   gap: 6px;
