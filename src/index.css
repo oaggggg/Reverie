@@ -5000,27 +5000,31 @@ select option:checked {
 
 /* 全部歌词滚动列表 */
 .np-full-lyrics {
+  /* 可视窗口高度；上下各留半高空白，让首尾行也能滚到正中 */
+  --np-full-h: min(48vh, 440px);
+  /* offsetTop 的参照必须是滚动容器本身，否则滚动定位相对舞台错位 */
+  position: relative;
+  box-sizing: content-box;
   width: min(92%, 560px);
-  max-height: min(52vh, 480px);
+  height: var(--np-full-h);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 24vh 12px;
-  margin: -24vh 0;
+  padding: calc(var(--np-full-h) / 2) 12px;
   mask-image: linear-gradient(
     to bottom,
-    transparent,
-    #000 18%,
-    #000 82%,
-    transparent
+    transparent 25%,
+    #000 36%,
+    #000 64%,
+    transparent 75%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent,
-    #000 18%,
-    #000 82%,
-    transparent
+    transparent 25%,
+    #000 36%,
+    #000 64%,
+    transparent 75%
   );
   scrollbar-width: none;
 }
