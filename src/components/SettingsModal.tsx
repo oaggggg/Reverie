@@ -429,57 +429,33 @@ export default function SettingsModal() {
                     </div>
                   </SettingRow>
                 </div>
+                <div className="settings-section">
+                  <h3>界面与动效</h3>
+                  <SettingRow title="界面主题" hint="切换应用的整体明暗外观">
+                    <div className="opt-group">
+                      {APP_THEMES.map((item) => (
+                        <button key={item.id} className={`opt-btn ${theme === item.id ? "active" : ""}`} onClick={() => setTheme(item.id)}>{item.name}</button>
+                      ))}
+                    </div>
+                  </SettingRow>
+                  <SettingRow title="动画速度" hint="调节播放器内过渡与控件的动画节奏">
+                    <div className="opt-group">
+                      {ANIMATION_SPEEDS.map((item) => (
+                        <button key={item.id} className={`opt-btn ${animationSpeed === item.id ? "active" : ""}`} onClick={() => setAnimationSpeed(item.id)}>{item.name}</button>
+                      ))}
+                    </div>
+                  </SettingRow>
+                  <SettingRow title="减少动画效果" hint="关闭大多数过渡、浮动和入场动画">
+                    <button type="button" className={`setting-switch ${reducedMotion ? "active" : ""}`} role="switch" aria-checked={reducedMotion} aria-label="减少动画效果" onClick={() => setReducedMotion(!reducedMotion)}><span /></button>
+                  </SettingRow>
+                </div>
               </>
             )}
 
             {category === "general" && (
               <>
                 <div className="settings-section">
-                  <h3>界面</h3>
-                  <SettingRow title="界面主题" hint="切换应用的整体明暗外观">
-                    <div className="opt-group">
-                      {APP_THEMES.map((item) => (
-                        <button
-                          key={item.id}
-                          className={`opt-btn ${theme === item.id ? "active" : ""}`}
-                          onClick={() => setTheme(item.id)}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  </SettingRow>
-                  <SettingRow
-                    title="动画速度"
-                    hint="调节播放器内过渡、弹窗、卡片和播放控件的动画节奏"
-                  >
-                    <div className="opt-group">
-                      {ANIMATION_SPEEDS.map((item) => (
-                        <button
-                          key={item.id}
-                          className={`opt-btn ${animationSpeed === item.id ? "active" : ""}`}
-                          onClick={() => setAnimationSpeed(item.id)}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  </SettingRow>
-                  <SettingRow
-                    title="减少动画效果"
-                    hint="关闭大多数过渡、浮动和入场动画"
-                  >
-                    <button
-                      type="button"
-                      className={`setting-switch ${reducedMotion ? "active" : ""}`}
-                      role="switch"
-                      aria-checked={reducedMotion}
-                      aria-label="减少动画效果"
-                      onClick={() => setReducedMotion(!reducedMotion)}
-                    >
-                      <span />
-                    </button>
-                  </SettingRow>
+                  <h3>内容与缓存</h3>
                   <SettingRow
                     title="列表展示专辑封面"
                     hint="歌单与歌曲列表行内是否显示封面缩略图，关闭后更紧凑"
