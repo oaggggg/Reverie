@@ -673,8 +673,16 @@ function extensionFromUrl(url: string): string {
   return "mp3";
 }
 
-export async function downloadSongFile(song: Song): Promise<void> {
-  let result = await getSongDownloadUrl(song.id).catch(() => ({
+export interface DownloadSongOptions {
+  level?: PlaybackQuality;
+  onProgress?: (progress: number) => void;
+}
+
+export async function downloadSongFile(
+  song: Song,
+  options: DownloadSongOptions = {},
+): Promise<void> {
+  let result = await getSongDownloadUrl(song.id, options.level).catch(() => ({
     url: null,
     br: 0,
   }));
@@ -693,6 +701,9 @@ export async function downloadSongFile(song: Song): Promise<void> {
     if (!response.ok || !response.body) throw new Error("歌曲下载失败");
     // 分块落盘，避免无损整曲一次性转成 number[] 造成数百 MB 内存峰值。
     const reader = response.body.getReader();
+    const total = Number(response.headers.get("content-length") ?? 0);
+    let received = 0;
+    options.onProgress?.(0);
     const filePath = configuredPath.replace(/[\\/]+$/, "") + "/" + safeName;
     const chunkSize = 1024 * 1024;
     let pending = new Uint8Array(0);
@@ -701,6 +712,8 @@ export async function downloadSongFile(song: Song): Promise<void> {
       const { done, value } = await reader.read();
       if (done) break;
       if (!value?.length) continue;
+      received += value.length;
+      if (total > 0) options.onProgress?.(Math.min(1, received / total));
       const merged = new Uint8Array(pending.length + value.length);
       merged.set(pending);
       merged.set(value, pending.length);
@@ -723,6 +736,7 @@ export async function downloadSongFile(song: Song): Promise<void> {
       first = false;
     }
     if (first) throw new Error("歌曲下载失败：内容为空");
+    options.onProgress?.(1);
     return;
   }
   if (typeof document === "undefined") return;

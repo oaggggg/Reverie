@@ -3317,6 +3317,64 @@ textarea {
   -webkit-backdrop-filter: var(--glass-surface-filter);
   backdrop-filter: var(--glass-surface-filter);
 }
+
+.download-modal {
+  width: min(440px, calc(100vw - 32px));
+  padding: 22px;
+}
+.download-modal .modal-head {
+  margin-bottom: 18px;
+}
+.download-modal .modal-head h2 {
+  margin: 0;
+}
+.download-modal .modal-head p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.download-quality-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.download-modal select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text);
+}
+.download-modal .modal-actions {
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+.download-progress-panel {
+  padding: 10px 0 4px;
+}
+.download-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-3);
+}
+.download-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 160ms ease;
+}
+.download-progress-panel p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
 .user-feature-backdrop {
   z-index: 180;
   padding: 24px;

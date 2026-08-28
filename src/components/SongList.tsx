@@ -11,11 +11,13 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { useState } from "react";
-import type { Song } from "../api/types";
+import type { PlaybackQuality, Song } from "../api/types";
 import { useMediaStore } from "../store/mediaStore";
 import {
   isVipSong,
   songQualityBadge,
+  ALL_PLAYBACK_QUALITIES,
+  PLAYBACK_QUALITY_LABELS,
   usePlayerStore,
 } from "../store/playerStore";
 import { downloadSongFile } from "../api/client";
@@ -60,9 +62,39 @@ export default function SongList({
   const coverShown = showCover && globalCover;
   const openMedia = useMediaStore((s) => s.open);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadSong, setDownloadSong] = useState<Song | null>(null);
+  const [downloadQuality, setDownloadQuality] = useState<PlaybackQuality>(
+    usePlayerStore.getState().playbackQuality,
+  );
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   return (
     <>
+      {downloadSong && (
+        <div className="modal-backdrop" onMouseDown={(e) => {
+          if (e.target === e.currentTarget && downloadingId === null) setDownloadSong(null);
+        }}>
+          <div className="modal download-modal" role="dialog" aria-modal="true">
+            <div className="modal-head"><div><h2>下载歌曲</h2><p>{downloadSong.name} · {downloadSong.artists}</p></div></div>
+            {downloadingId === null ? (
+              <>
+                <label className="download-quality-label" htmlFor="download-quality">下载音质</label>
+                <select id="download-quality" value={downloadQuality} onChange={(e) => setDownloadQuality(e.target.value as PlaybackQuality)}>
+                  {ALL_PLAYBACK_QUALITIES.map((quality) => <option key={quality} value={quality}>{PLAYBACK_QUALITY_LABELS[quality]}</option>)}
+                </select>
+                <div className="modal-actions"><button className="btn" onClick={() => setDownloadSong(null)}>取消</button><button className="btn primary" onClick={() => {
+                  const song = downloadSong;
+                  setDownloadingId(song.id);
+                  setDownloadProgress(0);
+                  void downloadSongFile(song, { level: downloadQuality, onProgress: setDownloadProgress }).then(() => usePlayerStore.getState().toast("歌曲下载完成", "success")).catch(() => usePlayerStore.getState().toast("歌曲暂时无法下载", "error")).finally(() => { setDownloadingId(null); setDownloadSong(null); });
+                }}><Download size={15} />开始下载</button></div>
+              </>
+            ) : (
+              <div className="download-progress-panel"><div className="download-progress-track"><i style={{ width: `${Math.round(downloadProgress * 100)}%` }} /></div><p>{downloadProgress > 0 ? `已下载 ${Math.round(downloadProgress * 100)}%` : "正在获取下载地址…"}</p></div>
+            )}
+          </div>
+        </div>
+      )}
       {title && (
         <div className="list-header">
           <h3>{title}</h3>
@@ -245,24 +277,7 @@ export default function SongList({
                     className="icon-action"
                     title="下载歌曲"
                     disabled={downloadingId === song.id}
-                    onClick={() => {
-                      setDownloadingId(song.id);
-                      usePlayerStore
-                        .getState()
-                        .toast("正在下载歌曲…", "info");
-                      void downloadSongFile(song)
-                        .then(() =>
-                          usePlayerStore
-                            .getState()
-                            .toast("歌曲下载完成", "success"),
-                        )
-                        .catch(() =>
-                          usePlayerStore
-                            .getState()
-                            .toast("歌曲暂时无法下载", "error"),
-                        )
-                        .finally(() => setDownloadingId(null));
-                    }}
+                    onClick={() => { setDownloadQuality(usePlayerStore.getState().playbackQuality); setDownloadProgress(0); setDownloadSong(song); }}
                   >
                     <Download size={15} />
                   </button>
