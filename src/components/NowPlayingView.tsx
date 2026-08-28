@@ -39,7 +39,6 @@ export default function NowPlayingView() {
   const seek = usePlayerStore((s) => s.seek);
   const setPage = usePlayerStore((s) => s.setPage);
   const ensureLyrics = usePlayerStore((s) => s.ensureLyrics);
-  const particleEffect = usePlayerStore((s) => s.particleEffect);
   const lyricFx = usePlayerStore((s) => s.lyricFx);
   const lyricLayout = usePlayerStore((s) => s.lyricLayout);
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
@@ -134,39 +133,78 @@ export default function NowPlayingView() {
     };
   }, [npWallpaper]);
 
-  // 播放页 chrome 自动隐藏：进入页面展示；呼出区精确到各控件附近——
-  // 左上角 100×160 呼出返回、右上角 100×160 呼出 DIY、底部 120px 呼出
-  // 播放栏，三者独立判定：进入各自区域立即呼出，离开约 0.6s 后单独
-  // 收起，互不联动；指针完全不动则 2.6s 后全部隐藏。
-  // 播放栏在 NowPlayingView 之外渲染，通过根元素 data 属性通知。
+  // 播放页 chrome 自动隐藏：进入页面展示。呼出范围就是各控件自身的
+  // 矩形范围（外扩 8px 容差）：悬停在返回/DIY 按钮或播放栏本体上才
+  // 呼出，离开约 0.6s 后单独收起，互不联动；指针完全不动 2.6s 后全部
+  // 隐藏。播放栏在 NowPlayingView 之外渲染，通过根元素 data 属性通知；
+  // 其矩形由 CSS 变量推算（hidden 态的 transform 会让 getBoundingClientRect
+  // 失真，而 offset 尺寸稳定）。
+  const backRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    const CORNER_H = 100;
-    const CORNER_W = 160;
-    const BOTTOM_ZONE = 120;
+    const PAD = 8;
     const LEAVE_MS = 600;
     const IDLE_MS = 2600;
     let pointerX = -1;
     let pointerY = -1;
     const leaveTimers = { back: 0, diy: 0, bar: 0 };
     const idleId = { current: 0 };
-    const inBack = () =>
-      pointerY >= 0 &&
-      pointerY <= CORNER_H &&
-      pointerX >= 0 &&
-      pointerX <= CORNER_W;
-    const inDiy = () =>
-      pointerY >= 0 &&
-      pointerY <= CORNER_H &&
-      pointerX >= window.innerWidth - CORNER_W;
-    const inBar = () => pointerY >= window.innerHeight - BOTTOM_ZONE;
+
+    const cssVarPx = (name: string, fallback: number) => {
+      const v = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue(name),
+      );
+      return Number.isFinite(v) ? v : fallback;
+    };
+    const barRect = () => {
+      const inset = cssVarPx("--bar-inset", 24);
+      const width = Math.min(
+        cssVarPx("--bar-max", 900),
+        window.innerWidth - inset * 2,
+      );
+      const height = cssVarPx("--bar-h", 76);
+      const float = cssVarPx("--bar-float", 16);
+      return {
+        left: (window.innerWidth - width) / 2,
+        right: (window.innerWidth + width) / 2,
+        top: window.innerHeight - float - height,
+        bottom: window.innerHeight,
+      };
+    };
+    const rectOf = (el: HTMLElement | null) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return {
+        left: r.left,
+        right: r.right,
+        top: r.top,
+        bottom: r.bottom,
+      };
+    };
+    const inRect = (r: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+    }) =>
+      pointerX >= r.left - PAD &&
+      pointerX <= r.right + PAD &&
+      pointerY >= r.top - PAD &&
+      pointerY <= r.bottom + PAD;
+
     const setters = {
       back: setBackShown,
       diy: setDiyShown,
       bar: setBarShown,
     };
-    const zones = { back: inBack, diy: inDiy, bar: inBar };
     const reveal = (key: "back" | "diy" | "bar") => {
-      if (zones[key]()) {
+      const rect =
+        key === "back"
+          ? rectOf(backRef.current)
+          : key === "diy"
+            ? rectOf(visualTriggerRef.current)
+            : barRect();
+      if (!rect) return;
+      if (inRect(rect)) {
         window.clearTimeout(leaveTimers[key]);
         setters[key](true);
       } else if (!leaveTimers[key]) {
@@ -184,17 +222,17 @@ export default function NowPlayingView() {
       reveal("bar");
       window.clearTimeout(idleId.current);
       idleId.current = window.setTimeout(() => {
-        setBackShown(inBack());
-        setDiyShown(inDiy());
-        setBarShown(inBar());
+        setBackShown(false);
+        setDiyShown(false);
+        setBarShown(false);
       }, IDLE_MS);
     };
     window.addEventListener("pointermove", onMove);
-    // 初始（可能没有指针移动）按停留位置判定
+    // 初始（可能没有指针移动）全部隐藏
     idleId.current = window.setTimeout(() => {
-      setBackShown(inBack());
-      setDiyShown(inDiy());
-      setBarShown(inBar());
+      setBackShown(false);
+      setDiyShown(false);
+      setBarShown(false);
     }, IDLE_MS);
     return () => {
       window.removeEventListener("pointermove", onMove);
@@ -386,6 +424,7 @@ export default function NowPlayingView() {
       className={`now-playing now-playing-3d ${fadedIn ? "np-scene-ready" : "np-scene-leaving"}${backShown ? "" : " np-hide-back"}${diyShown ? "" : " np-hide-diy"}`}
     >
       <button
+        ref={backRef}
         className={`np-btn np-back ${fadedIn ? "np-fade-in" : ""}`}
         onClick={handleClose}
         title="返回"
@@ -455,7 +494,6 @@ export default function NowPlayingView() {
               <Suspense fallback={staticCover}>
                 <ParticleAlbumCover
                   imageUrl={sizedImage(currentSong.picUrl, COVER_IMAGE_SIZE)}
-                  effect={particleEffect}
                   grid={QUALITY_GRID[coverQuality]}
                   fpsLimit={npFrameRate}
                   rotationRef={rotationRef}

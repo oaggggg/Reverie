@@ -315,7 +315,6 @@ export default function App() {
     }).catch(() => {});
   }, [playing, currentSong]);
 
-  const particleEffect = usePlayerStore((s) => s.particleEffect);
   const refreshLogin = usePlayerStore((s) => s.refreshLogin);
   const loadHome = usePlayerStore((s) => s.loadHome);
   const loadHomeQuote = usePlayerStore((s) => s.loadHomeQuote);
@@ -411,23 +410,18 @@ export default function App() {
     };
   }, [refreshLogin, loadHome, loadHomeQuote]);
 
-  // "音乐律动" needs the player routed through an AnalyserNode. Wire it only
-  // when that effect is picked, and fall back if Web Audio is unavailable.
+  // 节奏分析依赖 Web Audio：两个解码元素都接入 AnalyserNode（one-shot，
+  // 失败即静默跳过，粒子封面退化为呼吸律动）。
   useEffect(() => {
-    if (particleEffect !== "audio") return;
     const active =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     const inactive =
       activeAudio === 0 ? preloadAudioRef.current : audioRef.current;
     if (!active || !inactive) return;
-    const st = usePlayerStore.getState();
     if (ensureAnalyser(inactive) && ensureAnalyser(active)) {
       resumeAnalyser();
-    } else {
-      st.toast("当前环境不支持音频分析，已切换为波动效果", "error");
-      st.setParticleEffect("wave");
     }
-  }, [activeAudio, particleEffect]);
+  }, [activeAudio]);
 
   // Subscribe before starting the packaged-build update check so no event is lost.
   useEffect(() => {

@@ -4,13 +4,11 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import type { ParticleEffect } from "../store/playerStore";
-import { readBands } from "../utils/audioAnalyser";
+import { readRhythm } from "../utils/audioAnalyser";
 import { PARTICLE_FRAGMENT, PARTICLE_VERTEX } from "./particleShaders";
 
 interface ParticleAlbumCoverProps {
   imageUrl: string;
-  effect: ParticleEffect;
   /** Sampling grid side; the cloud holds grid² particles. */
   grid: number;
   /** 渲染帧率上限；0 = 跟随显示器刷新率。 */
@@ -35,20 +33,6 @@ const BLOOM_MIN_GRID = 130;
 
 /** World size of the particle plane. */
 const PLANE = 4;
-
-/** Per-effect targets, lerped towards so switching never snaps. */
-const EFFECT_TARGETS: Record<
-  ParticleEffect,
-  { amp: number; freq: number; speed: number }
-> = {
-  none: { amp: 0, freq: 0.9, speed: 0.2 },
-  spin: { amp: 0.05, freq: 0.9, speed: 0.12 },
-  wave: { amp: 0.2, freq: 0.8, speed: 0.3 },
-  audio: { amp: 0.3, freq: 1.0, speed: 0.3 },
-  orbit: { amp: 0.12, freq: 1.2, speed: 0.46 },
-  ripple: { amp: 0.28, freq: 1.8, speed: 0.36 },
-  shimmer: { amp: 0.08, freq: 2.6, speed: 0.72 },
-};
 
 /** sRGB -> linear, so OutputPass converts back to the album's true colours. */
 function srgbToLinear(c: number): number {
@@ -77,7 +61,6 @@ const CAMERA_Z_REST = 4.2;
 
 export default function ParticleAlbumCover({
   imageUrl,
-  effect,
   grid,
   fpsLimit = 0,
   rotationRef,
@@ -90,7 +73,6 @@ export default function ParticleAlbumCover({
   // effect below: rebuilding the scene costs a renderer, a composer and a
   // texture decode, and the parent re-renders on every playback tick.
   const onDoubleClickRef = useRef(onDoubleClick);
-  const effectRef = useRef(effect);
   const onOverloadRef = useRef(onOverload);
   const fpsLimitRef = useRef(fpsLimit);
   const zoomTargetRef = useRef(0);
@@ -100,9 +82,6 @@ export default function ParticleAlbumCover({
   useEffect(() => {
     onDoubleClickRef.current = onDoubleClick;
   }, [onDoubleClick]);
-  useEffect(() => {
-    effectRef.current = effect;
-  }, [effect]);
   useEffect(() => {
     fpsLimitRef.current = fpsLimit;
   }, [fpsLimit]);
@@ -170,11 +149,12 @@ export default function ParticleAlbumCover({
 
     const uniforms = {
       uTime: { value: 0 },
-      uAmp: { value: 0 },
+      uAmp: { value: 0.08 },
       uFreq: { value: 0.9 },
-      uSpeed: { value: 0.2 },
+      uSpeed: { value: 0.25 },
       uPulse: { value: 0 },
       uShimmer: { value: 0 },
+      uBeat: { value: 0 },
       // Keep a little breathing room between points. Oversized sprites make
       // bright areas merge into a solid white mass once bloom is applied.
       uSize: { value: (PLANE / GRID) * 1.08 },
@@ -301,9 +281,9 @@ export default function ParticleAlbumCover({
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("focus", onVisibilityChange);
 
-    let spin = 0;
     let pulse = 0;
     let shimmer = 0;
+    let beat = 0;
     const clock = new THREE.Clock();
 
     // 帧率上限：不到间隔就不渲染，rAF 仍然照常调度；耗时统计跨帧累计。
@@ -330,45 +310,44 @@ export default function ParticleAlbumCover({
         dt = Math.min(pendingDt, 0.1);
         pendingDt = 0;
       }
-      const eff = effectRef.current;
-      const preset = EFFECT_TARGETS[eff];
-
-      let ampTarget = preset.amp;
-      let speedTarget = preset.speed;
-
-      if (eff === "audio") {
-        const bands = readBands();
-        if (bands) {
-          pulse += (bands.total - pulse) * 0.18;
-          shimmer += (bands.high - shimmer) * 0.15;
-          ampTarget = 0.12 + bands.low * 1;
-          speedTarget = 0.25 + bands.high * 0.7;
-        } else {
-          // no spectrum available: behave like the plain wave
-          pulse += (0 - pulse) * 0.1;
-          shimmer += (0 - shimmer) * 0.1;
-          ampTarget = EFFECT_TARGETS.wave.amp;
-          speedTarget = EFFECT_TARGETS.wave.speed;
-        }
+      // 律动完全由歌曲节奏分析驱动（无效果预设、无自转）：
+      // 频谱三段能量提供基础起伏，节拍冲击提供"炸开-归位"的打击感；
+      // 拿不到频谱（未播放 / CORS 限制）时退化为缓慢呼吸，保持画面 alive。
+      const rhythm = readRhythm();
+      let ampTarget: number;
+      let speedTarget: number;
+      let freqTarget: number;
+      if (rhythm) {
+        pulse += (Math.min(1, rhythm.total * 1.25) - pulse) * 0.18;
+        shimmer += (Math.min(1, rhythm.high * 1.5) - shimmer) * 0.15;
+        // beat 上升沿快跟、衰减段慢放，突出打击感。
+        beat += (rhythm.beat - beat) * (rhythm.beat > beat ? 0.55 : 0.14);
+        ampTarget = 0.06 + rhythm.low * 0.5 + rhythm.beat * 0.28;
+        speedTarget = 0.22 + rhythm.mid * 0.55;
+        freqTarget = 0.9 + rhythm.mid * 0.7;
       } else {
-        pulse += (0 - pulse) * 0.1;
+        const breath = 0.18 + Math.sin(uniforms.uTime.value * 1.1) * 0.1;
+        pulse += (breath * 0.4 - pulse) * 0.05;
         shimmer += (0 - shimmer) * 0.1;
+        beat += (0 - beat) * 0.1;
+        ampTarget = 0.1;
+        speedTarget = 0.2;
+        freqTarget = 0.9;
       }
 
       uniforms.uTime.value += dt;
-      uniforms.uAmp.value += (ampTarget - uniforms.uAmp.value) * 0.06;
+      uniforms.uAmp.value += (ampTarget - uniforms.uAmp.value) * 0.08;
       uniforms.uSpeed.value += (speedTarget - uniforms.uSpeed.value) * 0.06;
-      uniforms.uFreq.value += (preset.freq - uniforms.uFreq.value) * 0.06;
+      uniforms.uFreq.value += (freqTarget - uniforms.uFreq.value) * 0.06;
       uniforms.uPulse.value = pulse;
       uniforms.uShimmer.value = shimmer;
-      if (useBloom) bloom.strength = 0.14 + pulse * 0.16;
+      uniforms.uBeat.value = beat;
+      if (useBloom) bloom.strength = 0.14 + pulse * 0.16 + beat * 0.1;
 
-      if (eff === "spin") spin += 0.0022;
-      if (eff === "orbit") spin += 0.0048;
       rotation.x += (target.x - rotation.x) * 0.1;
       rotation.y += (target.y - rotation.y) * 0.1;
       particles.rotation.x = rotation.x;
-      particles.rotation.y = rotation.y + spin;
+      particles.rotation.y = rotation.y;
 
       // 滚轮缩放：推拉相机，同样做平滑插值。
       const zoomTarget = -zoomTargetRef.current;
@@ -378,7 +357,7 @@ export default function ParticleAlbumCover({
       // 歌词层每帧读取同一旋转，封面与歌词保持一体。
       if (rotationRef) {
         rotationRef.current.x = rotation.x;
-        rotationRef.current.y = rotation.y + spin;
+        rotationRef.current.y = rotation.y;
       }
       // 缩放同样共享给歌词层：相机推近时歌词一起放大。
       if (zoomRef) {
