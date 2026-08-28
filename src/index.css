@@ -3385,6 +3385,79 @@ select option:checked {
   color: var(--text-muted);
   font-size: 13px;
 }
+.download-quality-wrap {
+  position: relative;
+}
+.download-quality-btn {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--glass-popup-border);
+  border-radius: 9px;
+  background: var(--glass-popup-control);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease;
+}
+.download-quality-btn:hover,
+.download-quality-btn.active {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--glass-popup-border));
+  background: var(--glass-popup-hover);
+}
+.download-quality-btn svg {
+  color: var(--text-faint);
+  transition: transform var(--motion-fast) ease;
+}
+.download-quality-btn.active svg {
+  transform: rotate(180deg);
+  color: var(--accent-2);
+}
+.download-quality-menu {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  display: grid;
+  gap: 2px;
+  max-height: 270px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding: 5px;
+  border: 1px solid var(--glass-popup-border);
+  border-radius: 9px;
+  background: var(--glass-popup);
+  box-shadow: 0 14px 32px var(--shadow);
+  backdrop-filter: blur(26px) saturate(1.35);
+}
+.download-quality-menu button {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+}
+.download-quality-menu button:hover,
+.download-quality-menu button.active {
+  background: var(--glass-popup-hover);
+}
+.download-quality-menu button.active {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+.download-quality-menu button svg {
+  color: var(--accent-2);
+}
 .download-modal select {
   width: 100%;
   min-height: 38px;

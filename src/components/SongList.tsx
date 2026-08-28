@@ -1,6 +1,8 @@
 import {
   ArrowDown,
   ArrowUp,
+  Check,
+  ChevronDown,
   Disc3,
   Download,
   FileText,
@@ -67,6 +69,7 @@ export default function SongList({
     usePlayerStore.getState().playbackQuality,
   );
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadQualityOpen, setDownloadQualityOpen] = useState(false);
 
   return (
     <>
@@ -78,10 +81,39 @@ export default function SongList({
             <div className="modal-head"><div><h2>下载歌曲</h2><p>{downloadSong.name} · {downloadSong.artists}</p></div></div>
             {downloadingId === null ? (
               <>
-                <label className="download-quality-label" htmlFor="download-quality">下载音质</label>
-                <select id="download-quality" value={downloadQuality} onChange={(e) => setDownloadQuality(e.target.value as PlaybackQuality)}>
-                  {ALL_PLAYBACK_QUALITIES.map((quality) => <option key={quality} value={quality}>{PLAYBACK_QUALITY_LABELS[quality]}</option>)}
-                </select>
+                <label className="download-quality-label">下载音质</label>
+                <div className="download-quality-wrap">
+                  <button
+                    className={`download-quality-btn ${downloadQualityOpen ? "active" : ""}`}
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded={downloadQualityOpen}
+                    onClick={() => setDownloadQualityOpen((open) => !open)}
+                  >
+                    <span>{PLAYBACK_QUALITY_LABELS[downloadQuality]}</span>
+                    <ChevronDown size={15} />
+                  </button>
+                  {downloadQualityOpen && (
+                    <div className="download-quality-menu" role="menu">
+                      {ALL_PLAYBACK_QUALITIES.map((quality) => (
+                        <button
+                          key={quality}
+                          type="button"
+                          className={quality === downloadQuality ? "active" : ""}
+                          role="menuitemradio"
+                          aria-checked={quality === downloadQuality}
+                          onClick={() => {
+                            setDownloadQuality(quality);
+                            setDownloadQualityOpen(false);
+                          }}
+                        >
+                          <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
+                          {quality === downloadQuality && <Check size={14} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="modal-actions"><button className="btn" onClick={() => setDownloadSong(null)}>取消</button><button className="btn primary" onClick={() => {
                   const song = downloadSong;
                   setDownloadingId(song.id);
@@ -277,7 +309,7 @@ export default function SongList({
                     className="icon-action"
                     title="下载歌曲"
                     disabled={downloadingId === song.id}
-                    onClick={() => { setDownloadQuality(usePlayerStore.getState().playbackQuality); setDownloadProgress(0); setDownloadSong(song); }}
+                    onClick={() => { setDownloadQuality(usePlayerStore.getState().playbackQuality); setDownloadProgress(0); setDownloadQualityOpen(false); setDownloadSong(song); }}
                   >
                     <Download size={15} />
                   </button>
