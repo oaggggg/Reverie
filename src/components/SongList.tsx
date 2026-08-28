@@ -14,7 +14,7 @@ import {
   Heart,
   MessageCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { PlaybackQuality, Song } from "../api/types";
 import { useMediaStore } from "../store/mediaStore";
 import {
@@ -30,6 +30,7 @@ import {
 import { downloadSongFile } from "../api/client";
 import { likeSong } from "../api/client";
 import { useCommentStore } from "../store/commentStore";
+import { getResourceComments } from "../api/comment";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { openAlbumModal, openArtistModal } from "../utils/detailModals";
@@ -81,6 +82,7 @@ export default function SongList({
   );
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadQualityOpen, setDownloadQualityOpen] = useState(false);
+  const [commentCounts, setCommentCounts] = useState<Record<number, number>>({});
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
   const vipInfo = usePlayerStore((s) => s.vipInfo);
@@ -93,6 +95,36 @@ export default function SongList({
     setDownloadQualityOpen(false);
     window.setTimeout(() => setDownloadViewSong(null), 220);
   };
+
+  useEffect(() => {
+    let alive = true;
+    const candidates = songs.filter((song) => !(song.commentCount && song.commentCount > 0)).slice(0, 40);
+    if (!candidates.length) return;
+    void Promise.all(
+      candidates.map(async (song) => {
+        try {
+          const result = await getResourceComments(
+            { type: "song", id: String(song.id), title: song.name },
+            1,
+            "hot",
+            "",
+            1,
+          );
+          return [song.id, Math.max(0, Number(result.total) || 0)] as const;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((entries) => {
+      if (!alive) return;
+      const next: Record<number, number> = {};
+      for (const entry of entries) if (entry) next[entry[0]] = entry[1];
+      if (Object.keys(next).length) setCommentCounts((current) => ({ ...current, ...next }));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [songs]);
 
   return (
     <>
@@ -271,7 +303,7 @@ export default function SongList({
                     void openSongComments(song);
                     usePlayerStore.getState().setShowCommentsModal(true);
                   }}>
-                    <MessageCircle size={13} />{(song.commentCount ?? 0).toLocaleString("zh-CN")}
+                    <MessageCircle size={13} />{(commentCounts[song.id] ?? song.commentCount ?? 0).toLocaleString("zh-CN")}
                   </button>
                   {song.mvId ? (
                     <button
