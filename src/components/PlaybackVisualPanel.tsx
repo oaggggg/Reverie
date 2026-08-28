@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
-import { Image as ImageIcon, Music4 } from "lucide-react";
+import { Image as ImageIcon, Moon, Music4, Sparkles } from "lucide-react";
 import { X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
 import type { LyricFx, NpWallpaper, ParticleEffect } from "../store/playerStore";
@@ -82,6 +82,16 @@ export default function PlaybackVisualPanel({
   const coverBenchmarking = usePlayerStore((s) => s.coverBenchmarking);
   const detectCoverQuality = usePlayerStore((s) => s.detectCoverQuality);
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
+  const npVoid = usePlayerStore((s) => s.npVoid);
+  // 退出虚空：恢复封面显示；虚空预设会把画质降到静态图，这里一并
+  // 升回高画质，保证粒子封面立即可用。
+  const exitVoid = () => {
+    const state = usePlayerStore.getState();
+    state.setNpVoid(false);
+    if (state.coverQuality === "image") {
+      state.setCoverQuality("high", "退出虚空");
+    }
+  };
 
   const [tab, setTab] = useState<VisualTab>("background");
 
@@ -293,12 +303,33 @@ export default function PlaybackVisualPanel({
               >
                 {coverBenchmarking ? "检测中…" : "自动检测性能"}
               </button>
-              <button
-                className="btn np-pure-btn"
-                onClick={() => applyDiyPreset("void")}
-              >
-                虚空预设
-              </button>
+              {/* 封面模式卡片：与壁纸卡片同款样式 */}
+              <div className="np-mode-cards">
+                <button
+                  className={`np-wallpaper-item ${!npVoid ? "active" : ""}`}
+                  onClick={exitVoid}
+                >
+                  <span className="np-wallpaper-thumb">
+                    <Sparkles size={22} />
+                  </span>
+                  <span className="np-wallpaper-title">
+                    <span className="np-wallpaper-name">3D 粒子封面</span>
+                    <small>封面粒子化 · 支持旋转缩放</small>
+                  </span>
+                </button>
+                <button
+                  className={`np-wallpaper-item ${npVoid ? "active" : ""}`}
+                  onClick={() => applyDiyPreset("void")}
+                >
+                  <span className="np-wallpaper-thumb">
+                    <Moon size={22} />
+                  </span>
+                  <span className="np-wallpaper-title">
+                    <span className="np-wallpaper-name">虚空预设</span>
+                    <small>隐藏封面 · 只留歌词</small>
+                  </span>
+                </button>
+              </div>
             </section>
 
             <section>
