@@ -75,7 +75,10 @@ export default function PlaybackVisualPanel({
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
 
   // Wallpaper Engine 壁纸扫描：面板打开时扫一次，仅桌面版可用。
-  const [wallpapers, setWallpapers] = useState<WallpaperEngineItem[]>([]);
+  // null = 扫描中；[] = 扫描完成但没有可用的视频/网页壁纸
+  const [wallpapers, setWallpapers] = useState<WallpaperEngineItem[] | null>(
+    null,
+  );
   const [wallpaperError, setWallpaperError] = useState("");
   useEffect(() => {
     let disposed = false;
@@ -283,7 +286,7 @@ export default function PlaybackVisualPanel({
                 </span>
                 <span className="np-wallpaper-title">不使用壁纸</span>
               </button>
-              {wallpapers.map((item) => (
+              {wallpapers?.map((item) => (
                 <button
                   key={item.id}
                   className={`np-wallpaper-item ${npWallpaper?.id === item.id ? "active" : ""}`}
@@ -305,7 +308,12 @@ export default function PlaybackVisualPanel({
               {wallpaperError && (
                 <div className="np-wallpaper-empty">{wallpaperError}</div>
               )}
-              {!wallpaperError && !wallpapers.length && (
+              {!wallpaperError && wallpapers !== null && !wallpapers.length && (
+                <div className="np-wallpaper-empty">
+                  未找到可用的壁纸（需安装 Wallpaper Engine 的视频/网页壁纸）
+                </div>
+              )}
+              {!wallpaperError && wallpapers === null && (
                 <div className="np-wallpaper-empty">正在扫描壁纸库…</div>
               )}
             </div>
