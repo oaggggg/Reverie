@@ -2897,6 +2897,15 @@ select option:checked {
   overflow: visible;
   box-sizing: border-box;
   z-index: 60;
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.5s ease;
+}
+/* 播放页控件自动隐藏：播放栏停在底部边缘附近时呼出，停顿后沉底隐藏 */
+:root[data-np-chrome-bottom="hide"] .player-bar {
+  transform: translateX(-50%) translateY(calc(var(--bar-float) + 130%));
+  opacity: 0;
+  pointer-events: none;
 }
 /* progress row blended into the top of the pill */
 .pb-progress {
@@ -4998,20 +5007,19 @@ select option:checked {
   text-shadow: none;
 }
 
-/* 全部歌词滚动列表 */
+/* 多行滚动歌词列表 */
 .np-full-lyrics {
-  /* 可视窗口高度；上下各留半高空白，让首尾行也能滚到正中 */
+  /* 可视窗口高度；上下各留半窗高的占位，让首尾行也能滚到正中 */
   --np-full-h: min(48vh, 440px);
   /* offsetTop 的参照必须是滚动容器本身，否则滚动定位相对舞台错位 */
   position: relative;
-  box-sizing: content-box;
   width: min(92%, 560px);
   height: var(--np-full-h);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: calc(var(--np-full-h) / 2) 12px;
+  padding: 0 12px;
   mask-image: linear-gradient(
     to bottom,
     transparent 25%,
@@ -5031,7 +5039,13 @@ select option:checked {
 .np-full-lyrics::-webkit-scrollbar {
   display: none;
 }
+/* 首尾行的置中占位：高度为半个可视窗口 */
+.np-full-lyrics-pad {
+  flex: none;
+  height: calc(var(--np-full-h) / 2);
+}
 .np-full-lyric {
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -5063,13 +5077,6 @@ select option:checked {
   color: var(--lyric-accent, #fff);
   font-size: 1.18em;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9);
-}
-.lyrics-theme-pure .np-full-lyric.active {
-  color: #fff;
-  text-shadow: none;
-}
-.lyrics-theme-default .np-full-lyric.active {
-  color: var(--accent-2);
 }
 
 /* Wallpaper Engine 壁纸背景 */
@@ -5157,7 +5164,9 @@ select option:checked {
   font-size: clamp(22px, 2.3vw, 30px);
   font-weight: 650;
   color: var(--lyric-accent, #ffffff);
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95);
+  text-shadow:
+    0 0 16px var(--lyric-accent-soft),
+    0 2px 16px rgba(0, 0, 0, 0.95);
   transition: transform 0.3s ease;
   transform-style: preserve-3d;
   line-height: 1.5;
@@ -5174,38 +5183,9 @@ select option:checked {
   max-width: 90%;
 }
 
-.lyrics-theme-pure .lyrics-3d-current,
-.lyrics-theme-pure .lyrics-3d-next {
-  color: #fff;
-  text-shadow: none;
-}
-.lyrics-theme-default .lyrics-3d-current {
-  color: var(--accent-2);
-}
-.lyrics-theme-neon .lyrics-3d-current,
-.lyrics-theme-auto .lyrics-3d-current {
-  text-shadow:
-    0 0 16px var(--lyric-accent-soft),
-    0 2px 16px rgba(0, 0, 0, 0.95);
-}
-.lyrics-theme-fire .lyrics-3d-current {
-  color: #ffd166;
-}
-.lyrics-theme-aurora .lyrics-3d-current {
-  background: linear-gradient(90deg, #22d3ee, #a78bfa, #f472b6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.lyrics-theme-mint .lyrics-3d-current {
-  color: #6ee7b7;
-}
-.lyrics-theme-rose .lyrics-3d-current {
-  color: #fb7185;
-}
-
 /* Lyric swap: the incoming and outgoing lines share one grid cell so they
-   cross-fade in place instead of the text changing in a single frame. */
+   cross-fade in place instead of the text changing in a single frame.
+   动效由 lyrics-fx-* 预设类选择；stair（阶梯式）为默认。 */
 .lyrics-3d-current,
 .lyrics-3d-next {
   display: grid;
@@ -5215,11 +5195,39 @@ select option:checked {
   grid-area: 1 / 1;
   will-change: opacity, transform, filter;
 }
-.lyric-3d-text.is-entering {
+.lyrics-fx-stair .lyric-3d-text.is-entering {
   animation: lyric-3d-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.lyric-3d-text.is-leaving {
+.lyrics-fx-stair .lyric-3d-text.is-leaving {
   animation: lyric-3d-out 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+.lyrics-fx-fade .lyric-3d-text.is-entering {
+  animation: lyric-fx-fade-in 0.42s ease both;
+}
+.lyrics-fx-fade .lyric-3d-text.is-leaving {
+  animation: lyric-fx-fade-out 0.42s ease both;
+  pointer-events: none;
+}
+.lyrics-fx-bounce .lyric-3d-text.is-entering {
+  animation: lyric-fx-bounce-in 0.46s cubic-bezier(0.3, 1.2, 0.4, 1) both;
+}
+.lyrics-fx-bounce .lyric-3d-text.is-leaving {
+  animation: lyric-fx-fade-out 0.42s ease both;
+  pointer-events: none;
+}
+.lyrics-fx-flip .lyric-3d-text.is-entering {
+  animation: lyric-fx-flip-in 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lyrics-fx-flip .lyric-3d-text.is-leaving {
+  animation: lyric-fx-flip-out 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+.lyrics-fx-blur .lyric-3d-text.is-entering {
+  animation: lyric-fx-blur-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lyrics-fx-blur .lyric-3d-text.is-leaving {
+  animation: lyric-fx-blur-out 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   pointer-events: none;
 }
 @keyframes lyric-3d-in {
@@ -5244,6 +5252,80 @@ select option:checked {
     opacity: 0;
     transform: translateY(-16px);
     filter: blur(5px);
+  }
+}
+@keyframes lyric-fx-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes lyric-fx-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes lyric-fx-bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.94);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes lyric-fx-flip-in {
+  from {
+    opacity: 0;
+    transform: perspective(620px) rotateX(-72deg);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(620px) rotateX(0deg);
+  }
+}
+@keyframes lyric-fx-flip-out {
+  from {
+    opacity: 1;
+    transform: perspective(620px) rotateX(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: perspective(620px) rotateX(58deg);
+  }
+}
+@keyframes lyric-fx-blur-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes lyric-fx-blur-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
+    filter: blur(16px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -5993,32 +6075,6 @@ select option:checked {
   text-align: right;
   font-size: 12px;
   color: var(--text-dim);
-}
-.theme-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-.theme-swatch {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-dim);
-  font-size: 11px;
-}
-.theme-swatch i {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-}
-.theme-swatch.active {
-  border-color: var(--accent);
-  color: var(--text);
-  background: rgba(236, 65, 65, 0.08);
 }
 .setting-status {
   color: var(--text-faint);
@@ -6785,7 +6841,6 @@ select option:checked {
 }
 
 .settings-content-header .icon-btn,
-.theme-swatch,
 .opt-btn,
 .btn {
   border-radius: 12px;
@@ -6880,6 +6935,28 @@ select option:checked {
   justify-content: center;
 }
 
+/* 播放页控件自动隐藏：指针停顿后淡出，靠近顶部边缘呼出 */
+.np-back,
+.np-visual-trigger {
+  transition:
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.now-playing-3d.np-chrome-hidden .np-back {
+  animation: none;
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+}
+.now-playing-3d.np-chrome-hidden .np-visual-trigger {
+  opacity: 0;
+  transform: translateX(16px);
+  pointer-events: none;
+}
+
 .np-visual-panel {
   position: absolute;
   top: 64px;
@@ -6906,6 +6983,37 @@ select option:checked {
   justify-content: space-between;
   padding: 8px 10px 8px 16px;
   border-bottom: 1px solid var(--glass-popup-border);
+}
+
+/* DIY 面板顶部标签页 */
+.np-visual-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px 0;
+}
+.np-visual-tabs button {
+  flex: 1;
+  padding: 8px 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.np-visual-tabs button:hover {
+  color: var(--text);
+  background: var(--glass-popup-hover);
+}
+.np-visual-tabs button.active {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--accent) 74%, white);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .np-visual-close {
@@ -6964,6 +7072,7 @@ select option:checked {
 
 .np-visual-row > span {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   font-size: 12px;
@@ -6976,13 +7085,11 @@ select option:checked {
   font-weight: 400;
 }
 
-.np-visual-panel .theme-swatches,
 .np-visual-panel .opt-group {
   width: 100%;
   justify-content: flex-start;
 }
 
-.np-visual-panel .theme-swatch,
 .np-visual-panel .opt-btn,
 .np-visual-panel .btn {
   border-color: var(--glass-popup-border);
@@ -6995,7 +7102,6 @@ select option:checked {
   background: var(--glass-popup-hover);
 }
 
-.np-visual-panel .theme-swatch.active,
 .np-visual-panel .opt-btn.active {
   color: #fff;
   border-color: color-mix(in srgb, var(--accent) 74%, white);

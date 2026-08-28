@@ -269,9 +269,8 @@ fn steam_library_roots() -> Vec<PathBuf> {
     roots
 }
 
-/// 扫描 Wallpaper Engine 创意工坊，返回播放页能直接渲染的壁纸
-/// （video / web 类型）。scene 类型依赖 Wallpaper Engine 运行时，
-/// 浏览器环境无法渲染，不列出。
+/// 扫描 Wallpaper Engine 创意工坊，返回播放页能直接渲染的 mp4 视频壁纸。
+/// web / scene 等其它类型一律不获取。
 fn scan_wallpaper_engine_items() -> Vec<WallpaperEngineItem> {
     let mut items = Vec::new();
     for root in steam_library_roots() {
@@ -296,7 +295,7 @@ fn scan_wallpaper_engine_items() -> Vec<WallpaperEngineItem> {
             };
             let kind = match project.get("type").and_then(|v| v.as_str()) {
                 Some("video") => "video",
-                Some("web") => "web",
+                // 仅获取视频壁纸；网页/其它类型不纳入。
                 _ => continue,
             };
             let file = project.get("file").and_then(|v| v.as_str()).unwrap_or("");
@@ -310,12 +309,11 @@ fn scan_wallpaper_engine_items() -> Vec<WallpaperEngineItem> {
             }
             // 视频壁纸仅支持 mp4（清晰度/分辨率不限）；webm 等其它
             // 容器 WebView 解码兼容性差，交给官方运行时。
-            if kind == "video"
-                && !path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .map(|e| e.eq_ignore_ascii_case("mp4"))
-                    .unwrap_or(false)
+            if !path
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.eq_ignore_ascii_case("mp4"))
+                .unwrap_or(false)
             {
                 continue;
             }
@@ -369,11 +367,6 @@ fn list_wallpaper_engine_wallpapers(app: tauri::AppHandle) -> Vec<WallpaperEngin
         let _ = scope.allow_file(Path::new(&item.path));
         if !item.preview.is_empty() {
             let _ = scope.allow_file(Path::new(&item.preview));
-        }
-        if item.kind == "web" {
-            if let Some(parent) = Path::new(&item.path).parent() {
-                let _ = scope.allow_directory(parent, true);
-            }
         }
     }
     items

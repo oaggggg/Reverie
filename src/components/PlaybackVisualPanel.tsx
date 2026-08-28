@@ -3,29 +3,18 @@ import type { RefObject } from "react";
 import { Image as ImageIcon, Music4 } from "lucide-react";
 import { X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
-import type { LyricTheme, NpWallpaper, ParticleEffect } from "../store/playerStore";
+import type { LyricFx, NpWallpaper, ParticleEffect } from "../store/playerStore";
 import type { CoverQuality } from "../utils/gpuBenchmark";
 import { particleCount, QUALITY_LABEL } from "../utils/gpuBenchmark";
 
-/** Rust 侧 list_wallpaper_engine_wallpapers 返回的条目。 */
+/** Rust 侧 list_wallpaper_engine_wallpapers 返回的条目（仅 mp4 视频壁纸）。 */
 interface WallpaperEngineItem {
   id: string;
   title: string;
-  kind: "video" | "web";
+  kind: "video";
   path: string;
   preview: string;
 }
-
-const THEMES: Array<{ id: LyricTheme; name: string; color: string }> = [
-  { id: "auto", name: "封面取色", color: "#7df9ff" },
-  { id: "default", name: "经典", color: "#ec4141" },
-  { id: "neon", name: "霓虹", color: "#7df9ff" },
-  { id: "fire", name: "火焰", color: "#ffd166" },
-  { id: "aurora", name: "极光", color: "#a78bfa" },
-  { id: "mint", name: "薄荷", color: "#6ee7b7" },
-  { id: "rose", name: "玫瑰", color: "#fb7185" },
-  { id: "pure", name: "纯净", color: "#ffffff" },
-];
 
 const COVER_QUALITIES: CoverQuality[] = [
   "image",
@@ -45,6 +34,17 @@ const PARTICLE_EFFECTS: Array<{ id: ParticleEffect; name: string }> = [
   { id: "shimmer", name: "闪烁" },
 ];
 
+/** 3D 歌词动效预设（与颜色无关；颜色始终自动取自背景）。 */
+const LYRIC_FX: Array<{ id: LyricFx; name: string }> = [
+  { id: "stair", name: "阶梯" },
+  { id: "fade", name: "淡入" },
+  { id: "bounce", name: "弹入" },
+  { id: "flip", name: "翻入" },
+  { id: "blur", name: "模糊滑入" },
+];
+
+type VisualTab = "background" | "lyrics";
+
 export default function PlaybackVisualPanel({
   surfaceRef,
   transitionClassName,
@@ -54,8 +54,8 @@ export default function PlaybackVisualPanel({
   transitionClassName: string;
   onClose: () => void;
 }) {
-  const lyricTheme = usePlayerStore((s) => s.lyricTheme);
-  const setLyricTheme = usePlayerStore((s) => s.setLyricTheme);
+  const lyricFx = usePlayerStore((s) => s.lyricFx);
+  const setLyricFx = usePlayerStore((s) => s.setLyricFx);
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
   const setLyricFontSize = usePlayerStore((s) => s.setLyricFontSize);
   const lyricLayout = usePlayerStore((s) => s.lyricLayout);
@@ -74,8 +74,10 @@ export default function PlaybackVisualPanel({
   const detectCoverQuality = usePlayerStore((s) => s.detectCoverQuality);
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
 
+  const [tab, setTab] = useState<VisualTab>("background");
+
   // Wallpaper Engine 壁纸扫描：面板打开时扫一次，仅桌面版可用。
-  // null = 扫描中；[] = 扫描完成但没有可用的视频/网页壁纸
+  // null = 扫描中；[] = 扫描完成但没有可用的 mp4 视频壁纸
   const [wallpapers, setWallpapers] = useState<WallpaperEngineItem[] | null>(
     null,
   );
@@ -107,7 +109,13 @@ export default function PlaybackVisualPanel({
 
   const selectWallpaper = (item: WallpaperEngineItem | null) => {
     const wallpaper: NpWallpaper | null = item
-      ? { id: item.id, title: item.title, kind: item.kind, path: item.path }
+      ? {
+          id: item.id,
+          title: item.title,
+          kind: "video",
+          path: item.path,
+          preview: item.preview || undefined,
+        }
       : null;
     setNpWallpaper(wallpaper);
   };
@@ -129,204 +137,212 @@ export default function PlaybackVisualPanel({
         </button>
       </header>
 
+      <nav className="np-visual-tabs">
+        <button
+          className={tab === "background" ? "active" : ""}
+          onClick={() => setTab("background")}
+        >
+          动态背景
+        </button>
+        <button
+          className={tab === "lyrics" ? "active" : ""}
+          onClick={() => setTab("lyrics")}
+        >
+          歌词
+        </button>
+      </nav>
+
       <div className="np-visual-scroll">
-        <section>
-          <h3>歌词</h3>
-          <div className="np-visual-row stacked">
-            <span>歌词预设</span>
-            <div className="theme-swatches">
-              {THEMES.map((item) => (
-                <button
-                  key={item.id}
-                  className={`theme-swatch ${lyricTheme === item.id ? "active" : ""}`}
-                  onClick={() => setLyricTheme(item.id)}
-                  title={item.name}
-                >
-                  <i style={{ background: item.color }} />
-                  <span>{item.name}</span>
-                </button>
-              ))}
+        {tab === "lyrics" ? (
+          <section>
+            <div className="np-visual-row stacked">
+              <span>歌词动效</span>
+              <div className="opt-group">
+                {LYRIC_FX.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`opt-btn ${lyricFx === item.id ? "active" : ""}`}
+                    onClick={() => setLyricFx(item.id)}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="np-visual-row">
-            <span>歌词布局</span>
-            <div className="opt-group">
+            <div className="np-visual-row">
+              <span>歌词布局</span>
+              <div className="opt-group">
+                <button
+                  className={`opt-btn ${lyricLayout === "dual" ? "active" : ""}`}
+                  onClick={() => setLyricLayout("dual")}
+                >
+                  两行
+                </button>
+                <button
+                  className={`opt-btn ${lyricLayout === "full" ? "active" : ""}`}
+                  onClick={() => setLyricLayout("full")}
+                >
+                  多行
+                </button>
+              </div>
+            </div>
+            <div className="np-visual-row">
+              <span>
+                字号 <small>{lyricFontSize}</small>
+              </span>
+              <input
+                className="slider settings-slider"
+                type="range"
+                min={14}
+                max={40}
+                value={lyricFontSize}
+                style={{
+                  ["--val" as never]: `${((lyricFontSize - 14) / 26) * 100}%`,
+                }}
+                onChange={(event) => setLyricFontSize(Number(event.target.value))}
+              />
+            </div>
+            <div className="np-visual-row">
+              <span>显示翻译</span>
               <button
-                className={`opt-btn ${lyricLayout === "dual" ? "active" : ""}`}
-                onClick={() => setLyricLayout("dual")}
+                className={`setting-switch ${showTranslation ? "active" : ""}`}
+                role="switch"
+                aria-checked={showTranslation}
+                onClick={() => setShowTranslation(!showTranslation)}
               >
-                双行
+                <span />
               </button>
-              <button
-                className={`opt-btn ${lyricLayout === "full" ? "active" : ""}`}
-                onClick={() => setLyricLayout("full")}
-              >
-                全部歌词
-              </button>
             </div>
-          </div>
-          <div className="np-visual-row">
-            <span>
-              字号 <small>{lyricFontSize}</small>
-            </span>
-            <input
-              className="slider settings-slider"
-              type="range"
-              min={14}
-              max={40}
-              value={lyricFontSize}
-              style={{
-                ["--val" as never]: `${((lyricFontSize - 14) / 26) * 100}%`,
-              }}
-              onChange={(event) => setLyricFontSize(Number(event.target.value))}
-            />
-          </div>
-          <div className="np-visual-row diy-note">
-            <span>自动取色会根据当前专辑封面选择高对比歌词颜色</span>
-          </div>
-          <div className="np-visual-row">
-            <span>显示翻译</span>
-            <button
-              className={`setting-switch ${showTranslation ? "active" : ""}`}
-              role="switch"
-              aria-checked={showTranslation}
-              onClick={() => setShowTranslation(!showTranslation)}
-            >
-              <span />
-            </button>
-          </div>
-        </section>
-
-        <section>
-          <h3>动态封面</h3>
-          <div className="np-visual-row stacked">
-            <span>
-              画质
-              <small>
-                {coverQuality === "image"
-                  ? "静态图"
-                  : `${particleCount(coverQuality).toLocaleString()} 粒子`}
-              </small>
-            </span>
-            <div className="opt-group">
-              {COVER_QUALITIES.map((quality) => (
-                <button
-                  key={quality}
-                  className={`opt-btn ${coverQuality === quality ? "active" : ""}`}
-                  onClick={() => setCoverQuality(quality, "手动设置")}
-                >
-                  {QUALITY_LABEL[quality]}
-                </button>
-              ))}
+            <div className="np-visual-row diy-note">
+              <span>歌词颜色自动取自当前背景（壁纸或专辑封面），无需手动选择</span>
             </div>
-          </div>
-          <div className="np-visual-row">
-            <span>帧率</span>
-            <div className="opt-group">
-              {[
-                { value: 0, label: "无限" },
-                { value: 120, label: "120" },
-                { value: 60, label: "60" },
-                { value: 30, label: "30" },
-              ].map((item) => (
-                <button
-                  key={item.value}
-                  className={`opt-btn ${npFrameRate === item.value ? "active" : ""}`}
-                  onClick={() => setNpFrameRate(item.value)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="np-visual-row stacked">
-            <span>粒子效果</span>
-            <div className="opt-group">
-              {PARTICLE_EFFECTS.map((item) => (
-                <button
-                  key={item.id}
-                  className={`opt-btn ${particleEffect === item.id ? "active" : ""}`}
-                  disabled={coverQuality === "image"}
-                  onClick={() => setParticleEffect(item.id)}
-                >
-                  {item.name}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button
-            className="btn np-detect-btn"
-            onClick={() => void detectCoverQuality(true)}
-            disabled={coverBenchmarking}
-          >
-            {coverBenchmarking ? "检测中…" : "自动检测性能"}
-          </button>
-          <div className="np-preset-row">
-            <button
-              className="btn np-pure-btn"
-              onClick={() => applyDiyPreset("pure")}
-            >
-              纯净预设
-            </button>
-            <button
-              className="btn np-pure-btn"
-              onClick={() => applyDiyPreset("void")}
-            >
-              虚空预设
-            </button>
-          </div>
-        </section>
-
-        <section>
-          <h3>Wallpaper 壁纸</h3>
-          <div className="np-visual-row stacked">
-            <span>
-              播放页背景
-              <small>Wallpaper Engine（视频 / 网页壁纸）</small>
-            </span>
-            <div className="np-wallpaper-list">
-              <button
-                className={`np-wallpaper-item ${npWallpaper === null ? "active" : ""}`}
-                onClick={() => selectWallpaper(null)}
-              >
-                <span className="np-wallpaper-thumb np-wallpaper-thumb-off">
-                  <Music4 size={14} />
+          </section>
+        ) : (
+          <>
+            <section>
+              <h3>动态封面</h3>
+              <div className="np-visual-row stacked">
+                <span>
+                  画质
+                  <small>
+                    {coverQuality === "image"
+                      ? "静态图"
+                      : `${particleCount(coverQuality).toLocaleString()} 粒子`}
+                  </small>
                 </span>
-                <span className="np-wallpaper-title">不使用壁纸</span>
-              </button>
-              {wallpapers?.map((item) => (
-                <button
-                  key={item.id}
-                  className={`np-wallpaper-item ${npWallpaper?.id === item.id ? "active" : ""}`}
-                  onClick={() => selectWallpaper(item)}
-                >
-                  <span className="np-wallpaper-thumb">
-                    {item.preview ? (
-                      <img src={item.preview} alt="" loading="lazy" />
-                    ) : (
-                      <ImageIcon size={14} />
-                    )}
-                  </span>
-                  <span className="np-wallpaper-title">
-                    {item.title}
-                    <small>{item.kind === "video" ? "视频" : "网页"}</small>
-                  </span>
-                </button>
-              ))}
-              {wallpaperError && (
-                <div className="np-wallpaper-empty">{wallpaperError}</div>
-              )}
-              {!wallpaperError && wallpapers !== null && !wallpapers.length && (
-                <div className="np-wallpaper-empty">
-                  未找到可用的壁纸（需安装 Wallpaper Engine 的视频/网页壁纸）
+                <div className="opt-group">
+                  {COVER_QUALITIES.map((quality) => (
+                    <button
+                      key={quality}
+                      className={`opt-btn ${coverQuality === quality ? "active" : ""}`}
+                      onClick={() => setCoverQuality(quality, "手动设置")}
+                    >
+                      {QUALITY_LABEL[quality]}
+                    </button>
+                  ))}
                 </div>
-              )}
-              {!wallpaperError && wallpapers === null && (
-                <div className="np-wallpaper-empty">正在扫描壁纸库…</div>
-              )}
-            </div>
-          </div>
-        </section>
+              </div>
+              <div className="np-visual-row">
+                <span>帧率</span>
+                <div className="opt-group">
+                  {[
+                    { value: 0, label: "无限" },
+                    { value: 120, label: "120" },
+                    { value: 60, label: "60" },
+                    { value: 30, label: "30" },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      className={`opt-btn ${npFrameRate === item.value ? "active" : ""}`}
+                      onClick={() => setNpFrameRate(item.value)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="np-visual-row stacked">
+                <span>粒子效果</span>
+                <div className="opt-group">
+                  {PARTICLE_EFFECTS.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`opt-btn ${particleEffect === item.id ? "active" : ""}`}
+                      disabled={coverQuality === "image"}
+                      onClick={() => setParticleEffect(item.id)}
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                className="btn np-detect-btn"
+                onClick={() => void detectCoverQuality(true)}
+                disabled={coverBenchmarking}
+              >
+                {coverBenchmarking ? "检测中…" : "自动检测性能"}
+              </button>
+              <button
+                className="btn np-pure-btn"
+                onClick={() => applyDiyPreset("void")}
+              >
+                虚空预设
+              </button>
+            </section>
+
+            <section>
+              <h3>Wallpaper 壁纸</h3>
+              <div className="np-visual-row stacked">
+                <span>
+                  播放页背景
+                  <small>Wallpaper Engine（mp4 视频壁纸）</small>
+                </span>
+                <div className="np-wallpaper-list">
+                  <button
+                    className={`np-wallpaper-item ${npWallpaper === null ? "active" : ""}`}
+                    onClick={() => selectWallpaper(null)}
+                  >
+                    <span className="np-wallpaper-thumb np-wallpaper-thumb-off">
+                      <Music4 size={14} />
+                    </span>
+                    <span className="np-wallpaper-title">不使用壁纸</span>
+                  </button>
+                  {wallpapers?.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`np-wallpaper-item ${npWallpaper?.id === item.id ? "active" : ""}`}
+                      onClick={() => selectWallpaper(item)}
+                    >
+                      <span className="np-wallpaper-thumb">
+                        {item.preview ? (
+                          <img src={item.preview} alt="" loading="lazy" />
+                        ) : (
+                          <ImageIcon size={14} />
+                        )}
+                      </span>
+                      <span className="np-wallpaper-title">
+                        {item.title}
+                        <small>视频</small>
+                      </span>
+                    </button>
+                  ))}
+                  {wallpaperError && (
+                    <div className="np-wallpaper-empty">{wallpaperError}</div>
+                  )}
+                  {!wallpaperError && wallpapers !== null && !wallpapers.length && (
+                    <div className="np-wallpaper-empty">
+                      未找到可用的壁纸（需安装 Wallpaper Engine 的 mp4 视频壁纸）
+                    </div>
+                  )}
+                  {!wallpaperError && wallpapers === null && (
+                    <div className="np-wallpaper-empty">正在扫描壁纸库…</div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </aside>
   );

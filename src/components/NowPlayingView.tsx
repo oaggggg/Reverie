@@ -40,7 +40,7 @@ export default function NowPlayingView() {
   const setPage = usePlayerStore((s) => s.setPage);
   const ensureLyrics = usePlayerStore((s) => s.ensureLyrics);
   const particleEffect = usePlayerStore((s) => s.particleEffect);
-  const lyricTheme = usePlayerStore((s) => s.lyricTheme);
+  const lyricFx = usePlayerStore((s) => s.lyricFx);
   const lyricLayout = usePlayerStore((s) => s.lyricLayout);
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
   const showTranslation = usePlayerStore((s) => s.showTranslation);
@@ -67,11 +67,17 @@ export default function NowPlayingView() {
   // 封面与歌词共用的旋转状态：ParticleAlbumCover 逐帧写入，
   // 两层 Lyrics3D（正/反）逐帧读取，拖拽时歌词与封面一体联动。
   const rotationRef = useRef({ x: 0, y: 0 });
+  // 滚轮缩放同样共享：封面推拉相机，歌词按同一系数缩放。
+  const zoomRef = useRef(1);
   const [coverAccent, setCoverAccent] = useState<CoverAccent>({
     color: "#7df9ff",
     soft: "rgba(125, 249, 255, 0.32)",
   });
   const [wallpaperSrc, setWallpaperSrc] = useState("");
+  // 顶部按钮（返回 / DIY）与底部播放栏的显隐：进入页面展示，
+  // 停顿后自动隐藏，指针靠近顶部 / 底部边缘时呼出。
+  const [topShown, setTopShown] = useState(true);
+  const [bottomShown, setBottomShown] = useState(true);
 
   useEffect(() => {
     if (!visualOpen) return;
@@ -88,7 +94,9 @@ export default function NowPlayingView() {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [visualOpen, visualTransition.surfaceRef]);
 
+  // 歌词自动取色：有壁纸时取壁纸预览图的颜色，否则取专辑封面的颜色。
   useEffect(() => {
+    if (npWallpaper) return;
     let disposed = false;
     void extractCoverAccent(currentSong?.picUrl ?? "").then((accent) => {
       if (!disposed) setCoverAccent(accent);
@@ -96,9 +104,10 @@ export default function NowPlayingView() {
     return () => {
       disposed = true;
     };
-  }, [currentSong?.picUrl]);
+  }, [currentSong?.picUrl, npWallpaper]);
 
   // Wallpaper Engine 壁纸：本机绝对路径需经 asset 协议暴露给 WebView。
+  // 壁纸启用后歌词改从壁纸预览图自动取色。
   useEffect(() => {
     let disposed = false;
     if (!npWallpaper) {
@@ -107,13 +116,66 @@ export default function NowPlayingView() {
     }
     void import("@tauri-apps/api/core")
       .then(({ convertFileSrc }) => {
-        if (!disposed) setWallpaperSrc(convertFileSrc(npWallpaper.path));
+        if (disposed) return;
+        setWallpaperSrc(convertFileSrc(npWallpaper.path));
+        if (npWallpaper.preview) {
+          void extractCoverAccent(convertFileSrc(npWallpaper.preview)).then(
+            (accent) => {
+              if (!disposed) setCoverAccent(accent);
+            },
+          );
+        }
       })
       .catch(() => {});
     return () => {
       disposed = true;
     };
   }, [npWallpaper]);
+
+  // 播放页 chrome 自动隐藏：进入页面展示，指针停顿 2.6s 后隐藏；
+  // 指针靠近顶部 150px（返回 / DIY 按钮）或底部 190px（播放栏）时呼出。
+  // 播放栏在 NowPlayingView 之外渲染，通过根元素 data 属性通知。
+  useEffect(() => {
+    const TOP_ZONE = 150;
+    const BOTTOM_ZONE = 190;
+    const IDLE_MS = 2600;
+    let pointerY = -1;
+    let idleId = 0;
+    const inTop = () => pointerY >= 0 && pointerY <= TOP_ZONE;
+    const inBottom = () => pointerY >= window.innerHeight - BOTTOM_ZONE;
+    const arm = () => {
+      window.clearTimeout(idleId);
+      idleId = window.setTimeout(() => {
+        setTopShown(inTop());
+        setBottomShown(inBottom());
+      }, IDLE_MS);
+    };
+    const onMove = (event: PointerEvent) => {
+      pointerY = event.clientY;
+      if (inTop()) setTopShown(true);
+      if (inBottom()) setBottomShown(true);
+      arm();
+    };
+    window.addEventListener("pointermove", onMove);
+    arm();
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.clearTimeout(idleId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.npChromeBottom = bottomShown ? "show" : "hide";
+    return () => {
+      delete root.dataset.npChromeBottom;
+    };
+  }, [bottomShown]);
+
+  // DIY 面板挂在 DIY 按钮下方，面板打开期间顶部按钮保持可见。
+  useEffect(() => {
+    if (visualOpen) setTopShown(true);
+  }, [visualOpen]);
 
   // A session restored on startup never went through playSong, so its lyrics
   // were never fetched. This view is the only lyric surface, so it has to ask.
@@ -255,7 +317,8 @@ export default function NowPlayingView() {
     nextLine: nextLyricLine,
     pending: lyricPending,
     rotationRef,
-    theme: lyricTheme,
+    zoomRef,
+    fx: lyricFx,
     accent: coverAccent,
     layout: lyricLayout,
     lyricLines,
@@ -265,8 +328,8 @@ export default function NowPlayingView() {
     onSeekLine: (time: number) => seek(time),
   };
 
-  const wallpaperBackground = npWallpaper && wallpaperSrc ? (
-    npWallpaper.kind === "video" ? (
+  const wallpaperBackground =
+    npWallpaper && wallpaperSrc ? (
       <video
         key={wallpaperSrc}
         className="np-wallpaper"
@@ -276,20 +339,11 @@ export default function NowPlayingView() {
         muted
         playsInline
       />
-    ) : (
-      <iframe
-        key={wallpaperSrc}
-        className="np-wallpaper"
-        src={wallpaperSrc}
-        title={npWallpaper.title}
-        scrolling="no"
-      />
-    )
-  ) : null;
+    ) : null;
 
   return (
     <div
-      className={`now-playing now-playing-3d ${fadedIn ? "np-scene-ready" : "np-scene-leaving"}`}
+      className={`now-playing now-playing-3d ${fadedIn ? "np-scene-ready" : "np-scene-leaving"}${topShown ? "" : " np-chrome-hidden"}`}
     >
       <button
         className={`np-btn np-back ${fadedIn ? "np-fade-in" : ""}`}
@@ -329,10 +383,12 @@ export default function NowPlayingView() {
       )}
 
       <div className="np-stage-3d">
-        {/* 反歌词层：位于粒子封面之后，经 Y 轴翻转的镜像画面 */}
-        <div className="np-lyrics-3d np-lyrics-back" aria-hidden>
-          <Lyrics3D {...lyricsProps} side="back" />
-        </div>
+        {/* 反歌词层：位于粒子封面之后，经 Y 轴翻转的镜像画面；虚空模式无封面，随之隐藏 */}
+        {!npVoid && (
+          <div className="np-lyrics-3d np-lyrics-back" aria-hidden>
+            <Lyrics3D {...lyricsProps} side="back" />
+          </div>
+        )}
 
         <div className="np-cover-3d">
           {npVoid ? (
@@ -363,6 +419,7 @@ export default function NowPlayingView() {
                   grid={QUALITY_GRID[coverQuality]}
                   fpsLimit={npFrameRate}
                   rotationRef={rotationRef}
+                  zoomRef={zoomRef}
                   onOverload={() =>
                     usePlayerStore.getState().degradeCoverQuality()
                   }
