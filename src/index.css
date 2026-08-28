@@ -12515,6 +12515,17 @@ select option:checked {
   box-shadow: 0 10px 24px color-mix(in srgb, var(--shadow) 42%, transparent);
 }
 
+/* Card shells stay anchored in the grid. Hover lift belongs to the cover
+   layer only; moving the shell exposes its background as a white artifact. */
+:where(.playlist-card, .media-card) {
+  transform: none !important;
+  box-shadow: none !important;
+}
+:where(.playlist-card, .media-card):hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 :where(.detail-link, .user-dropdown-stat, .library-initials button, .playlist-view-tabs button, .playlist-discovery-tags button, .collection-tabs button, .notification-tabs button):not(:disabled):hover {
   transform: translateY(-1px);
 }
