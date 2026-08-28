@@ -5216,8 +5216,12 @@ select option:checked {
   inset: 0;
   z-index: 54;
   cursor: default;
+  border: 0;
+  padding: 0;
   background: var(--glass-popup-scrim);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
   backdrop-filter: blur(12px) saturate(1.15);
+  appearance: none;
 }
 .player-comments-drawer {
   position: fixed;

@@ -31,10 +31,10 @@ export default function PlayerCommentsDrawer() {
   if (!currentSong || !transition.rendered) return null;
   return (
     <>
-      <button
+      <div
         className={`player-comments-scrim ${transition.backdropClassName}`}
         onClick={() => setOpen(false)}
-        aria-label="关闭评论"
+        aria-hidden="true"
       />
       <section
         ref={transition.surfaceRef}
