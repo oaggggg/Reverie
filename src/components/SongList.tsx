@@ -36,6 +36,7 @@ import { sizedImage } from "../utils/image";
 import { openAlbumModal, openArtistModal } from "../utils/detailModals";
 import { LoadingState } from "./Page";
 import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
+import { formatCount } from "../utils/formatCount";
 
 interface Props {
   songs: Song[];
@@ -297,13 +298,13 @@ export default function SongList({
                       usePlayerStore.setState((state) => ({ likedIds: nextLiked ? [...new Set([...state.likedIds, song.id])] : state.likedIds.filter((id) => id !== song.id) }));
                     }).catch(() => usePlayerStore.getState().toast("喜欢操作失败", "error"));
                   }}>
-                    <Heart size={13} fill={likedIds.includes(song.id) ? "currentColor" : "none"} />{(song.likedCount ?? 0).toLocaleString("zh-CN")}
+                    <Heart size={13} fill={likedIds.includes(song.id) ? "currentColor" : "none"} />{formatCount(song.likedCount)}
                   </button>
                   <button className="song-stat-btn" title="查看歌曲评论" onClick={() => {
                     void openSongComments(song);
                     usePlayerStore.getState().setShowCommentsModal(true);
                   }}>
-                    <MessageCircle size={13} />{(commentCounts[song.id] ?? song.commentCount ?? 0).toLocaleString("zh-CN")}
+                    <MessageCircle size={13} />{formatCount(commentCounts[song.id] ?? song.commentCount)}
                   </button>
                   {song.mvId ? (
                     <button

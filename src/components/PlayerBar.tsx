@@ -12,6 +12,7 @@ import {
 } from "../store/playerStore";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
+import { formatCount } from "../utils/formatCount";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
 import {
   captureInteractionOrigin,
@@ -556,7 +557,7 @@ export default function PlayerBar() {
               title="歌曲评论"
             >
               <MessageCircleMore size={17} />
-              <span className="player-stat-count">{(remoteCommentCount ?? currentSong?.commentCount ?? 0).toLocaleString("zh-CN")}</span>
+              <span className="player-stat-count">{formatCount(remoteCommentCount ?? currentSong?.commentCount)}</span>
             </button>
             <button
               className={`icon-btn ${shareOpen ? "active" : ""}`}
@@ -585,7 +586,7 @@ export default function PlayerBar() {
               style={liked ? { color: "#ec4141" } : undefined}
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
-              <span className="player-stat-count">{(currentSong?.likedCount ?? 0).toLocaleString("zh-CN")}</span>
+              <span className="player-stat-count">{formatCount(currentSong?.likedCount)}</span>
             </button>
             <div
               className="vol-wrap"
