@@ -632,13 +632,30 @@ export async function getSongDownloadUrl(
   id: number,
   level: PlaybackQuality = "exhigh",
 ): Promise<{ url: string | null; br: number }> {
-  const response = await request<{
-    data?: { url?: string; br?: number };
-  }>("/song/download/url/v1", { id, level });
-  return {
-    url: response.data?.url ?? null,
-    br: Number(response.data?.br ?? 0),
-  };
+  const key = cacheKey("/song/download/url/v1", { id, level });
+  const hit = responseCache.get(key);
+  if (hit && Date.now() - hit.at < SONG_URL_CACHE_TTL) {
+    return hit.data as { url: string | null; br: number };
+  }
+  const running = inFlight.get(key);
+  if (running) return running as Promise<{ url: string | null; br: number }>;
+  const run = request<{ data?: { url?: string; br?: number } }>(
+    "/song/download/url/v1",
+    { id, level },
+  )
+    .then((response) => {
+      const result = {
+        url: response.data?.url ?? null,
+        br: Number(response.data?.br ?? 0),
+      };
+      if (result.url) responseCache.set(key, { at: Date.now(), data: result });
+      return result;
+    })
+    .finally(() => {
+      if (inFlight.get(key) === run) inFlight.delete(key);
+    });
+  inFlight.set(key, run);
+  return run;
 }
 
 /** Derive a file extension from the download URL (fallback .mp3). */
@@ -676,15 +693,31 @@ export async function downloadSongFile(song: Song): Promise<void> {
     if (!response.ok || !response.body) throw new Error("歌曲下载失败");
     // 分块落盘，避免无损整曲一次性转成 number[] 造成数百 MB 内存峰值。
     const reader = response.body.getReader();
+    const filePath = configuredPath.replace(/[\\/]+$/, "") + "/" + safeName;
+    const chunkSize = 1024 * 1024;
+    let pending = new Uint8Array(0);
     let first = true;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       if (!value?.length) continue;
-      const bytes = Array.from(value);
+      const merged = new Uint8Array(pending.length + value.length);
+      merged.set(pending);
+      merged.set(value, pending.length);
+      pending = merged;
+      if (pending.length < chunkSize) continue;
       await invoke("save_download_file", {
-        path: configuredPath.replace(/[\\/]+$/, "") + "/" + safeName,
-        data: bytes,
+        path: filePath,
+        data: Array.from(pending),
+        append: !first,
+      });
+      first = false;
+      pending = new Uint8Array(0);
+    }
+    if (pending.length) {
+      await invoke("save_download_file", {
+        path: filePath,
+        data: Array.from(pending),
         append: !first,
       });
       first = false;

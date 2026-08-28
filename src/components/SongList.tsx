@@ -247,11 +247,14 @@ export default function SongList({
                     disabled={downloadingId === song.id}
                     onClick={() => {
                       setDownloadingId(song.id);
+                      usePlayerStore
+                        .getState()
+                        .toast("正在下载歌曲…", "info");
                       void downloadSongFile(song)
                         .then(() =>
                           usePlayerStore
                             .getState()
-                            .toast("已开始下载歌曲", "success"),
+                            .toast("歌曲下载完成", "success"),
                         )
                         .catch(() =>
                           usePlayerStore
