@@ -26,6 +26,8 @@ import type { PlayMode } from "../api/types";
 import ShareResourceDialog from "./ShareResourceDialog";
 import {
   Heart,
+  HeartOff,
+  Infinity,
   ListMusic,
   MessageCircleMore,
   Pause,
@@ -143,6 +145,7 @@ export default function PlayerBar() {
   const cyclePlayMode = usePlayerStore((s) => s.cyclePlayMode);
   const setPage = usePlayerStore((s) => s.setPage);
   const toggleLike = usePlayerStore((s) => s.toggleLike);
+  const fmDislike = usePlayerStore((s) => s.fmDislike);
   const loadPersonalFm = usePlayerStore((s) => s.loadPersonalFm);
   const setShowPlayerComments = usePlayerStore((s) => s.setShowPlayerComments);
   const toast = usePlayerStore((s) => s.toast);
@@ -380,6 +383,11 @@ export default function PlayerBar() {
           </div>
 
           <div className="pb-controls">
+            {queueSource === "fm" && (
+              <button className="icon-btn active fm-mode-indicator" title="私人漫游模式" aria-label="私人漫游模式">
+                <Infinity size={20} />
+              </button>
+            )}
             <button className="icon-btn" onClick={prev} title="上一首">
               <SkipBack size={19} />
             </button>
@@ -399,13 +407,24 @@ export default function PlayerBar() {
             <button className="icon-btn" onClick={next} title="下一首">
               <SkipForward size={19} />
             </button>
-            <button
-              className="icon-btn active"
-              onClick={cyclePlayMode}
-              title={MODE_LABEL[playMode]}
-            >
-              <ModeIcon mode={playMode} />
-            </button>
+            {queueSource === "fm" ? (
+              <button
+                className="icon-btn fm-dislike-btn"
+                onClick={() => void fmDislike()}
+                title="不喜欢，减少此类推荐"
+                aria-label="不喜欢，减少此类推荐"
+              >
+                <HeartOff size={19} />
+              </button>
+            ) : (
+              <button
+                className="icon-btn active"
+                onClick={cyclePlayMode}
+                title={MODE_LABEL[playMode]}
+              >
+                <ModeIcon mode={playMode} />
+              </button>
+            )}
           </div>
 
           <div className="pb-right" ref={menuRef}>

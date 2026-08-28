@@ -3429,6 +3429,16 @@ select option:checked {
   justify-content: center;
   z-index: 100;
 }
+.pb-controls .fm-mode-indicator,
+.pb-controls .fm-dislike-btn {
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.pb-controls .fm-mode-indicator:hover,
+.pb-controls .fm-dislike-btn:hover {
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
 .login-backdrop {
   z-index: 130;
 }
