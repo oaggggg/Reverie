@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
 import type { LyricTheme, ParticleEffect } from "../store/playerStore";
 import type { CoverQuality } from "../utils/gpuBenchmark";
@@ -63,7 +64,14 @@ export default function PlaybackVisualPanel({
     >
       <header>
         <strong>DIY</strong>
-        <button className="btn" onClick={onClose}>关闭</button>
+        <button
+          className="np-visual-close"
+          onClick={onClose}
+          title="关闭"
+          aria-label="关闭"
+        >
+          <X size={15} />
+        </button>
       </header>
 
       <div className="np-visual-scroll">
