@@ -1424,6 +1424,56 @@ select option:checked {
   text-overflow: ellipsis;
   margin-top: 2px;
 }
+.song-engagement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  line-height: 1;
+}
+.song-engagement span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.song-engagement svg { color: var(--text-faint); stroke-width: 1.8; }
+.player-stat-count {
+  min-width: 1ch;
+  color: currentColor;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.player-stat-btn {
+  width: auto;
+  min-width: 36px;
+  padding: 0 7px;
+  gap: 4px;
+  border-radius: 18px;
+}
+.song-item .song-engagement {
+  flex: none;
+  min-width: 88px;
+  justify-content: flex-end;
+}
+.song-stat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 5px;
+  border-radius: 6px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  transition: color var(--motion-fast) ease, background var(--motion-fast) ease;
+}
+.song-stat-btn:hover,
+.song-stat-btn.active {
+  color: var(--accent-2);
+  background: var(--hover);
+}
 /* 歌曲行仅保留官方数据标识：VIP（标题行 vip-badge）与该曲支持的
    最好音质（无损及以上，.song-tag.<level>）。版本标识（原唱/翻唱/
    Live 等）样式已随功能一并移除。 */
@@ -2729,6 +2779,7 @@ select option:checked {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.song-card .song-engagement { margin-top: 8px; }
 
 .song-card.entering {
   animation: song-card-fade-in 320ms var(--motion-enter) both;

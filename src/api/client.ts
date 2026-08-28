@@ -437,6 +437,8 @@ export function normalizeSong(raw: unknown): Song | null {
     picUrl,
     duration,
     fee,
+    likedCount: Number(s.likedCount ?? s.likeCount ?? s.liked ?? 0),
+    commentCount: Number(s.commentCount ?? s.commentCountAll ?? s.comment ?? 0),
     mvId:
       typeof s.mv === "number"
         ? s.mv

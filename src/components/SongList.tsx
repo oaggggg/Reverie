@@ -11,6 +11,8 @@ import {
   Trash2,
   UserRound,
   Clapperboard,
+  Heart,
+  MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
 import type { PlaybackQuality, Song } from "../api/types";
@@ -26,6 +28,8 @@ import {
   usePlayerStore,
 } from "../store/playerStore";
 import { downloadSongFile } from "../api/client";
+import { likeSong } from "../api/client";
+import { useCommentStore } from "../store/commentStore";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { openAlbumModal, openArtistModal } from "../utils/detailModals";
@@ -63,9 +67,11 @@ export default function SongList({
   const playing = usePlayerStore((s) => s.playing);
   const playSong = usePlayerStore((s) => s.playSong);
   const playNext = usePlayerStore((s) => s.playNext);
+  const likedIds = usePlayerStore((s) => s.likedIds);
   // 设置里的「列表展示专辑封面」总开关与调用方 showCover 取与。
   const globalCover = usePlayerStore((s) => s.showListCover);
   const coverShown = showCover && globalCover;
+  const openSongComments = useCommentStore((s) => s.openSongComments);
   const openMedia = useMediaStore((s) => s.open);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadSong, setDownloadSong] = useState<Song | null>(null);
@@ -253,6 +259,20 @@ export default function SongList({
                   className="song-row-actions"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  <button className={`song-stat-btn ${likedIds.includes(song.id) ? "active" : ""}`} title="喜欢歌曲" onClick={() => {
+                    const nextLiked = !likedIds.includes(song.id);
+                    void likeSong(song.id, nextLiked).then(() => {
+                      usePlayerStore.setState((state) => ({ likedIds: nextLiked ? [...new Set([...state.likedIds, song.id])] : state.likedIds.filter((id) => id !== song.id) }));
+                    }).catch(() => usePlayerStore.getState().toast("喜欢操作失败", "error"));
+                  }}>
+                    <Heart size={13} fill={likedIds.includes(song.id) ? "currentColor" : "none"} />{(song.likedCount ?? 0).toLocaleString("zh-CN")}
+                  </button>
+                  <button className="song-stat-btn" title="查看歌曲评论" onClick={() => {
+                    void openSongComments(song);
+                    usePlayerStore.getState().setShowCommentsModal(true);
+                  }}>
+                    <MessageCircle size={13} />{(song.commentCount ?? 0).toLocaleString("zh-CN")}
+                  </button>
                   {song.mvId ? (
                     <button
                       className="icon-action"

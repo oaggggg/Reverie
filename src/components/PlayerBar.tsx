@@ -529,7 +529,7 @@ export default function PlayerBar() {
               )}
             </div>
             <button
-              className={`icon-btn ${showPlayerComments ? "active" : ""}`}
+              className={`icon-btn player-stat-btn ${showPlayerComments ? "active" : ""}`}
               onPointerEnter={() => void import("./PlayerCommentsDrawer")}
               onClick={(event) => {
                 if (!currentSong) {
@@ -548,6 +548,7 @@ export default function PlayerBar() {
               title="歌曲评论"
             >
               <MessageCircleMore size={17} />
+              <span className="player-stat-count">{(currentSong?.commentCount ?? 0).toLocaleString("zh-CN")}</span>
             </button>
             <button
               className={`icon-btn ${shareOpen ? "active" : ""}`}
@@ -567,7 +568,7 @@ export default function PlayerBar() {
               <Share size={17} />
             </button>
             <button
-              className={`icon-btn ${liked ? "active" : ""}`}
+              className={`icon-btn player-stat-btn ${liked ? "active" : ""}`}
               onClick={() => {
                 setRemoteLiked(!liked);
                 void toggleLike().then(() => setRemoteLiked(null));
@@ -576,6 +577,7 @@ export default function PlayerBar() {
               style={liked ? { color: "#ec4141" } : undefined}
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
+              <span className="player-stat-count">{(currentSong?.likedCount ?? 0).toLocaleString("zh-CN")}</span>
             </button>
             <div
               className="vol-wrap"
