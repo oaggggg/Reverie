@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
+import { getResourceComments } from "../api/comment";
 import {
   ALL_PLAYBACK_QUALITIES,
   PLAYBACK_QUALITY_LABELS,
@@ -71,6 +72,7 @@ export default function PlayerBar() {
   const [shareOpen, setShareOpen] = useState(false);
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
+  const [remoteCommentCount, setRemoteCommentCount] = useState<number | null>(null);
   const [qualityOpen, setQualityOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [volumeOpen, setVolumeOpen] = useState(false);
@@ -149,6 +151,7 @@ export default function PlayerBar() {
     let alive = true;
     setDynamicCover("");
     setRemoteLiked(null);
+    setRemoteCommentCount(null);
     if (!currentSong) return;
     // 预热播放栏 120px 缩略图与队列下一曲：封面在真正挂载前已进缓存。
     warmCoverImage(currentSong.picUrl, 120);
@@ -169,6 +172,11 @@ export default function PlayerBar() {
         })
         .catch(() => {});
     }
+    void getResourceComments({ type: "song", id: String(currentSong.id), title: currentSong.name }, 1, "hot", "", 1)
+      .then((result) => {
+        if (alive && Number.isFinite(result.total)) setRemoteCommentCount(Math.max(0, result.total));
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -548,7 +556,7 @@ export default function PlayerBar() {
               title="歌曲评论"
             >
               <MessageCircleMore size={17} />
-              <span className="player-stat-count">{(currentSong?.commentCount ?? 0).toLocaleString("zh-CN")}</span>
+              <span className="player-stat-count">{(remoteCommentCount ?? currentSong?.commentCount ?? 0).toLocaleString("zh-CN")}</span>
             </button>
             <button
               className={`icon-btn ${shareOpen ? "active" : ""}`}

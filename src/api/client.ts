@@ -418,11 +418,14 @@ export function normalizeSong(raw: unknown): Song | null {
   const statistics = (s.statistics ?? s.stats ?? s.counts) as
     | Record<string, unknown>
     | undefined;
+  const commentThread = s.commentThread as Record<string, unknown> | undefined;
   const likedCount = Number(
     s.likedCount ??
       s.likeCount ??
       statistics?.likedCount ??
       statistics?.likeCount ??
+      s.popularity ??
+      s.pop ??
       0,
   );
   const commentCount = Number(
@@ -431,6 +434,8 @@ export function normalizeSong(raw: unknown): Song | null {
       s.comment ??
       statistics?.commentCount ??
       statistics?.commentCountAll ??
+      commentThread?.commentCount ??
+      commentThread?.totalCount ??
       0,
   );
 
