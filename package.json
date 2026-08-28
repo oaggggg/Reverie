@@ -24,6 +24,7 @@
     "build": "tauri build",
     "build:web": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && vite build",
     "prepare:sidecar": "node scripts/build-api-sidecar.mjs",
+    "normalize:icons": "node scripts/normalize-client-icons.mjs",
     "validate:release": "node scripts/validate-release-version.mjs",
     "generate:api": "node scripts/generate-api-registry.mjs",
     "tauri": "tauri",
