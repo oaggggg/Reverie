@@ -3457,6 +3457,30 @@ select option:checked {
   color: var(--accent-2);
   font-weight: 600;
 }
+.download-quality-menu button.locked {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.download-quality-menu button.locked:hover {
+  background: transparent;
+  color: var(--text);
+}
+.download-quality-tier {
+  margin-left: auto;
+  padding: 2px 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.2px;
+}
+.download-quality-tier.vip {
+  color: #e0aa4a;
+}
+.download-quality-tier.svip {
+  color: #d6a85d;
+  background: color-mix(in srgb, #d6a85d 12%, transparent);
+}
 .download-quality-menu button svg {
   color: var(--accent-2);
 }

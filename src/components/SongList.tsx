@@ -19,7 +19,10 @@ import {
   isVipSong,
   songQualityBadge,
   ALL_PLAYBACK_QUALITIES,
+  PLAYBACK_QUALITY_TIER,
   PLAYBACK_QUALITY_LABELS,
+  qualityAllowedFor,
+  userQualityTier,
   usePlayerStore,
 } from "../store/playerStore";
 import { downloadSongFile } from "../api/client";
@@ -70,6 +73,11 @@ export default function SongList({
   );
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadQualityOpen, setDownloadQualityOpen] = useState(false);
+  const loggedIn = usePlayerStore((s) => s.loggedIn);
+  const profile = usePlayerStore((s) => s.profile);
+  const vipInfo = usePlayerStore((s) => s.vipInfo);
+  const loadVipInfo = usePlayerStore((s) => s.loadVipInfo);
+  const qualityTier = userQualityTier({ loggedIn, profile, vipInfo });
 
   return (
     <>
@@ -96,10 +104,16 @@ export default function SongList({
                   {downloadQualityOpen && (
                     <div className="download-quality-menu" role="menu">
                       {ALL_PLAYBACK_QUALITIES.map((quality) => (
+                        (() => {
+                          const allowed = qualityAllowedFor(quality, qualityTier);
+                          const need = PLAYBACK_QUALITY_TIER[quality];
+                          return (
                         <button
                           key={quality}
                           type="button"
-                          className={quality === downloadQuality ? "active" : ""}
+                          className={[quality === downloadQuality ? "active" : "", !allowed ? "locked" : ""].filter(Boolean).join(" ")}
+                          disabled={!allowed}
+                          title={!allowed ? (need === "svip" ? "需要黑胶超级会员（SVIP）" : "需要网易云音乐会员（VIP）") : undefined}
                           role="menuitemradio"
                           aria-checked={quality === downloadQuality}
                           onClick={() => {
@@ -108,14 +122,21 @@ export default function SongList({
                           }}
                         >
                           <span>{PLAYBACK_QUALITY_LABELS[quality]}</span>
+                          {need !== "free" && <small className={`download-quality-tier ${need}`}>{need === "svip" ? "SVIP" : "VIP"}</small>}
                           {quality === downloadQuality && <Check size={14} />}
                         </button>
+                          );
+                        })()
                       ))}
                     </div>
                   )}
                 </div>
                 <div className="modal-actions"><button className="btn" onClick={() => setDownloadSong(null)}>取消</button><button className="btn primary" onClick={() => {
                   const song = downloadSong;
+                  if (!qualityAllowedFor(downloadQuality, qualityTier)) {
+                    usePlayerStore.getState().toast("当前账号无权下载该音质", "error");
+                    return;
+                  }
                   setDownloadingId(song.id);
                   setDownloadProgress(0);
                   void downloadSongFile(song, { level: downloadQuality, onProgress: setDownloadProgress }).then(() => usePlayerStore.getState().toast("歌曲下载完成", "success")).catch(() => usePlayerStore.getState().toast("歌曲暂时无法下载", "error")).finally(() => { setDownloadingId(null); setDownloadSong(null); });
@@ -309,7 +330,7 @@ export default function SongList({
                     className="icon-action"
                     title="下载歌曲"
                     disabled={downloadingId === song.id}
-                    onClick={() => { setDownloadQuality(usePlayerStore.getState().playbackQuality); setDownloadProgress(0); setDownloadQualityOpen(false); setDownloadSong(song); }}
+                    onClick={() => { setDownloadQuality(usePlayerStore.getState().playbackQuality); setDownloadProgress(0); setDownloadQualityOpen(false); setDownloadSong(song); void loadVipInfo(); }}
                   >
                     <Download size={15} />
                   </button>
