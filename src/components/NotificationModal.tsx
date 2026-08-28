@@ -15,6 +15,7 @@ import {
   Send,
   X,
 } from "lucide-react";
+import StyledSelect from "./StyledSelect";
 import type {
   MessageUser,
   NotificationCategory,
@@ -277,26 +278,18 @@ function PrivateMessages() {
             </div>
             <div className="message-composer">
               <div className="message-composer-tools">
-                <select
+                <StyledSelect
                   value={attachmentType}
-                  onChange={(event) =>
-                    setAttachmentType(
-                      event.target.value as "" | PrivateAttachmentType,
-                    )
-                  }
                   title="附加当前播放内容"
-                >
-                  <option value="">纯文字</option>
-                  {attachments.map((item) => (
-                    <option key={`${item.type}-${item.id}`} value={item.type}>
-                      {item.type === "song"
-                        ? "分享当前歌曲"
-                        : item.type === "playlist"
-                          ? "分享当前歌单"
-                          : "分享当前专辑"}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setAttachmentType(value as "" | PrivateAttachmentType)}
+                  options={[
+                    { value: "", label: "纯文字" },
+                    ...attachments.map((item) => ({
+                      value: item.type,
+                      label: item.type === "song" ? "分享当前歌曲" : item.type === "playlist" ? "分享当前歌单" : "分享当前专辑",
+                    })),
+                  ]}
+                />
                 {attachment && <span>{attachment.title}</span>}
               </div>
               <div className="message-composer-input">

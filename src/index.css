@@ -13027,6 +13027,31 @@ img[data-reverie-fallback="true"] {
 }
 
 /* All native selects share the download dialog's glass control language. */
+.styled-select { position: relative; min-width: 170px; }
+.styled-select-trigger {
+  display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 12px 0 14px; border: 1px solid var(--glass-popup-border); border-radius: 9px;
+  background: var(--glass-popup-control); color: var(--text); font: inherit; text-align: left;
+  transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease;
+}
+.styled-select-trigger:hover, .styled-select.open .styled-select-trigger {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--glass-popup-border)); background: var(--glass-popup-hover);
+}
+.styled-select-trigger svg { color: var(--text-faint); transition: transform var(--motion-fast) ease; }
+.styled-select.open .styled-select-trigger svg { transform: rotate(180deg); color: var(--accent-2); }
+.styled-select-menu {
+  position: absolute; z-index: 20; right: 0; left: 0; display: grid; gap: 2px; max-height: 270px; overflow-y: auto;
+  margin-top: 6px; padding: 5px; border: 1px solid var(--glass-popup-border); border-radius: 9px;
+  background: var(--glass-popup); box-shadow: 0 14px 32px var(--shadow); backdrop-filter: blur(26px) saturate(1.35);
+}
+.styled-select-menu button {
+  display: flex; min-height: 34px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px;
+  border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; text-align: left;
+}
+.styled-select-menu button:hover, .styled-select-menu button.active { background: var(--glass-popup-hover); }
+.styled-select-menu button.active { color: var(--accent-2); font-weight: 600; }
+.styled-select-menu button.locked { cursor: not-allowed; opacity: .45; }
+.styled-select[data-disabled="true"] { opacity: .55; pointer-events: none; }
 select,
 .message-composer-tools select,
 .playlist-discovery-select select,
