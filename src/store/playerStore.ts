@@ -817,6 +817,7 @@ interface PlayerState {
   setPage: (p: "browse" | "nowplaying") => void;
   setSearchOpen: (v: boolean) => void;
   saveViewScroll: (view: View, top: number) => void;
+  clearAppCache: () => void;
   loadHome: (refreshPlaylists?: boolean) => Promise<void>;
   doSearch: (kw: string) => Promise<void>;
   loadTopSongs: () => Promise<void>;
@@ -1891,6 +1892,47 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
         [view]: Math.max(0, top),
       },
     })),
+  clearAppCache: () => {
+    clearResponseCache();
+    try {
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (
+          key === HOME_PLAYLISTS_CACHE_KEY ||
+          key === HOME_TOP_CACHE_KEY ||
+          key === HOME_QUOTE_CACHE_KEY ||
+          key === HOME_PLAYLISTS_CACHE_AT_KEY ||
+          key === HOME_TOP_CACHE_AT_KEY ||
+          key === HOME_QUOTE_CACHE_AT_KEY ||
+          key === LIKED_AT_KEY ||
+          key === "reverie_recent" ||
+          key.startsWith("reverie_recommend_") ||
+          key.startsWith("reverie_vip_") ||
+          key.startsWith("reverie_liked_ids_")
+        ) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      /* storage may be unavailable in a restricted WebView */
+    }
+    set({
+      hotPlaylists: [],
+      topSongs: [],
+      homeQuote: null,
+      recommendSongs: [],
+      likedIds: [],
+      vipInfo: null,
+      likedAt: {},
+    });
+    const state = get();
+    if (state.loggedIn) {
+      void state.loadHome(true);
+      void state.loadLiked();
+      void state.loadVipInfo();
+    }
+    state.toast("缓存已清理", "success");
+  },
 
   // --- home dashboard ---
   loadHome: async (refreshPlaylists = false) => {

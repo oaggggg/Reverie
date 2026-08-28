@@ -3,6 +3,7 @@ import {
   CircleUserRound,
   ChevronRight,
   Bug,
+  Trash2,
   FolderOpen,
   Info,
   MonitorCog,
@@ -218,6 +219,7 @@ export default function SettingsModal() {
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
   const setLyricFontSize = usePlayerStore((s) => s.setLyricFontSize);
   const logout = usePlayerStore((s) => s.logout);
+  const clearAppCache = usePlayerStore((s) => s.clearAppCache);
   const checkUpdate = usePlayerStore((s) => s.checkUpdate);
   const updatePhase = usePlayerStore((s) => s.updatePhase);
   const [accountOverview, setAccountOverview] =
@@ -482,6 +484,18 @@ export default function SettingsModal() {
                       onClick={() => setShowListCover(!showListCover)}
                     >
                       <span />
+                    </button>
+                  </SettingRow>
+                  <SettingRow
+                    title="清理缓存"
+                    hint="清除接口、首页、推荐和播放数据缓存，不会退出登录或重置设置"
+                  >
+                    <button
+                      type="button"
+                      className="btn danger"
+                      onClick={clearAppCache}
+                    >
+                      <Trash2 size={14} /> 清理缓存
                     </button>
                   </SettingRow>
                 </div>
