@@ -6730,7 +6730,6 @@ select option:checked {
   border-bottom: 1px solid var(--glass-popup-border);
 }
 
-.np-visual-panel > header > div,
 .np-visual-panel h3 {
   display: flex;
   align-items: center;
@@ -6795,7 +6794,6 @@ select option:checked {
   background: var(--glass-popup-hover);
 }
 
-.np-visual-panel .icon-btn:hover,
 .player-comments-drawer .icon-btn:hover,
 .share-dialog .icon-btn:hover {
   background: var(--glass-popup-hover);

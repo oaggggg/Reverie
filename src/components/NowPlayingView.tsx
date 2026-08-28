@@ -47,6 +47,7 @@ export default function NowPlayingView() {
     "opening" | "idle" | "closing"
   >("opening");
   const [visualOpen, setVisualOpen] = useState(false);
+  const visualTriggerRef = useRef<HTMLButtonElement>(null);
   const visualTransition = useOriginTransition<HTMLElement>(
     visualOpen,
     "np-visual",
@@ -59,6 +60,21 @@ export default function NowPlayingView() {
     color: "#7df9ff",
     soft: "rgba(125, 249, 255, 0.32)",
   });
+
+  useEffect(() => {
+    if (!visualOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (visualTransition.surfaceRef.current?.contains(target)) return;
+      if (visualTriggerRef.current?.contains(target)) return;
+      setVisualOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [visualOpen, visualTransition.surfaceRef]);
 
   useEffect(() => {
     let disposed = false;
@@ -209,6 +225,7 @@ export default function NowPlayingView() {
       </button>
 
       <button
+        ref={visualTriggerRef}
         className={`np-btn np-visual-trigger ${fadedIn ? "np-fade-in" : ""}`}
         onClick={(event) => {
           captureInteractionOrigin("np-visual", event.currentTarget);
