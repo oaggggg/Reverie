@@ -12468,6 +12468,65 @@ select option:checked {
 }
 
 /* Playlist modal content grid: keep controls and actions off the glass edge. */
+
+/* Global interaction contract for controls that do not use a feature-specific
+   animation class. Transforms stay within the element footprint. */
+:where(button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"]) {
+  transition:
+    color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    opacity var(--motion-fast) ease,
+    transform var(--motion-fast) var(--motion-enter);
+}
+:where(button, a, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"]):not(:disabled):active {
+  transform: scale(0.97);
+  transition-timing-function: var(--motion-exit);
+}
+:where(input, select, textarea):focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.song-item {
+  transition:
+    background-color var(--motion-normal) ease,
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-normal) ease,
+    transform var(--motion-normal) var(--motion-enter);
+}
+.song-item:hover {
+  transform: translateX(3px);
+}
+.song-item.playing:hover {
+  transform: translateX(3px);
+}
+
+:where(.playlist-card, .media-card, .follow-list-row, .digital-album-board-card) {
+  transition:
+    background-color var(--motion-normal) ease,
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-normal) ease,
+    transform var(--motion-normal) var(--motion-enter);
+}
+:where(.playlist-card, .media-card, .follow-list-row, .digital-album-board-card):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--shadow) 42%, transparent);
+}
+
+:where(.detail-link, .user-dropdown-stat, .library-initials button, .playlist-view-tabs button, .playlist-discovery-tags button, .collection-tabs button, .notification-tabs button):not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, a, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"]),
+  .song-item,
+  :where(.playlist-card, .media-card, .follow-list-row, .digital-album-board-card) {
+    transition-duration: 1ms !important;
+    transform: none !important;
+  }
+}
 .modal.playlist-modal-shell.playlist-track-picker {
   padding: 0;
 }
