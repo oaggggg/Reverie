@@ -308,6 +308,17 @@ fn scan_wallpaper_engine_items() -> Vec<WallpaperEngineItem> {
             if !path.is_file() {
                 continue;
             }
+            // 视频壁纸仅支持 mp4（清晰度/分辨率不限）；webm 等其它
+            // 容器 WebView 解码兼容性差，交给官方运行时。
+            if kind == "video"
+                && !path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e.eq_ignore_ascii_case("mp4"))
+                    .unwrap_or(false)
+            {
+                continue;
+            }
             let title = project
                 .get("title")
                 .and_then(|v| v.as_str())
