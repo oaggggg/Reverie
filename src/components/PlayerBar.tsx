@@ -384,7 +384,7 @@ export default function PlayerBar() {
 
           <div className="pb-controls">
             {queueSource === "fm" && (
-              <button className="icon-btn active fm-mode-indicator" title="私人漫游模式" aria-label="私人漫游模式">
+              <button className="icon-btn active fm-mode-indicator" title="无限循环" aria-label="无限循环">
                 <Infinity size={20} />
               </button>
             )}
@@ -428,7 +428,7 @@ export default function PlayerBar() {
           </div>
 
           <div className="pb-right" ref={menuRef}>
-            <div className="pb-queue-wrap">
+            {queueSource !== "fm" && <div className="pb-queue-wrap">
               <button
                 className={`icon-btn ${queueOpen ? "active" : ""}`}
                 title="播放列表"
@@ -476,7 +476,7 @@ export default function PlayerBar() {
                   </div>
                 </div>
               )}
-            </div>
+            </div>}
             <button
               className={`icon-btn ${queueSource === "fm" ? "active" : ""}`}
               onClick={() => void loadPersonalFm()}
