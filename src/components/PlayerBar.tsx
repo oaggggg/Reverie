@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getDynamicSongCover, getSongLikeStatus, getSongCollectionCounts } from "../api/songStatus";
-import { getResourceComments } from "../api/comment";
+import { getResourceCommentCount } from "../api/comment";
 import {
   ALL_PLAYBACK_QUALITIES,
   PLAYBACK_QUALITY_LABELS,
@@ -178,9 +178,9 @@ export default function PlayerBar() {
         })
         .catch(() => {});
     }
-    void getResourceComments({ type: "song", id: String(currentSong.id), title: currentSong.name }, 1, "hot", "", 1)
-      .then((result) => {
-        if (alive && Number.isFinite(result.total)) setRemoteCommentCount(Math.max(0, result.total));
+    void getResourceCommentCount({ type: "song", id: String(currentSong.id), title: currentSong.name })
+      .then((count) => {
+        if (alive) setRemoteCommentCount(count);
       })
       .catch(() => {});
     void getSongCollectionCounts([currentSong.id])

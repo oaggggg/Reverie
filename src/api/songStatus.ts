@@ -39,8 +39,8 @@ export async function getSongCollectionCounts(
   const ids = songIds.filter((id) => Number.isSafeInteger(id) && id > 0);
   if (!ids.length) return {};
   const response = await request<Obj>(
-    "/song/like/check",
-    { ids: ids.join(","), count: "true" },
+    "/song/detail",
+    { ids: ids.join(",") },
     false,
   );
   const value = response.data ?? response.result ?? response;
@@ -52,14 +52,23 @@ export async function getSongCollectionCounts(
         item.likeCount ??
         item.collectCount ??
         item.collectionCount ??
+        item.starredNum ??
+        item.favoriteCount ??
+        item.favCount ??
+        item.collectNum ??
         item.count ??
         item.total ??
         NaN,
     );
     if (id > 0 && Number.isFinite(count)) result[id] = Math.max(0, count);
   };
-  if (Array.isArray(value)) {
-    for (const raw of value) read(obj(raw));
+  const songs = Array.isArray(value)
+    ? value
+    : Array.isArray(obj(value).songs)
+      ? obj(value).songs
+      : obj(response).songs;
+  if (Array.isArray(songs)) {
+    for (const raw of songs) read(obj(raw));
   } else {
     for (const [key, raw] of Object.entries(obj(value))) {
       if (raw && typeof raw === "object") read(obj(raw), Number(key));

@@ -89,6 +89,36 @@ export interface CommentResultPage {
   cursor: string;
 }
 
+/** Read the authoritative comment total without loading a comment page. */
+export async function getResourceCommentCount(
+  resource: CommentResource,
+): Promise<number> {
+  try {
+    const response = ensureSuccess(
+      await request<Obj>("/comment/count", {
+        id: resource.id,
+        type: RESOURCE_TYPES[resource.type],
+      }),
+      "/comment/count",
+    );
+    const data = obj(response.data);
+    const rawCount =
+      response.commentCount ??
+        response.total ??
+        response.count ??
+        data.commentCount ??
+        data.totalCount ??
+        data.total;
+    const count = Number(rawCount);
+    if (rawCount !== undefined && Number.isFinite(count))
+      return Math.max(0, count);
+  } catch {
+    // Older sidecars do not expose /comment/count; use the compatible list API.
+  }
+  const fallback = await getResourceComments(resource, 1, "hot", "", 1);
+  return Math.max(0, Number(fallback.total) || 0);
+}
+
 export async function getResourceComments(
   resource: CommentResource,
   pageNo = 1,

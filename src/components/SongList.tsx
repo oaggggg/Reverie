@@ -30,7 +30,7 @@ import {
 import { downloadSongFile } from "../api/client";
 import { likeSong } from "../api/client";
 import { useCommentStore } from "../store/commentStore";
-import { getResourceComments } from "../api/comment";
+import { getResourceCommentCount } from "../api/comment";
 import { getSongCollectionCounts } from "../api/songStatus";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
@@ -101,19 +101,20 @@ export default function SongList({
 
   useEffect(() => {
     let alive = true;
-    const candidates = songs.filter((song) => !(song.commentCount && song.commentCount > 0)).slice(0, 40);
-    if (!candidates.length) return;
+    const commentCandidates = songs.filter(
+      (song) => song.commentCount === undefined || song.commentCount <= 0,
+    );
+    const collectionCandidates = songs.filter(
+      (song) => song.likedCount === undefined || song.likedCount <= 0,
+    );
+    if (!commentCandidates.length && !collectionCandidates.length) return;
     const commentsPromise = Promise.all(
-      candidates.map(async (song) => {
+      commentCandidates.map(async (song) => {
         try {
-          const result = await getResourceComments(
+          const count = await getResourceCommentCount(
             { type: "song", id: String(song.id), title: song.name },
-            1,
-            "hot",
-            "",
-            1,
           );
-          return [song.id, Math.max(0, Number(result.total) || 0)] as const;
+          return [song.id, count] as const;
         } catch {
           return null;
         }
@@ -121,7 +122,9 @@ export default function SongList({
     );
     void Promise.all([
       commentsPromise,
-      getSongCollectionCounts(candidates.map((song) => song.id)).catch(() => ({})),
+      getSongCollectionCounts(collectionCandidates.map((song) => song.id)).catch(
+        () => ({}),
+      ),
     ]).then(([entries, counts]) => {
       if (!alive) return;
       const next: Record<number, number> = {};

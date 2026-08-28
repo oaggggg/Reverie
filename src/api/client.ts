@@ -425,6 +425,10 @@ export function normalizeSong(raw: unknown): Song | null {
       s.collectCount ??
       s.collectionCount ??
       s.collect ??
+      s.starredNum ??
+      s.favoriteCount ??
+      s.favCount ??
+      s.collectNum ??
       s["收藏数"] ??
       s["收藏数量"] ??
       statistics?.likedCount ??
