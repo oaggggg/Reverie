@@ -5094,22 +5094,21 @@ select option:checked {
   filter: brightness(0.5) saturate(1.05);
 }
 
-/* DIY 面板：壁纸选择列表 */
+/* DIY 面板：壁纸卡片网格 */
 .np-wallpaper-list {
   width: 100%;
-  max-height: 220px;
+  max-height: 272px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 .np-wallpaper-item {
   display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 8px;
+  flex-direction: column;
   border: 1px solid var(--glass-popup-border);
   border-radius: 12px;
+  overflow: hidden;
   background: var(--glass-popup-hover);
   color: rgba(255, 255, 255, 0.72);
   font-size: 12px;
@@ -5125,13 +5124,12 @@ select option:checked {
   background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 .np-wallpaper-thumb {
-  flex: none;
-  width: 38px;
-  height: 24px;
+  width: 100%;
+  height: 62px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 0;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.35);
   color: rgba(255, 255, 255, 0.55);
@@ -5143,10 +5141,14 @@ select option:checked {
   display: block;
 }
 .np-wallpaper-title {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px 7px;
+  overflow: hidden;
+}
+.np-wallpaper-name {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -5157,6 +5159,7 @@ select option:checked {
   font-weight: 400;
 }
 .np-wallpaper-empty {
+  grid-column: 1 / -1;
   padding: 8px 2px;
   color: var(--glass-readable-faint);
   font-size: 11px;

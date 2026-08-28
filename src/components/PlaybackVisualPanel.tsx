@@ -306,7 +306,9 @@ export default function PlaybackVisualPanel({
                     <span className="np-wallpaper-thumb np-wallpaper-thumb-off">
                       <Music4 size={14} />
                     </span>
-                    <span className="np-wallpaper-title">不使用壁纸</span>
+                    <span className="np-wallpaper-title">
+                      <span className="np-wallpaper-name">不使用壁纸</span>
+                    </span>
                   </button>
                   {wallpapers?.map((item) => (
                     <button
@@ -322,7 +324,7 @@ export default function PlaybackVisualPanel({
                         )}
                       </span>
                       <span className="np-wallpaper-title">
-                        {item.title}
+                        <span className="np-wallpaper-name">{item.title}</span>
                         <small>视频</small>
                       </span>
                     </button>

@@ -233,10 +233,21 @@ fn steam_install_from_registry() -> Option<PathBuf> {
 /// 登记的其它库。
 fn steam_library_roots() -> Vec<PathBuf> {
     let mut roots: Vec<PathBuf> = Vec::new();
+    // 注册表（值形如 d:/steam）、vdf（"D:\\..."）与默认路径对同一个库
+    // 可能给出大小写或斜杠方向不同的写法，直接 PathBuf 判重会失效，
+    // 导致同一工坊目录被扫两遍、壁纸列表出现重复项。
     fn push(roots: &mut Vec<PathBuf>, path: PathBuf) {
-        if path.is_dir() && !roots.contains(&path) {
-            roots.push(path);
+        if !path.is_dir() {
+            return;
         }
+        let key = path.to_string_lossy().to_lowercase().replace('/', "\\");
+        if roots
+            .iter()
+            .any(|r| r.to_string_lossy().to_lowercase().replace('/', "\\") == key)
+        {
+            return;
+        }
+        roots.push(path);
     }
     // 注册表最可靠：无论装在哪个盘都能拿到（值形如 d:/steam）。
     #[cfg(windows)]
@@ -273,6 +284,9 @@ fn steam_library_roots() -> Vec<PathBuf> {
 /// web / scene 等其它类型一律不获取。
 fn scan_wallpaper_engine_items() -> Vec<WallpaperEngineItem> {
     let mut items = Vec::new();
+    // 工坊目录 id 即去重键：即便根目录归一化后仍有漏网重复（junction、
+    // 符号链接等），同一壁纸也只收一次。
+    let mut seen_ids = std::collections::HashSet::new();
     for root in steam_library_roots() {
         let workshop = root
             .join("steamapps")
@@ -344,6 +358,9 @@ fn scan_wallpaper_engine_items() -> Vec<WallpaperEngineItem> {
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
+            if !seen_ids.insert(id.clone()) {
+                continue;
+            }
             items.push(WallpaperEngineItem {
                 id,
                 title,
