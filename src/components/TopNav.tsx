@@ -7,6 +7,7 @@ import type { View } from "../api/types";
 import type { ReactElement } from "react";
 import {
   Bell,
+  ChartColumn,
   Disc3,
   FolderHeart,
   Heart,
@@ -17,7 +18,6 @@ import {
   Podcast,
   Search,
   Sun,
-  Trophy,
   Users,
 } from "lucide-react";
 import UserMenu from "./UserMenu";
@@ -36,7 +36,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { view: "home", label: "首页", icon: <House size={17} /> },
-  { view: "chart", label: "排行榜", icon: <Trophy size={17} /> },
+  { view: "chart", label: "排行榜", icon: <ChartColumn size={17} /> },
   { view: "library", label: "音乐馆", icon: <Disc3 size={17} /> },
   {
     view: "userlist",
