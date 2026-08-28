@@ -3348,6 +3348,9 @@ select option:checked {
   justify-content: center;
   z-index: 100;
 }
+.login-backdrop {
+  z-index: 130;
+}
 .modal {
   background: var(--glass-surface);
   border: 1px solid var(--glass-surface-border);
@@ -5585,35 +5588,6 @@ select option:checked {
 .setting-status {
   color: var(--text-faint);
   font-size: 12px;
-}
-.account-overview {
-  display: grid;
-  gap: 9px;
-  margin-top: 14px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--bg-2);
-}
-.account-overview > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  font-size: 12px;
-}
-.account-overview > div span {
-  color: var(--text-faint);
-}
-.account-overview > div strong {
-  color: var(--text);
-  font-weight: 600;
-  text-align: right;
-}
-.account-overview p {
-  margin: 4px 0 0;
-  color: var(--text-faint);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .song-sheet-dialog {
   width: min(92vw, 760px);

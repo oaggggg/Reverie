@@ -130,7 +130,7 @@ export default function LoginModal() {
 
   return (
     <div
-      className={`modal-backdrop ${transition.backdropClassName}`}
+      className={`modal-backdrop login-backdrop ${transition.backdropClassName}`}
       onClick={() => setShowLogin(false)}
     >
       <div
