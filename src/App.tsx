@@ -375,17 +375,13 @@ export default function App() {
   // remains visible while the local API sidecar finishes starting.
   useEffect(() => {
     let cancelled = false;
-    let idle: number | undefined;
-    let timer = 0;
     void (async () => {
       await refreshLogin();
       if (cancelled) return;
-      const refreshHome = () => {
-        if (!cancelled)
-          void Promise.allSettled([loadHome(true), loadHomeQuote()]);
-      };
-      idle = window.requestIdleCallback?.(refreshHome, { timeout: 1800 });
-      if (idle === undefined) timer = window.setTimeout(refreshHome, 250);
+      // 登录完成后立即并行拉取首屏数据，不再等待浏览器空闲回调。
+      // 空闲调度适合后台刷新，但会让首次登录后的页面长时间空白。
+      if (!cancelled)
+        void Promise.allSettled([loadHome(true), loadHomeQuote()]);
       // 启动直达私人漫游：设置开启且当前没有恢复的在播内容时才触发；
       // 未登录时静默跳过，不在启动流程里弹登录框打扰。
       const boot = usePlayerStore.getState();
@@ -395,8 +391,6 @@ export default function App() {
     })();
     return () => {
       cancelled = true;
-      if (idle !== undefined) window.cancelIdleCallback?.(idle);
-      if (timer) window.clearTimeout(timer);
     };
   }, [refreshLogin, loadHome, loadHomeQuote]);
 

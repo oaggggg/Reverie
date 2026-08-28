@@ -2534,20 +2534,13 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     // Permissions (VIP levels, region blocks) change with the account.
     clearResponseCache();
     set({ authReady: false });
-    // 新扫码的会话在服务端偶尔需要短暂同步：此窗口内 /login/status
-    // 会按匿名会话应答（无 profile），不能据此断定 cookie 无效。
-    // 带退避重试约 12 秒，仍拿不到真实档案才判失败。
+    // loginStatusWithRetry 已包含网络抖动重试；这里不再叠加外层重试，
+    // 避免首登时重复请求数十次导致首页数据长时间等待。
     let profile: UserProfile | null = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        profile = await loginStatusWithRetry();
-        if (profile && profile.userId > 0) break;
-      } catch {
-        /* 网络抖动：继续重试 */
-      }
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(500 * 2 ** attempt, 4000)),
-      );
+    try {
+      profile = await loginStatusWithRetry();
+    } catch {
+      profile = null;
     }
     if (profile && profile.userId > 0) {
       accountDataGeneration++;
