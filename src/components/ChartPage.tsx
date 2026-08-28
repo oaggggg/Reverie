@@ -69,8 +69,8 @@ export default function ChartPage() {
           !selectedChart ? (
             <button
               className="icon-btn"
-              title="刷新排行榜"
-              aria-label="刷新排行榜"
+              title="刷新榜单"
+              aria-label="刷新榜单"
               onClick={refreshCharts}
               disabled={loading}
             >
