@@ -13025,3 +13025,54 @@ img[data-reverie-fallback="true"] {
   filter: none !important;
   transform: none !important;
 }
+
+/* All native selects share the download dialog's glass control language. */
+select,
+.message-composer-tools select,
+.playlist-discovery-select select,
+.library-filters select,
+.social-follow-filter select,
+.chart-dimension-controls select,
+.video-mv-filters select,
+.digital-album-order select,
+.ugc-selects select {
+  min-height: 42px;
+  padding: 0 42px 0 14px;
+  border: 1px solid var(--glass-popup-border);
+  border-radius: 9px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--glass-popup-control);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239a9ab0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 15px;
+  color: var(--text);
+  font: inherit;
+  transition: border-color var(--motion-fast) ease, background-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+select:hover,
+.message-composer-tools select:hover,
+.playlist-discovery-select select:hover,
+.library-filters select:hover,
+.social-follow-filter select:hover,
+.chart-dimension-controls select:hover,
+.video-mv-filters select:hover,
+.digital-album-order select:hover,
+.ugc-selects select:hover {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--glass-popup-border));
+  background-color: var(--glass-popup-hover);
+}
+select:focus-visible,
+.message-composer-tools select:focus-visible,
+.playlist-discovery-select select:focus-visible,
+.library-filters select:focus-visible,
+.social-follow-filter select:focus-visible,
+.chart-dimension-controls select:focus-visible,
+.video-mv-filters select:focus-visible,
+.digital-album-order select:focus-visible,
+.ugc-selects select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}

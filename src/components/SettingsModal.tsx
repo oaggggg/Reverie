@@ -473,7 +473,7 @@ export default function SettingsModal() {
                   </SettingRow>
                   <SettingRow
                     title="清理缓存"
-                    hint="清除接口、首页、推荐和播放数据缓存，不会退出登录或重置设置"
+                    hint="清除接口、首页、推荐和播放数据缓存"
                   >
                     <button
                       type="button"
