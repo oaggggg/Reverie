@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Album,
   CalendarDays,
   Disc3,
   Heart,
+  ImagePlus,
   LibraryBig,
   Music2,
   Podcast,
   Radio,
+  UserRound,
   Users,
 } from "lucide-react";
 import { useExploreStore } from "../store/exploreStore";
@@ -31,6 +33,14 @@ function formatDate(timestamp: number) {
 export default function ProfilePage({ modal = false }: { modal?: boolean }) {
   const [brokenAvatar, setBrokenAvatar] = useState("");
   const [brokenBackground, setBrokenBackground] = useState("");
+  const [customBackground, setCustomBackground] = useState<{ url: string; type: "image" | "video" } | null>(() => {
+    try {
+      const raw = localStorage.getItem("reverie_profile_custom_background");
+      return raw ? (JSON.parse(raw) as { url: string; type: "image" | "video" }) : null;
+    } catch {
+      return null;
+    }
+  });
   const [followDialog, setFollowDialog] = useState<
     "follows" | "followers" | null
   >(null);
@@ -48,6 +58,35 @@ export default function ProfilePage({ modal = false }: { modal?: boolean }) {
   const openCollections = useCollectionStore((state) => state.openCollections);
   const playSong = usePlayerStore((state) => state.playSong);
   const openRadio = useExploreStore((state) => state.openRadio);
+  const setShowLogin = usePlayerStore((state) => state.setShowLogin);
+
+  const chooseBackground = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*,video/*";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const type = file.type.startsWith("video/") ? "video" : "image";
+      const reader = new FileReader();
+      reader.onload = () => {
+        const next = { url: String(reader.result), type } as const;
+        setCustomBackground(next);
+        try {
+          localStorage.setItem("reverie_profile_custom_background", JSON.stringify(next));
+        } catch {
+          usePlayerStore.getState().toast("背景文件过大，无法保存", "error");
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
+  const clearBackground = () => {
+    setCustomBackground(null);
+    localStorage.removeItem("reverie_profile_custom_background");
+  };
 
   const openSocial = (tab: "follows" | "followers") => {
     setFollowDialog(tab);
@@ -75,7 +114,12 @@ export default function ProfilePage({ modal = false }: { modal?: boolean }) {
     <Page>
       {!modal && <BackButton />}
       <section className="profile-hero">
-        {detail.backgroundUrl && brokenBackground !== detail.backgroundUrl && (
+        {customBackground?.type === "video" ? (
+          <video className="profile-hero-background" src={customBackground.url} autoPlay muted loop playsInline />
+        ) : customBackground?.url ? (
+          <img className="profile-hero-background" src={customBackground.url} alt="" />
+        ) : null}
+        {!customBackground && detail.backgroundUrl && brokenBackground !== detail.backgroundUrl && (
           <img
             className="profile-hero-background"
             src={sizedImage(detail.backgroundUrl, 1600)}
@@ -84,6 +128,21 @@ export default function ProfilePage({ modal = false }: { modal?: boolean }) {
           />
         )}
         <div className="profile-hero-shade" />
+        {modal && (
+          <div className="profile-hero-actions">
+            <button type="button" className="profile-background-btn" onClick={() => setShowLogin(true)} title="切换登录账号" aria-label="切换登录账号">
+              <UserRound size={16} />
+            </button>
+            <button type="button" className="profile-background-btn" onClick={chooseBackground} title="自定义背景" aria-label="自定义背景">
+              <ImagePlus size={16} />
+            </button>
+            {customBackground && (
+              <button type="button" className="profile-background-btn" onClick={clearBackground} title="恢复默认背景" aria-label="恢复默认背景">
+                <span className="profile-background-reset">×</span>
+              </button>
+            )}
+          </div>
+        )}
         <div className="profile-hero-content">
           {detail.avatarUrl && brokenAvatar !== detail.avatarUrl ? (
             <img
