@@ -422,10 +422,15 @@ export function normalizeSong(raw: unknown): Song | null {
   const likedCount = Number(
     s.likedCount ??
       s.likeCount ??
+      s.collectCount ??
+      s.collectionCount ??
+      s.collect ??
+      s["收藏数"] ??
+      s["收藏数量"] ??
       statistics?.likedCount ??
       statistics?.likeCount ??
-      s.popularity ??
-      s.pop ??
+      statistics?.collectCount ??
+      statistics?.collectionCount ??
       0,
   );
   const commentCount = Number(
