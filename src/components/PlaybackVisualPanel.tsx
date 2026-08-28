@@ -45,6 +45,15 @@ const LYRIC_FX: Array<{ id: LyricFx; name: string }> = [
 
 type VisualTab = "background" | "lyrics";
 
+/** 画质卡片副标签用的粒子数短格式：57,600 → 5.8万。 */
+function shortParticleCount(quality: CoverQuality): string {
+  if (quality === "image") return "静态";
+  const n = particleCount(quality);
+  return n >= 10000
+    ? `${(n / 10000).toFixed(1).replace(/\.0$/, "")}万`
+    : String(n);
+}
+
 export default function PlaybackVisualPanel({
   surfaceRef,
   transitionClassName,
@@ -238,6 +247,7 @@ export default function PlaybackVisualPanel({
                       onClick={() => setCoverQuality(quality, "手动设置")}
                     >
                       {QUALITY_LABEL[quality]}
+                      <small>{shortParticleCount(quality)}</small>
                     </button>
                   ))}
                 </div>

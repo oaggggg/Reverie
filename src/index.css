@@ -7090,12 +7090,35 @@ select option:checked {
   font-weight: 400;
 }
 
+/* DIY 面板：预设选项以卡片网格展示 */
 .np-visual-panel .opt-group {
   width: 100%;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 6px;
 }
 
-.np-visual-panel .opt-btn,
+.np-visual-panel .opt-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 46px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  border-color: var(--glass-popup-border);
+  color: rgba(255, 255, 255, 0.72);
+  background: var(--glass-popup-hover);
+  text-align: center;
+}
+
+.np-visual-panel .opt-btn small {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  font-weight: 400;
+}
+
 .np-visual-panel .btn {
   border-color: var(--glass-popup-border);
   color: rgba(255, 255, 255, 0.72);
