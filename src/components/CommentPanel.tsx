@@ -100,6 +100,7 @@ export default function CommentPanel({
     comment: CommentInfo;
     parentId?: number;
   } | null>(null);
+  const [huggingIds, setHuggingIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setDraft("");
@@ -149,15 +150,25 @@ export default function CommentPanel({
           <div className="comment-item-actions">
             <button
               title="抱一抱"
+              disabled={huggingIds.has(comment.id)}
               onClick={() => {
                 if (!requireLogin() || !resource) return;
+                if (huggingIds.has(comment.id)) return;
+                setHuggingIds((ids) => new Set(ids).add(comment.id));
                 void hugComment(resource, comment)
                   .then(() =>
                     usePlayerStore.getState().toast("已抱一抱评论", "success"),
                   )
                   .catch(() =>
                     usePlayerStore.getState().toast("抱一抱失败", "error"),
-                  );
+                  )
+                  .finally(() => {
+                    setHuggingIds((ids) => {
+                      const next = new Set(ids);
+                      next.delete(comment.id);
+                      return next;
+                    });
+                  });
               }}
             >
               <HandHeart size={14} /> 抱一抱

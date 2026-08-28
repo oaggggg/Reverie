@@ -37,6 +37,8 @@ const LEGACY_COMMENT_ROUTES: Partial<Record<CommentResourceType, string>> = {
   video: "/comment/video",
 };
 
+const hugRequests = new Map<string, Promise<void>>();
+
 function ensureSuccess(response: Obj, path: string): Obj {
   const code = Number(response.code ?? 200);
   if (code !== 200) throw new Error(`${path} 返回业务码 ${code}`);
@@ -173,19 +175,28 @@ export async function hugComment(
   resource: CommentResource,
   comment: CommentInfo,
 ): Promise<void> {
-  ensureSuccess(
-    await request(
-      "/hug/comment",
-      {
-        uid: comment.userId,
-        cid: comment.id,
-        sid: resource.id,
-        type: RESOURCE_TYPES[resource.type],
-      },
-      false,
-    ),
+  const key = `${resource.type}:${resource.id}:${comment.id}:${comment.userId}`;
+  const running = hugRequests.get(key);
+  if (running) return running;
+  const run = request(
     "/hug/comment",
-  );
+    {
+      uid: comment.userId,
+      cid: comment.id,
+      sid: resource.id,
+      type: RESOURCE_TYPES[resource.type],
+    },
+    false,
+    { retry: true, timeoutMs: 12_000 },
+  )
+    .then((response) => {
+      ensureSuccess(response as Obj, "/hug/comment");
+    })
+    .finally(() => {
+      if (hugRequests.get(key) === run) hugRequests.delete(key);
+    });
+  hugRequests.set(key, run);
+  return run;
 }
 
 export async function getCommentHugList(

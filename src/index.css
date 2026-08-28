@@ -9433,6 +9433,22 @@ select option:checked {
 .detail-modal .detail-back {
   display: none;
 }
+.detail-modal .detail-hero {
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+}
+.detail-modal .detail-copy {
+  min-width: 0;
+  overflow: hidden;
+}
+.detail-modal .detail-copy p {
+  width: 100%;
+  max-width: 100%;
+  max-height: 8.75em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.75;
+}
 .detail-modal-inner {
   display: flex;
   flex-direction: column;
