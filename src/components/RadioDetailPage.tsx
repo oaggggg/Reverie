@@ -25,6 +25,7 @@ import { LoadingState, Page } from "./Page";
 import SongList from "./SongList";
 import BackButton from "./BackButton";
 import { useModalBehavior } from "../utils/modalBehavior";
+import { useOriginTransition } from "../utils/originTransition";
 
 export default function RadioDetailPage() {
   const radio = useExploreStore((s) => s.currentRadio);
@@ -90,6 +91,7 @@ export default function RadioDetailPage() {
   };
   const programOpen =
     programLoading || Boolean(program) || Boolean(programError);
+  const programTransition = useOriginTransition(programOpen, "podcast-program", 220);
   useModalBehavior(programOpen, programSurfaceRef, closeProgram);
 
   return (
@@ -202,14 +204,14 @@ export default function RadioDetailPage() {
           />
         </>
       )}
-      {programOpen && (
+      {programTransition.rendered && (
         <div
-          className="modal-backdrop podcast-program-backdrop"
+          className={`modal-backdrop podcast-program-backdrop ${programTransition.backdropClassName}`}
           onClick={closeProgram}
         >
           <section
             ref={programSurfaceRef}
-            className="podcast-program-dialog"
+            className={`podcast-program-dialog ${programTransition.surfaceClassName}`}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"

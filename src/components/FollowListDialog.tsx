@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { UserMinus, UserPlus, Users, X } from "lucide-react";
 import { useExploreStore } from "../store/exploreStore";
 import { sizedImage } from "../utils/image";
 import { useModalBehavior } from "../utils/modalBehavior";
+import { useOriginTransition } from "../utils/originTransition";
 
 type FollowListType = "follows" | "followers";
 
@@ -21,17 +22,24 @@ export default function FollowListDialog({
   const loadFollowList = useExploreStore((state) => state.loadFollowList);
   const toggleFollow = useExploreStore((state) => state.toggleFollow);
   const surfaceRef = useRef<HTMLElement>(null);
-  useModalBehavior(true, surfaceRef, onClose);
+  const [visible, setVisible] = useState(true);
+  const transition = useOriginTransition(visible, `follow-list-${type}`, 220);
+  const requestClose = () => {
+    if (!visible) return;
+    setVisible(false);
+    window.setTimeout(onClose, 220);
+  };
+  useModalBehavior(visible, surfaceRef, requestClose);
 
   useEffect(() => {
     void loadFollowList(type);
   }, [loadFollowList, type]);
 
   return createPortal(
-    <div className="modal-backdrop follow-list-backdrop" onMouseDown={onClose}>
+    <div className={`modal-backdrop follow-list-backdrop ${transition.backdropClassName}`} onMouseDown={requestClose}>
       <section
         ref={surfaceRef}
-        className="modal follow-list-modal"
+        className={`modal follow-list-modal ${transition.surfaceClassName}`}
         role="dialog"
         aria-modal="true"
         aria-label={type === "follows" ? "关注" : "粉丝"}
@@ -44,7 +52,7 @@ export default function FollowListDialog({
             </h2>
             <p>{type === "follows" ? "你关注的用户" : "关注你的用户"}</p>
           </div>
-          <button className="modal-close" title="关闭" onClick={onClose}>
+          <button className="modal-close" title="关闭" onClick={requestClose}>
             <X size={18} />
           </button>
         </header>

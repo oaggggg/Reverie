@@ -33,6 +33,7 @@ import PlaylistTrackPicker from "./PlaylistTrackPicker";
 import PlaylistGrid from "./PlaylistGrid";
 import CommentPanel from "./CommentPanel";
 import { useModalBehavior } from "../utils/modalBehavior";
+import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
 
 export default function PlaylistPage() {
   const playlistSongs = usePlayerStore((s) => s.playlistSongs);
@@ -58,6 +59,7 @@ export default function PlaylistPage() {
   const [fullLoading, setFullLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const commentsSurfaceRef = useRef<HTMLDivElement>(null);
+  const commentsTransition = useOriginTransition(commentsOpen, "playlist-comments", 220);
   useModalBehavior(commentsOpen, commentsSurfaceRef, () =>
     setCommentsOpen(false),
   );
@@ -248,7 +250,8 @@ export default function PlaylistPage() {
         </button>
         <button
           className="btn"
-          onClick={() => {
+          onClick={(event) => {
+            captureInteractionOrigin("playlist-comments", event.currentTarget);
             setCommentsOpen(true);
             void openComments(
               {
@@ -382,11 +385,11 @@ export default function PlaylistPage() {
         open={editing}
         onClose={() => setEditing(false)}
       />
-      {commentsOpen && (
-        <div className="modal-backdrop" onClick={() => setCommentsOpen(false)}>
+      {commentsTransition.rendered && (
+        <div className={`modal-backdrop ${commentsTransition.backdropClassName}`} onClick={() => setCommentsOpen(false)}>
           <section
             ref={commentsSurfaceRef}
-            className="modal comments-modal playlist-comments-modal"
+            className={`modal comments-modal playlist-comments-modal ${commentsTransition.surfaceClassName}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="playlist-comments-title"

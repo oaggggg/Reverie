@@ -36,6 +36,11 @@ export default function UserMenu() {
     "user-menu",
     200,
   );
+  const profileTransition = useOriginTransition(
+    profileDialog,
+    "profile-feature",
+    220,
+  );
 
   const prefetchDetails = () => {
     if (!profile || prefetchStarted.current) return;
@@ -240,7 +245,8 @@ export default function UserMenu() {
           <div className="user-dropdown-grid">
             <button
               className="user-dropdown-cell"
-              onClick={() => {
+              onClick={(event) => {
+                captureInteractionOrigin("profile-feature", event.currentTarget);
                 setOpen(false);
                 setProfileDialog(true);
                 void openProfile(false);
@@ -271,9 +277,9 @@ export default function UserMenu() {
           onClose={() => setFollowDialog(null)}
         />
       )}
-      {profileDialog && createPortal(
-        <div className="modal-backdrop user-feature-backdrop" onClick={() => setProfileDialog(false)}>
-          <section className="modal user-feature-modal profile-feature-modal" role="dialog" aria-modal="true" aria-label="个人中心" onClick={(event) => event.stopPropagation()}>
+      {profileTransition.rendered && createPortal(
+        <div className={`modal-backdrop user-feature-backdrop ${profileTransition.backdropClassName}`} onClick={() => setProfileDialog(false)}>
+          <section ref={profileTransition.surfaceRef} className={`modal user-feature-modal profile-feature-modal ${profileTransition.surfaceClassName}`} role="dialog" aria-modal="true" aria-label="个人中心" onClick={(event) => event.stopPropagation()}>
             <button className="icon-btn user-feature-close" title="关闭" onClick={() => setProfileDialog(false)}><X size={18} /></button>
             <ProfilePage modal />
           </section>

@@ -30,6 +30,7 @@ import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { openAlbumModal, openArtistModal } from "../utils/detailModals";
 import { LoadingState } from "./Page";
+import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
 
 interface Props {
   songs: Song[];
@@ -68,6 +69,7 @@ export default function SongList({
   const openMedia = useMediaStore((s) => s.open);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadSong, setDownloadSong] = useState<Song | null>(null);
+  const [downloadViewSong, setDownloadViewSong] = useState<Song | null>(null);
   const [downloadQuality, setDownloadQuality] = useState<PlaybackQuality>(
     usePlayerStore.getState().playbackQuality,
   );
@@ -78,15 +80,22 @@ export default function SongList({
   const vipInfo = usePlayerStore((s) => s.vipInfo);
   const loadVipInfo = usePlayerStore((s) => s.loadVipInfo);
   const qualityTier = userQualityTier({ loggedIn, profile, vipInfo });
+  const downloadTransition = useOriginTransition(Boolean(downloadSong), "download-song", 220);
+  const closeDownload = () => {
+    if (downloadingId !== null) return;
+    setDownloadSong(null);
+    setDownloadQualityOpen(false);
+    window.setTimeout(() => setDownloadViewSong(null), 220);
+  };
 
   return (
     <>
-      {downloadSong && (
-        <div className="modal-backdrop" onMouseDown={(e) => {
-          if (e.target === e.currentTarget && downloadingId === null) setDownloadSong(null);
+      {downloadTransition.rendered && downloadViewSong && (
+        <div className={`modal-backdrop ${downloadTransition.backdropClassName}`} onMouseDown={(e) => {
+          if (e.target === e.currentTarget) closeDownload();
         }}>
-          <div className="modal download-modal" role="dialog" aria-modal="true">
-            <div className="modal-head"><div><h2>下载歌曲</h2><p>{downloadSong.name} · {downloadSong.artists}</p></div></div>
+          <div ref={downloadTransition.surfaceRef} className={`modal download-modal ${downloadTransition.surfaceClassName}`} role="dialog" aria-modal="true">
+            <div className="modal-head"><div><h2>下载歌曲</h2><p>{downloadViewSong.name} · {downloadViewSong.artists}</p></div></div>
             {downloadingId === null ? (
               <>
                 <label className="download-quality-label">下载音质</label>
@@ -131,15 +140,15 @@ export default function SongList({
                     </div>
                   )}
                 </div>
-                <div className="modal-actions"><button className="btn" onClick={() => setDownloadSong(null)}>取消</button><button className="btn primary" onClick={() => {
-                  const song = downloadSong;
+                <div className="modal-actions"><button className="btn" onClick={closeDownload}>取消</button><button className="btn primary" onClick={() => {
+                  const song = downloadViewSong;
                   if (!qualityAllowedFor(downloadQuality, qualityTier)) {
                     usePlayerStore.getState().toast("当前账号无权下载该音质", "error");
                     return;
                   }
                   setDownloadingId(song.id);
                   setDownloadProgress(0);
-                  void downloadSongFile(song, { level: downloadQuality, onProgress: setDownloadProgress }).then(() => usePlayerStore.getState().toast("歌曲下载完成", "success")).catch(() => usePlayerStore.getState().toast("歌曲暂时无法下载", "error")).finally(() => { setDownloadingId(null); setDownloadSong(null); });
+                  void downloadSongFile(song, { level: downloadQuality, onProgress: setDownloadProgress }).then(() => usePlayerStore.getState().toast("歌曲下载完成", "success")).catch(() => usePlayerStore.getState().toast("歌曲暂时无法下载", "error")).finally(() => { setDownloadingId(null); closeDownload(); });
                 }}><Download size={15} />开始下载</button></div>
               </>
             ) : (
@@ -285,7 +294,10 @@ export default function SongList({
                     <button
                       className="icon-action"
                       title="节目详情"
-                      onClick={() => onOpenProgram(song)}
+                      onClick={(event) => {
+                        captureInteractionOrigin("podcast-program", event.currentTarget);
+                        onOpenProgram(song);
+                      }}
                     >
                       <FileText size={15} />
                     </button>
@@ -330,7 +342,7 @@ export default function SongList({
                     className="icon-action"
                     title="下载歌曲"
                     disabled={downloadingId === song.id}
-                    onClick={() => { setDownloadQuality(usePlayerStore.getState().playbackQuality); setDownloadProgress(0); setDownloadQualityOpen(false); setDownloadSong(song); void loadVipInfo(); }}
+                    onClick={(event) => { captureInteractionOrigin("download-song", event.currentTarget); setDownloadQuality(usePlayerStore.getState().playbackQuality); setDownloadProgress(0); setDownloadQualityOpen(false); setDownloadViewSong(song); setDownloadSong(song); void loadVipInfo(); }}
                   >
                     <Download size={15} />
                   </button>
