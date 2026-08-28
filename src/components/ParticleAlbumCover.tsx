@@ -20,6 +20,11 @@ interface ParticleAlbumCoverProps {
    * 3D 歌词层每帧读取同一份数据，保证歌词与封面是一体的。
    */
   rotationRef?: { current: { x: number; y: number } };
+  /**
+   * 父组件持有的共享缩放。滚轮推拉相机后逐帧写入
+   * （静息为 1，推近大于 1），3D 歌词层读取同一份数据一起缩放。
+   */
+  zoomRef?: { current: number };
   /** Called once when this machine clearly cannot sustain the current level. */
   onOverload?: () => void;
   onDoubleClick?: () => void;
@@ -76,6 +81,7 @@ export default function ParticleAlbumCover({
   grid,
   fpsLimit = 0,
   rotationRef,
+  zoomRef,
   onOverload,
   onDoubleClick,
 }: ParticleAlbumCoverProps) {
@@ -373,6 +379,10 @@ export default function ParticleAlbumCover({
       if (rotationRef) {
         rotationRef.current.x = rotation.x;
         rotationRef.current.y = rotation.y + spin;
+      }
+      // 缩放同样共享给歌词层：相机推近时歌词一起放大。
+      if (zoomRef) {
+        zoomRef.current = CAMERA_Z_REST / camera.position.z;
       }
 
       // 渲染管线损坏（如 WebGL 上下文丢失后属性被置空）时每帧都会抛错，

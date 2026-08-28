@@ -214,19 +214,33 @@ function readAccentColor(): AccentColor {
 export type ParticleEffect =
   "none" | "spin" | "wave" | "audio" | "orbit" | "ripple" | "shimmer";
 
-export type LyricTheme =
-  "auto" | "default" | "neon" | "fire" | "aurora" | "mint" | "rose" | "pure";
-
-/** 播放页歌词布局：双行浮层 / 全部歌词滚动列表。 */
+/** 播放页歌词布局：两行浮层 / 多行滚动列表。 */
 export type LyricLayout = "dual" | "full";
 
-/** 播放页 Wallpaper Engine 壁纸背景（video 可直接播放，web 用 iframe 加载）。 */
+/**
+ * 播放页 3D 歌词动效预设（与颜色无关）：
+ * stair 阶梯式（默认）/ fade 淡入 / bounce 弹入 / flip 翻入 / blur 模糊滑入。
+ */
+export type LyricFx = "stair" | "fade" | "bounce" | "flip" | "blur";
+
+function readLyricFx(): LyricFx {
+  const v = readStr("reverie_lyricfx", "stair");
+  return (["stair", "fade", "bounce", "flip", "blur"] as const).includes(
+    v as LyricFx,
+  )
+    ? (v as LyricFx)
+    : "stair";
+}
+
+/** 播放页 Wallpaper Engine 壁纸背景（仅 mp4 视频壁纸）。 */
 export interface NpWallpaper {
   id: string;
   title: string;
-  kind: "video" | "web";
-  /** 视频文件或 web 壁纸 index.html 的本机绝对路径。 */
+  kind: "video";
+  /** 视频文件的本机绝对路径。 */
   path: string;
+  /** 壁纸预览图的本机绝对路径，用于自动取色。 */
+  preview?: string;
 }
 
 /* ------------------------- persistence helpers ------------------------- */
@@ -260,11 +274,12 @@ function readStr(key: string, def: string): string {
 function readNpWallpaper(): NpWallpaper | null {
   try {
     const raw = JSON.parse(readStr("reverie_np_wallpaper", "")) as NpWallpaper;
+    // 仅接受 mp4 视频壁纸；历史遗留的网页壁纸一律视为未设置。
     if (
       raw &&
       typeof raw.id === "string" &&
       typeof raw.path === "string" &&
-      (raw.kind === "video" || raw.kind === "web")
+      raw.kind === "video"
     ) {
       return raw;
     }
@@ -377,22 +392,6 @@ function readParticleEffect(): ParticleEffect {
   ].includes(v)
     ? (v as ParticleEffect)
     : "spin";
-}
-
-function readLyricTheme(): LyricTheme {
-  const value = readStr("reverie_lyrictheme", "auto");
-  return [
-    "auto",
-    "default",
-    "neon",
-    "fire",
-    "aurora",
-    "mint",
-    "rose",
-    "pure",
-  ].includes(value)
-    ? (value as LyricTheme)
-    : "auto";
 }
 
 function readPlayMode(): PlayMode {
@@ -732,7 +731,8 @@ interface PlayerState {
   launchFmOnStart: boolean;
   /** 跨端续播开关（开启后本机作为续播设备上报）。 */
   crossDeviceResume: boolean;
-  lyricTheme: LyricTheme;
+  /** 播放页歌词动效预设；颜色始终自动取自背景，无手动颜色项。 */
+  lyricFx: LyricFx;
   lyricFontSize: number;
   /** 播放页渲染帧率上限；0 表示跟随显示器刷新率。 */
   npFrameRate: number;
@@ -843,13 +843,13 @@ interface PlayerState {
   setShowListCover: (v: boolean) => void;
   setLaunchFmOnStart: (v: boolean) => void;
   setCrossDeviceResume: (v: boolean) => void;
-  setLyricTheme: (t: LyricTheme) => void;
+  setLyricFx: (fx: LyricFx) => void;
   setLyricFontSize: (s: number) => void;
   setNpFrameRate: (fps: number) => void;
   setLyricLayout: (layout: LyricLayout) => void;
   setNpWallpaper: (wallpaper: NpWallpaper | null) => void;
   setParticleEffect: (e: ParticleEffect) => void;
-  applyDiyPreset: (preset: "pure" | "void") => void;
+  applyDiyPreset: (preset: "void") => void;
   setNpVoid: (v: boolean) => void;
   setCoverQuality: (q: CoverQuality, reason?: string) => void;
   /** Step one level down after sustained dropped frames. */
@@ -1174,7 +1174,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   showListCover: readBool("reverie_list_cover", true),
   launchFmOnStart: readBool("reverie_launch_fm", false),
   crossDeviceResume: readBool("reverie_cross_resume", false),
-  lyricTheme: readLyricTheme(),
+  lyricFx: readLyricFx(),
   lyricFontSize: readNum("reverie_lyricfont", 22),
   npFrameRate: [0, 30, 60, 120].includes(readNum("reverie_np_fps", 0))
     ? readNum("reverie_np_fps", 0)
@@ -1845,9 +1845,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({ crossDeviceResume: v });
     write("reverie_cross_resume", v ? "1" : "0");
   },
-  setLyricTheme: (t: LyricTheme) => {
-    set({ lyricTheme: t });
-    write("reverie_lyrictheme", t);
+  setLyricFx: (fx) => {
+    set({ lyricFx: fx });
+    write("reverie_lyricfx", fx);
   },
   setLyricFontSize: (s) => {
     set({ lyricFontSize: s });
@@ -1875,31 +1875,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     write("reverie_np_void", "0");
   },
   applyDiyPreset: (preset) => {
-    if (preset === "pure") {
-      set({
-        lyricTheme: "pure",
-        particleEffect: "none",
-        coverQuality: "image",
-        coverQualityReason: "纯净预设",
-        npVoid: false,
-      });
-      write("reverie_lyrictheme", "pure");
-      write("reverie_particle", "none");
-      write(COVER_QUALITY_KEY, "image");
-      write("reverie_cover_reason", "纯净预设");
-      write("reverie_np_void", "0");
-      return;
-    }
     if (preset !== "void") return;
-    // 虚空：隐藏封面与粒子，纯白歌词；壁纸背景保持可用。
+    // 虚空：隐藏封面与粒子，只留歌词与背景；壁纸保持可用。
     set({
       npVoid: true,
-      lyricTheme: "pure",
       particleEffect: "none",
       coverQuality: "image",
       coverQualityReason: "虚空预设",
     });
-    write("reverie_lyrictheme", "pure");
     write("reverie_particle", "none");
     write(COVER_QUALITY_KEY, "image");
     write("reverie_cover_reason", "虚空预设");
