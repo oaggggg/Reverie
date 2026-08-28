@@ -74,6 +74,7 @@ export type GlassOpacity = "subtle" | "balanced" | "solid";
 export type GlassBlur = "none" | "soft" | "strong";
 export type GlassContrast = "standard" | "high";
 export type AnimationSpeed = "relaxed" | "normal" | "swift" | "instant";
+export type AccentColor = string;
 
 /** Where the current queue came from; "fm" keeps roaming auto-advancing. */
 export type QueueSource = "list" | "fm";
@@ -202,6 +203,11 @@ function readAnimationSpeed(): AnimationSpeed {
   return value === "relaxed" || value === "swift" || value === "instant"
     ? value
     : "normal";
+}
+
+function readAccentColor(): AccentColor {
+  const value = readStr("reverie_accent_color", "#ec4141").trim();
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#ec4141";
 }
 
 /** Motion applied to the 3D particle album cover on the now-playing page. */
@@ -793,6 +799,8 @@ interface PlayerState {
   setGlassBlur: (v: GlassBlur) => void;
   setGlassContrast: (v: GlassContrast) => void;
   setAnimationSpeed: (v: AnimationSpeed) => void;
+  accentColor: AccentColor;
+  setAccentColor: (v: AccentColor) => void;
   setReducedMotion: (v: boolean) => void;
   setAudioFadeEnabled: (v: boolean) => void;
   setAudioFadeSeconds: (v: number) => void;
@@ -1116,6 +1124,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   glassBlur: readGlassBlur(),
   glassContrast: readGlassContrast(),
   animationSpeed: readAnimationSpeed(),
+  accentColor: readAccentColor(),
   reducedMotion: readBool("reverie_reduced_motion", false),
   audioFadeEnabled: readBool("reverie_audio_fade", true),
   audioFadeSeconds: Math.min(
@@ -1759,6 +1768,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setAnimationSpeed: (v) => {
     set({ animationSpeed: v });
     write("reverie_animation_speed", v);
+  },
+  setAccentColor: (v) => {
+    if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+    set({ accentColor: v });
+    write("reverie_accent_color", v);
   },
   setReducedMotion: (v) => {
     set({ reducedMotion: v });

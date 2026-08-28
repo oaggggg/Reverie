@@ -196,6 +196,7 @@ export default function App() {
   const glassBlur = usePlayerStore((s) => s.glassBlur);
   const glassContrast = usePlayerStore((s) => s.glassContrast);
   const animationSpeed = usePlayerStore((s) => s.animationSpeed);
+  const accentColor = usePlayerStore((s) => s.accentColor);
   const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setAudioEl = usePlayerStore((s) => s.setAudioEl);
   const commitQualitySwitch = usePlayerStore((s) => s.commitQualitySwitch);
@@ -520,6 +521,14 @@ export default function App() {
     root.setAttribute("data-glass-contrast", glassContrast);
     root.setAttribute("data-animation-speed", animationSpeed);
   }, [animationSpeed, glassBlur, glassContrast, glassOpacity]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--accent", accentColor);
+    root.style.setProperty("--accent-2", `color-mix(in srgb, ${accentColor} 72%, white)`);
+    root.style.setProperty("--accent-glow", `color-mix(in srgb, ${accentColor} 45%, transparent)`);
+    root.style.setProperty("--glow-1", `color-mix(in srgb, ${accentColor} 14%, transparent)`);
+  }, [accentColor]);
 
   // keyboard shortcuts
   useEffect(() => {

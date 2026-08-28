@@ -16,6 +16,7 @@ import appIconUrl from "../../src-tauri/icons/128x128@2x.png";
 import { usePlayerStore } from "../store/playerStore";
 import type {
   AnimationSpeed,
+  AccentColor,
   GlassBlur,
   GlassContrast,
   GlassOpacity,
@@ -47,6 +48,15 @@ const ANIMATION_SPEEDS: Array<{ id: AnimationSpeed; name: string }> = [
   { id: "normal", name: "标准" },
   { id: "swift", name: "快速" },
   { id: "instant", name: "极速" },
+];
+
+const ACCENT_COLORS: Array<{ id: string; name: string }> = [
+  { id: "#ec4141", name: "网易红" },
+  { id: "#3b82f6", name: "晴空蓝" },
+  { id: "#10b981", name: "薄荷绿" },
+  { id: "#8b5cf6", name: "星云紫" },
+  { id: "#f59e0b", name: "琥珀橙" },
+  { id: "#ec4899", name: "樱花粉" },
 ];
 
 const PRIVACY_TEXT = `隐私政策
@@ -201,6 +211,8 @@ export default function SettingsModal() {
   const setGlassContrast = usePlayerStore((s) => s.setGlassContrast);
   const animationSpeed = usePlayerStore((s) => s.animationSpeed);
   const setAnimationSpeed = usePlayerStore((s) => s.setAnimationSpeed);
+  const accentColor = usePlayerStore((s) => s.accentColor);
+  const setAccentColor = usePlayerStore((s) => s.setAccentColor);
   const reducedMotion = usePlayerStore((s) => s.reducedMotion);
   const setReducedMotion = usePlayerStore((s) => s.setReducedMotion);
   const audioFadeEnabled = usePlayerStore((s) => s.audioFadeEnabled);
@@ -431,6 +443,33 @@ export default function SettingsModal() {
                 </div>
                 <div className="settings-section">
                   <h3>界面与动效</h3>
+                  <SettingRow title="播放器主题色" hint="应用到播放栏、进度条、按钮和交互高光，可自定义颜色">
+                    <div className="accent-picker">
+                      <div className="accent-swatches" role="group" aria-label="主题色预设">
+                        {ACCENT_COLORS.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className={`accent-swatch ${accentColor.toLowerCase() === item.id ? "active" : ""}`}
+                            style={{ backgroundColor: item.id }}
+                            title={item.name}
+                            aria-label={item.name}
+                            aria-pressed={accentColor.toLowerCase() === item.id}
+                            onClick={() => setAccentColor(item.id as AccentColor)}
+                          />
+                        ))}
+                      </div>
+                      <label className="accent-custom" title="自定义主题色">
+                        <input
+                          type="color"
+                          value={accentColor}
+                          aria-label="自定义播放器主题色"
+                          onChange={(e) => setAccentColor(e.target.value)}
+                        />
+                        <span style={{ backgroundColor: accentColor }} />
+                      </label>
+                    </div>
+                  </SettingRow>
                   <SettingRow title="界面主题" hint="切换应用的整体明暗外观">
                     <div className="opt-group">
                       {APP_THEMES.map((item) => (
