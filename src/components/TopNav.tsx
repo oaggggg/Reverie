@@ -6,19 +6,18 @@ import type { ThemePreference } from "../store/playerStore";
 import type { View } from "../api/types";
 import type { ReactElement } from "react";
 import {
-  BarChart3,
   Bell,
   Disc3,
+  FolderHeart,
   Heart,
   History,
   House,
-  Library,
-  LibraryBig,
   Monitor,
   Moon,
   Podcast,
   Search,
   Sun,
+  Trophy,
   Users,
 } from "lucide-react";
 import UserMenu from "./UserMenu";
@@ -37,12 +36,12 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { view: "home", label: "首页", icon: <House size={17} /> },
-  { view: "chart", label: "排行榜", icon: <BarChart3 size={17} /> },
-  { view: "library", label: "音乐馆", icon: <Library size={17} /> },
+  { view: "chart", label: "排行榜", icon: <Trophy size={17} /> },
+  { view: "library", label: "音乐馆", icon: <Disc3 size={17} /> },
   {
     view: "userlist",
     label: "我的歌单",
-    icon: <LibraryBig size={17} />,
+    icon: <FolderHeart size={17} />,
     auth: true,
   },
   { view: "radio", label: "播客", icon: <Podcast size={16} />, auth: true },
