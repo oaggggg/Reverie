@@ -1,11 +1,3 @@
-import {
-  Feather,
-  ImagePlay,
-  Spotlight,
-  Type,
-  WandSparkles,
-  X,
-} from "lucide-react";
 import type { RefObject } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import type { LyricTheme, ParticleEffect } from "../store/playerStore";
@@ -70,20 +62,13 @@ export default function PlaybackVisualPanel({
       className={`np-visual-panel ${transitionClassName}`}
     >
       <header>
-        <div>
-          <Spotlight size={17} />
-          <strong>DIY</strong>
-        </div>
-        <button className="icon-btn" onClick={onClose} title="关闭">
-          <X size={17} />
-        </button>
+        <strong>DIY</strong>
+        <button className="btn" onClick={onClose}>关闭</button>
       </header>
 
       <div className="np-visual-scroll">
         <section>
-          <h3>
-            <Type size={14} /> 歌词
-          </h3>
+          <h3>歌词</h3>
           <div className="np-visual-row stacked">
             <span>歌词预设</span>
             <div className="theme-swatches">
@@ -117,10 +102,7 @@ export default function PlaybackVisualPanel({
             />
           </div>
           <div className="np-visual-row diy-note">
-            <span>
-              <WandSparkles size={13} />{" "}
-              自动取色会根据当前专辑封面选择高对比歌词颜色
-            </span>
+            <span>自动取色会根据当前专辑封面选择高对比歌词颜色</span>
           </div>
           <div className="np-visual-row">
             <span>显示翻译</span>
@@ -136,9 +118,7 @@ export default function PlaybackVisualPanel({
         </section>
 
         <section>
-          <h3>
-            <ImagePlay size={14} /> 动态封面
-          </h3>
+          <h3>动态封面</h3>
           <div className="np-visual-row stacked">
             <span>
               画质
@@ -186,7 +166,7 @@ export default function PlaybackVisualPanel({
             className="btn np-pure-btn"
             onClick={() => applyDiyPreset("pure")}
           >
-            <Feather size={14} /> 使用纯净预设
+            使用纯净预设
           </button>
         </section>
       </div>
