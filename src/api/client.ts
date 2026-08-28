@@ -415,6 +415,24 @@ export function normalizeSong(raw: unknown): Song | null {
 
   const duration = Number(s.dt ?? s.duration ?? 0);
   const fee = Number(s.fee ?? 0);
+  const statistics = (s.statistics ?? s.stats ?? s.counts) as
+    | Record<string, unknown>
+    | undefined;
+  const likedCount = Number(
+    s.likedCount ??
+      s.likeCount ??
+      statistics?.likedCount ??
+      statistics?.likeCount ??
+      0,
+  );
+  const commentCount = Number(
+    s.commentCount ??
+      s.commentCountAll ??
+      s.comment ??
+      statistics?.commentCount ??
+      statistics?.commentCountAll ??
+      0,
+  );
 
   // 官方别名：/song/detail 与多数列表接口为 alias，部分艺术家接口为 alia。
   const aliasRaw = Array.isArray(s.alias)
@@ -437,8 +455,8 @@ export function normalizeSong(raw: unknown): Song | null {
     picUrl,
     duration,
     fee,
-    likedCount: Number(s.likedCount ?? s.likeCount ?? s.liked ?? 0),
-    commentCount: Number(s.commentCount ?? s.commentCountAll ?? s.comment ?? 0),
+    likedCount: Number.isFinite(likedCount) ? Math.max(0, likedCount) : 0,
+    commentCount: Number.isFinite(commentCount) ? Math.max(0, commentCount) : 0,
     mvId:
       typeof s.mv === "number"
         ? s.mv
