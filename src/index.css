@@ -13095,6 +13095,10 @@ img[data-reverie-fallback="true"] {
   margin-top: 6px; padding: 5px; border: 1px solid var(--glass-popup-border); border-radius: 9px;
   background: var(--glass-popup); box-shadow: 0 14px 32px var(--shadow); backdrop-filter: blur(26px) saturate(1.35);
 }
+.styled-select.open-up .styled-select-menu {
+  bottom: calc(100% + 6px);
+  margin-top: 0;
+}
 .styled-select-menu button {
   display: flex; min-height: 34px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px;
   border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; text-align: left;

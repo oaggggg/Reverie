@@ -10,10 +10,13 @@ export default function StyledSelect({
   disabled?: boolean; title?: string; className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
   useEffect(() => {
     if (!open) return;
+    const rect = ref.current?.getBoundingClientRect();
+    if (rect) setOpenUp(window.innerHeight - rect.bottom < 300 && rect.top > 300);
     const close = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
     };
@@ -21,7 +24,7 @@ export default function StyledSelect({
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
   return (
-    <div ref={ref} className={`styled-select ${open ? "open" : ""} ${className}`} data-disabled={disabled}>
+    <div ref={ref} className={`styled-select ${open ? "open" : ""} ${openUp ? "open-up" : ""} ${className}`} data-disabled={disabled}>
       <button type="button" className="styled-select-trigger" disabled={disabled} title={title} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
         <span>{selected?.label ?? "请选择"}</span><ChevronDown size={15} />
       </button>
