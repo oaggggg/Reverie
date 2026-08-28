@@ -393,7 +393,16 @@ fn probe_sidecar_health(token: &str) -> bool {
     if stream.read_to_string(&mut response).is_err() {
         return false;
     }
-    response.starts_with("HTTP/1.1 200") || response.starts_with("HTTP/1.0 200")
+    // 除了 HTTP 200，还必须返回 sidecar 健康检查的约定响应体 {"ok":true}：
+    // 端口上若有对任何请求都回 200 的无关服务（如测试 mock），仅凭状态码
+    // 会被误判成自己的 sidecar，导致全部请求拿到假数据。
+    let status_ok =
+        response.starts_with("HTTP/1.1 200") || response.starts_with("HTTP/1.0 200");
+    let body_ok = response
+        .split_once("\r\n\r\n")
+        .map(|(_, body)| body.contains("\"ok\"") && body.contains("true"))
+        .unwrap_or(false);
+    status_ok && body_ok
 }
 
 // 启动 NCM API 服务器
