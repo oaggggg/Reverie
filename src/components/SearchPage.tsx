@@ -19,6 +19,7 @@ import { useExploreStore } from "../store/exploreStore";
 import { usePlayerStore } from "../store/playerStore";
 import { useSearchStore } from "../store/searchStore";
 import { sizedImage } from "../utils/image";
+import { formatCount } from "../utils/formatCount";
 import { LoadingState, Page, PageHeader } from "./Page";
 import PlaylistGrid from "./PlaylistGrid";
 import SongList from "./SongList";
@@ -39,13 +40,6 @@ const CATEGORIES: Array<{
   { key: "mvs", label: "MV", icon: Film },
   { key: "videos", label: "视频", icon: Film },
 ];
-
-function formatCount(value: number) {
-  if (value >= 10000) {
-    return `${(value / 10000).toFixed(value >= 100000 ? 0 : 1)}万`;
-  }
-  return String(value || 0);
-}
 
 function formatDuration(duration: number) {
   const seconds = Math.max(0, Math.floor(duration / 1000));
