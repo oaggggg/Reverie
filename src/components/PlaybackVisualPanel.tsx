@@ -261,12 +261,20 @@ export default function PlaybackVisualPanel({
           >
             {coverBenchmarking ? "检测中…" : "自动检测性能"}
           </button>
-          <button
-            className="btn np-pure-btn"
-            onClick={() => applyDiyPreset("pure")}
-          >
-            使用纯净预设
-          </button>
+          <div className="np-preset-row">
+            <button
+              className="btn np-pure-btn"
+              onClick={() => applyDiyPreset("pure")}
+            >
+              纯净预设
+            </button>
+            <button
+              className="btn np-pure-btn"
+              onClick={() => applyDiyPreset("void")}
+            >
+              虚空预设
+            </button>
+          </div>
         </section>
 
         <section>

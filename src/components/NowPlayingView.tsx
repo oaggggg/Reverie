@@ -46,6 +46,7 @@ export default function NowPlayingView() {
   const showTranslation = usePlayerStore((s) => s.showTranslation);
   const npFrameRate = usePlayerStore((s) => s.npFrameRate);
   const npWallpaper = usePlayerStore((s) => s.npWallpaper);
+  const npVoid = usePlayerStore((s) => s.npVoid);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const transitionCoverRef = useRef<HTMLImageElement>(null);
   const [fadedIn, setFadedIn] = useState(false);
@@ -334,7 +335,10 @@ export default function NowPlayingView() {
         </div>
 
         <div className="np-cover-3d">
-          {!currentSong?.picUrl ? (
+          {npVoid ? (
+            // 虚空模式：封面与粒子全部隐藏，只留歌词
+            <div className="np-cover-void" />
+          ) : !currentSong?.picUrl ? (
             <div className="np-cover-ph">
               <MicVocal size={56} />
             </div>
