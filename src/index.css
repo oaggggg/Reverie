@@ -4993,10 +4993,12 @@ select option:checked {
   will-change: transform;
 }
 
-/* 反歌词的镜面质感：更弱、更糊，像隔着粒子云看到的一样 */
+/* 反歌词的镜面质感：透过透明粒子画布观看，太透会看不清。
+   较高不透明度 + 轻微模糊 + 深色描边保证可读，同时保留"背面"层次。 */
 .lyrics-3d.lyrics-3d-back {
-  opacity: 0.42;
-  filter: blur(1.2px);
+  opacity: 0.78;
+  filter: blur(0.4px) brightness(0.92);
+  -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
 
