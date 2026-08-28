@@ -1,5 +1,6 @@
 #[cfg(debug_assertions)]
 use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Mutex;
 use tauri::{webview::PageLoadEvent, AppHandle, Manager, Window};
 use tauri_plugin_shell::{
@@ -188,6 +189,129 @@ fn save_download_file(
 // 检查端口是否被占用
 fn is_port_available(port: u16) -> bool {
     !port_check::is_port_reachable(format!("127.0.0.1:{}", port))
+}
+
+/// Wallpaper Engine（Steam 创意工坊 app 431960）壁纸条目。
+#[derive(serde::Serialize)]
+struct WallpaperEngineItem {
+    id: String,
+    title: String,
+    /// "video"（本地视频，可直接 <video> 播放）或 "web"（网页壁纸，iframe 加载）。
+    kind: String,
+    /// 可渲染文件的本机绝对路径。
+    path: String,
+    /// 预览图绝对路径，可能为空。
+    preview: String,
+}
+
+/// 解析 Steam 库根目录：默认安装位置 + libraryfolders.vdf 登记的其它库。
+fn steam_library_roots() -> Vec<PathBuf> {
+    let mut roots: Vec<PathBuf> = Vec::new();
+    fn push(roots: &mut Vec<PathBuf>, path: PathBuf) {
+        if path.is_dir() && !roots.contains(&path) {
+            roots.push(path);
+        }
+    }
+    if let Ok(program_files) = std::env::var("ProgramFiles(x86)") {
+        push(&mut roots, Path::new(&program_files).join("Steam"));
+    }
+    push(&mut roots, PathBuf::from("C:\\Program Files (x86)\\Steam"));
+    // libraryfolders.vdf 用 "path"  "D:\\..." 逐行列出所有库。
+    if let Some(first) = roots.first() {
+        let vdf = first.join("steamapps").join("libraryfolders.vdf");
+        if let Ok(content) = std::fs::read_to_string(&vdf) {
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if let Some(rest) = trimmed.strip_prefix("\"path\"") {
+                    let path = rest.trim().trim_matches('"');
+                    if !path.is_empty() {
+                        push(&mut roots, PathBuf::from(path));
+                    }
+                }
+            }
+        }
+    }
+    roots
+}
+
+/// 扫描 Wallpaper Engine 创意工坊，返回播放页能直接渲染的壁纸
+/// （video / web 类型）。scene 类型依赖 Wallpaper Engine 运行时，
+/// 浏览器环境无法渲染，不列出。
+#[tauri::command]
+fn list_wallpaper_engine_wallpapers() -> Vec<WallpaperEngineItem> {
+    let mut items = Vec::new();
+    for root in steam_library_roots() {
+        let workshop = root
+            .join("steamapps")
+            .join("workshop")
+            .join("content")
+            .join("431960");
+        let Ok(entries) = std::fs::read_dir(&workshop) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let dir = entry.path();
+            if !dir.is_dir() {
+                continue;
+            }
+            let Ok(raw) = std::fs::read_to_string(dir.join("project.json")) else {
+                continue;
+            };
+            let Ok(project) = serde_json::from_str::<serde_json::Value>(&raw) else {
+                continue;
+            };
+            let kind = match project.get("type").and_then(|v| v.as_str()) {
+                Some("video") => "video",
+                Some("web") => "web",
+                _ => continue,
+            };
+            let file = project.get("file").and_then(|v| v.as_str()).unwrap_or("");
+            if file.is_empty() {
+                continue;
+            }
+            // project.json 里的路径写的是正斜杠，Windows 下 Path::join 兼容。
+            let path = dir.join(file);
+            if !path.is_file() {
+                continue;
+            }
+            let title = project
+                .get("title")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            let title = if title.is_empty() {
+                dir.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default()
+            } else {
+                title
+            };
+            let preview = project
+                .get("preview")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let preview_path = dir.join(preview);
+            let preview = if !preview.is_empty() && preview_path.is_file() {
+                preview_path.to_string_lossy().to_string()
+            } else {
+                String::new()
+            };
+            let id = dir
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            items.push(WallpaperEngineItem {
+                id,
+                title,
+                kind: kind.to_string(),
+                path: path.to_string_lossy().to_string(),
+                preview,
+            });
+        }
+    }
+    items.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+    items
 }
 
 /// 用本实例的密钥探测占用端口的服务是否是"我们自己的 sidecar"。
@@ -381,7 +505,8 @@ pub fn run() {
             close_window,
             is_maximized,
             get_api_auth_token,
-            save_download_file
+            save_download_file,
+            list_wallpaper_engine_wallpapers
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {

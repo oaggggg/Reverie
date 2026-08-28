@@ -13,6 +13,13 @@ interface ParticleAlbumCoverProps {
   effect: ParticleEffect;
   /** Sampling grid side; the cloud holds grid² particles. */
   grid: number;
+  /** 渲染帧率上限；0 = 跟随显示器刷新率。 */
+  fpsLimit?: number;
+  /**
+   * 父组件持有的共享旋转。拖拽粒子封面时逐帧写入（含自转分量），
+   * 3D 歌词层每帧读取同一份数据，保证歌词与封面是一体的。
+   */
+  rotationRef?: { current: { x: number; y: number } };
   /** Called once when this machine clearly cannot sustain the current level. */
   onOverload?: () => void;
   onDoubleClick?: () => void;
@@ -60,10 +67,15 @@ const WATCHDOG_MIN_FRAMES = 6;
  */
 const WATCHDOG_MAX_GAP_MS = 1000;
 
+/** 相机静息距离：滚轮缩放围绕该值推拉。 */
+const CAMERA_Z_REST = 4.2;
+
 export default function ParticleAlbumCover({
   imageUrl,
   effect,
   grid,
+  fpsLimit = 0,
+  rotationRef,
   onOverload,
   onDoubleClick,
 }: ParticleAlbumCoverProps) {
@@ -74,6 +86,8 @@ export default function ParticleAlbumCover({
   const onDoubleClickRef = useRef(onDoubleClick);
   const effectRef = useRef(effect);
   const onOverloadRef = useRef(onOverload);
+  const fpsLimitRef = useRef(fpsLimit);
+  const zoomTargetRef = useRef(0);
   useEffect(() => {
     onOverloadRef.current = onOverload;
   }, [onOverload]);
@@ -83,6 +97,18 @@ export default function ParticleAlbumCover({
   useEffect(() => {
     effectRef.current = effect;
   }, [effect]);
+  useEffect(() => {
+    fpsLimitRef.current = fpsLimit;
+  }, [fpsLimit]);
+
+  // 场景对象跨 imageUrl 复用：换歌只重采样颜色，绝不重建 WebGL 上下文。
+  // 反复 forceContextLoss + 重建是切歌时整个 WebView 白屏一瞬的元凶。
+  const recolorRef = useRef<{
+    colors: Float32Array;
+    attr: THREE.BufferAttribute;
+    count: number;
+    conv: (c: number) => number;
+  } | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -98,17 +124,19 @@ export default function ParticleAlbumCover({
     const pixelRatio = Math.min(window.devicePixelRatio || 1, maxRatio);
 
     const scene = new THREE.Scene();
+    let disposed = false;
     const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-    camera.position.z = 4.2;
+    camera.position.z = CAMERA_Z_REST;
 
     /** CSS px per world unit at unit distance, for gl_PointSize. */
     const projScale = () =>
       height / (2 * Math.tan(((camera.fov / 2) * Math.PI) / 180));
 
-    const renderer = new THREE.WebGLRenderer({ antialias: useBloom });
+    // alpha 画布：粒子间隙透出反歌词层（正歌词 -> 粒子封面 -> 反歌词）。
+    const renderer = new THREE.WebGLRenderer({ antialias: useBloom, alpha: true });
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height);
-    renderer.setClearColor(0x000000, 1);
+    renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
     // --- geometry: a flat grid, coloured from the cover, displaced in the shader
@@ -126,7 +154,8 @@ export default function ParticleAlbumCover({
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+    const colorAttr = new THREE.BufferAttribute(colors, 3);
+    geometry.setAttribute("aColor", colorAttr);
     geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
     geometry.boundingSphere = new THREE.Sphere(
       new THREE.Vector3(),
@@ -178,41 +207,15 @@ export default function ParticleAlbumCover({
     if (useBloom) composer?.addPass(bloom);
     composer?.addPass(new OutputPass());
 
-    // --- colours from the cover
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    let disposed = false;
-    img.onload = () => {
-      if (disposed) return;
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return;
-      canvas.width = GRID;
-      canvas.height = GRID;
-      ctx.drawImage(img, 0, 0, GRID, GRID);
-      const { data } = ctx.getImageData(0, 0, GRID, GRID);
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        const px = i * 4;
-        // OutputPass converts linear->sRGB on the way out; the direct path
-        // has no such step, so feed it the sRGB values unchanged.
-        const conv = useBloom ? srgbToLinear : (c: number) => c;
-        colors[i * 3] = conv(data[px] / 255);
-        colors[i * 3 + 1] = conv(data[px + 1] / 255);
-        colors[i * 3 + 2] = conv(data[px + 2] / 255);
-      }
-      geometry.attributes.aColor.needsUpdate = true;
-      // Release the temporary CPU-side raster as soon as the attribute upload
-      // has been queued. The WebGL buffer owns the data from this point on.
-      canvas.width = 0;
-      canvas.height = 0;
+    // 换歌重采样所需的上下文交给 recolorRef，imageUrl effect 通过它复用场景。
+    recolorRef.current = {
+      colors,
+      attr: colorAttr,
+      count: PARTICLE_COUNT,
+      conv: useBloom ? srgbToLinear : (c: number) => c,
     };
-    img.onerror = () => {
-      // Avoid retaining a failed image request until the scene is destroyed.
-      img.onload = null;
-    };
-    img.src = imageUrl;
 
-    // --- drag to rotate, double click to reset
+    // --- drag to rotate, wheel to zoom, double click to reset
     let isDragging = false;
     let previous = { x: 0, y: 0 };
     const rotation = { x: 0, y: 0 };
@@ -237,9 +240,15 @@ export default function ParticleAlbumCover({
         el.releasePointerCapture(e.pointerId);
       }
     };
+    const onWheel = (e: WheelEvent) => {
+      // deltaY 向下滚 = 拉远（缩小），向上滚 = 推近（放大）。
+      const t = zoomTargetRef.current + e.deltaY * 0.0016;
+      zoomTargetRef.current = Math.max(-1.9, Math.min(2.6, t));
+    };
     const onDblClick = () => {
       target.x = 0;
       target.y = 0;
+      zoomTargetRef.current = 0;
       onDoubleClickRef.current?.();
     };
     const el = renderer.domElement;
@@ -247,6 +256,7 @@ export default function ParticleAlbumCover({
     el.addEventListener("pointermove", onPointerMove);
     el.addEventListener("pointerup", finishDrag);
     el.addEventListener("pointercancel", finishDrag);
+    el.addEventListener("wheel", onWheel, { passive: true });
     el.addEventListener("dblclick", onDblClick);
 
     // --- animation
@@ -290,6 +300,10 @@ export default function ParticleAlbumCover({
     let shimmer = 0;
     const clock = new THREE.Clock();
 
+    // 帧率上限：不到间隔就不渲染，rAF 仍然照常调度；耗时统计跨帧累计。
+    let lastRender = performance.now();
+    let pendingDt = 0;
+
     const animate = () => {
       // 卸载后可能有已调度的帧或 visibilitychange 触发的补帧，此处硬停。
       if (disposed || isBackgrounded()) {
@@ -298,7 +312,18 @@ export default function ParticleAlbumCover({
       }
       running = true;
       frameId = requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.1);
+      const rawDt = Math.min(clock.getDelta(), 0.1);
+      const limit = fpsLimitRef.current;
+      let dt = rawDt;
+      if (limit > 0) {
+        pendingDt += rawDt;
+        const now = performance.now();
+        // 1.5ms 容差吸收 rAF 抖动，避免 60Hz 屏上锁 60fps 时隔帧渲染。
+        if (now - lastRender < 1000 / limit - 1.5) return;
+        lastRender = now;
+        dt = Math.min(pendingDt, 0.1);
+        pendingDt = 0;
+      }
       const eff = effectRef.current;
       const preset = EFFECT_TARGETS[eff];
 
@@ -339,6 +364,17 @@ export default function ParticleAlbumCover({
       particles.rotation.x = rotation.x;
       particles.rotation.y = rotation.y + spin;
 
+      // 滚轮缩放：推拉相机，同样做平滑插值。
+      const zoomTarget = -zoomTargetRef.current;
+      camera.position.z +=
+        (CAMERA_Z_REST + zoomTarget - camera.position.z) * 0.12;
+
+      // 歌词层每帧读取同一旋转，封面与歌词保持一体。
+      if (rotationRef) {
+        rotationRef.current.x = rotation.x;
+        rotationRef.current.y = rotation.y + spin;
+      }
+
       // 渲染管线损坏（如 WebGL 上下文丢失后属性被置空）时每帧都会抛错，
       // 先调度后渲染的循环结构会让异常无限续帧；渲染失败即终止循环。
       try {
@@ -351,7 +387,8 @@ export default function ParticleAlbumCover({
         return;
       }
 
-      if (!watchdogFired) {
+      // 帧率被主动限制时，帧间隔反映的是设置而非 GPU 能力，看门狗失真。
+      if (!watchdogFired && fpsLimitRef.current === 0) {
         const now = performance.now();
         const gap = now - watchdogLast;
         watchdogLast = now;
@@ -393,9 +430,7 @@ export default function ParticleAlbumCover({
 
     return () => {
       disposed = true;
-      img.onload = null;
-      img.onerror = null;
-      img.src = "";
+      recolorRef.current = null;
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -404,6 +439,7 @@ export default function ParticleAlbumCover({
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerup", finishDrag);
       el.removeEventListener("pointercancel", finishDrag);
+      el.removeEventListener("wheel", onWheel);
       el.removeEventListener("dblclick", onDblClick);
       container.removeChild(el);
 
@@ -423,7 +459,54 @@ export default function ParticleAlbumCover({
       geometry.deleteAttribute("aSeed");
     };
     // grid changes the buffer layout, so rebuilding on it is correct.
-  }, [imageUrl, grid]);
+    // imageUrl 不在此列：换歌走独立的重采样 effect，不重建场景。
+  }, [grid, rotationRef]);
+
+  // 换歌：复用现有场景，仅重采样封面颜色。加载完成前保留上一首的颜色，
+  // 避免粒子云闪空。grid 变化时场景重建、此 effect 随后重新填充颜色。
+  useEffect(() => {
+    let disposed = false;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const ctxHolder = recolorRef.current;
+      if (disposed || !ctxHolder) return;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return;
+      const side = Math.round(Math.sqrt(ctxHolder.count));
+      canvas.width = side;
+      canvas.height = side;
+      ctx.drawImage(img, 0, 0, side, side);
+      const { data } = ctx.getImageData(0, 0, side, side);
+      const { colors, attr, count, conv } = ctxHolder;
+      for (let i = 0; i < count; i++) {
+        const px = i * 4;
+        // OutputPass converts linear->sRGB on the way out; the direct path
+        // has no such step, so feed it the sRGB values unchanged.
+        colors[i * 3] = conv(data[px] / 255);
+        colors[i * 3 + 1] = conv(data[px + 1] / 255);
+        colors[i * 3 + 2] = conv(data[px + 2] / 255);
+      }
+      attr.needsUpdate = true;
+      // Release the temporary CPU-side raster as soon as the attribute upload
+      // has been queued. The WebGL buffer owns the data from this point on.
+      canvas.width = 0;
+      canvas.height = 0;
+    };
+    img.onerror = () => {
+      // 失败时保留上一首的颜色即可，无需清理（scene 复用中）。
+      img.onload = null;
+    };
+    img.src = imageUrl;
+
+    return () => {
+      disposed = true;
+      img.onload = null;
+      img.onerror = null;
+      img.src = "";
+    };
+  }, [imageUrl]);
 
   return <div ref={containerRef} className="particle-album-cover" />;
 }

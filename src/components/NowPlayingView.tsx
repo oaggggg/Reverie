@@ -1,7 +1,6 @@
 import {
   lazy,
   Suspense,
-  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -30,15 +29,23 @@ const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 // The cover is displayed at roughly 380 CSS px. A 2x source is enough for
 // sharpness while avoiding the much larger decoded 1120px bitmap.
 const COVER_IMAGE_SIZE = 760;
+/** 间奏判定：下一句歌词超过该时长才到来时，按"待唱"弱化展示下一句。 */
+const INTERLUDE_MS = 10000;
 
 export default function NowPlayingView() {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const lyricLines = usePlayerStore((s) => s.lyricLines);
   const progress = usePlayerStore((s) => s.progress);
+  const seek = usePlayerStore((s) => s.seek);
   const setPage = usePlayerStore((s) => s.setPage);
   const ensureLyrics = usePlayerStore((s) => s.ensureLyrics);
   const particleEffect = usePlayerStore((s) => s.particleEffect);
   const lyricTheme = usePlayerStore((s) => s.lyricTheme);
+  const lyricLayout = usePlayerStore((s) => s.lyricLayout);
+  const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
+  const showTranslation = usePlayerStore((s) => s.showTranslation);
+  const npFrameRate = usePlayerStore((s) => s.npFrameRate);
+  const npWallpaper = usePlayerStore((s) => s.npWallpaper);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const transitionCoverRef = useRef<HTMLImageElement>(null);
   const [fadedIn, setFadedIn] = useState(false);
@@ -55,11 +62,15 @@ export default function NowPlayingView() {
   );
   const [currentLyricLine, setCurrentLyricLine] = useState("");
   const [nextLyricLine, setNextLyricLine] = useState("");
-  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [lyricPending, setLyricPending] = useState(false);
+  // 封面与歌词共用的旋转状态：ParticleAlbumCover 逐帧写入，
+  // 两层 Lyrics3D（正/反）逐帧读取，拖拽时歌词与封面一体联动。
+  const rotationRef = useRef({ x: 0, y: 0 });
   const [coverAccent, setCoverAccent] = useState<CoverAccent>({
     color: "#7df9ff",
     soft: "rgba(125, 249, 255, 0.32)",
   });
+  const [wallpaperSrc, setWallpaperSrc] = useState("");
 
   useEffect(() => {
     if (!visualOpen) return;
@@ -86,17 +97,36 @@ export default function NowPlayingView() {
     };
   }, [currentSong?.picUrl]);
 
+  // Wallpaper Engine 壁纸：本机绝对路径需经 asset 协议暴露给 WebView。
+  useEffect(() => {
+    let disposed = false;
+    if (!npWallpaper) {
+      setWallpaperSrc("");
+      return;
+    }
+    void import("@tauri-apps/api/core")
+      .then(({ convertFileSrc }) => {
+        if (!disposed) setWallpaperSrc(convertFileSrc(npWallpaper.path));
+      })
+      .catch(() => {});
+    return () => {
+      disposed = true;
+    };
+  }, [npWallpaper]);
+
   // A session restored on startup never went through playSong, so its lyrics
   // were never fetched. This view is the only lyric surface, so it has to ask.
   useEffect(() => {
     ensureLyrics();
   }, [ensureLyrics, currentSong?.id]);
 
-  // Parse and update lyrics based on progress
+  // Parse and update lyrics based on progress. 前奏与长间奏不再显示孤零零的
+  // 音符，而是把下一句歌词以"待唱"弱化样式提前展示。
   useEffect(() => {
     if (!lyricLines || !lyricLines.length) {
       setCurrentLyricLine("");
       setNextLyricLine("");
+      setLyricPending(false);
       return;
     }
 
@@ -109,16 +139,29 @@ export default function NowPlayingView() {
       }
     }
 
-    if (currentIndex >= 0) {
-      setCurrentLyricLine(lyricLines[currentIndex].text || "♪");
-      if (currentIndex + 1 < lyricLines.length) {
-        setNextLyricLine(lyricLines[currentIndex + 1].text || "");
-      } else {
-        setNextLyricLine("");
-      }
+    if (currentIndex < 0) {
+      // 前奏：还没唱到第一句。
+      setCurrentLyricLine(lyricLines[0]?.text || "");
+      setNextLyricLine(lyricLines[1]?.text || "");
+      setLyricPending(true);
+      return;
+    }
+
+    const nextTime = lyricLines[currentIndex + 1]?.time;
+    if (nextTime !== undefined && nextTime - progress > INTERLUDE_MS) {
+      // 长间奏：当前句早已结束，直接弱化展示下一句。
+      setCurrentLyricLine(lyricLines[currentIndex + 1]?.text || "");
+      setNextLyricLine(lyricLines[currentIndex + 2]?.text || "");
+      setLyricPending(true);
+      return;
+    }
+
+    setLyricPending(false);
+    setCurrentLyricLine(lyricLines[currentIndex].text || "♪");
+    if (currentIndex + 1 < lyricLines.length) {
+      setNextLyricLine(lyricLines[currentIndex + 1].text || "");
     } else {
-      setCurrentLyricLine("♪");
-      setNextLyricLine(lyricLines[0]?.text || "");
+      setNextLyricLine("");
     }
   }, [lyricLines, progress]);
 
@@ -194,12 +237,6 @@ export default function NowPlayingView() {
     }
   };
 
-  // Must keep a stable identity: this view re-renders on every playback tick,
-  // and ParticleAlbumCover rebuilds its scene whenever this callback changes.
-  const handleDoubleClick = useCallback(() => {
-    setRotation({ x: 0, y: 0 });
-  }, []);
-
   const staticCover = currentSong?.picUrl ? (
     <img
       className="np-cover-img"
@@ -211,6 +248,43 @@ export default function NowPlayingView() {
       <DiscAlbum size={56} />
     </div>
   );
+
+  const lyricsProps = {
+    currentLine: currentLyricLine,
+    nextLine: nextLyricLine,
+    pending: lyricPending,
+    rotationRef,
+    theme: lyricTheme,
+    accent: coverAccent,
+    layout: lyricLayout,
+    lyricLines,
+    progress,
+    showTranslation,
+    lyricFontSize,
+    onSeekLine: (time: number) => seek(time),
+  };
+
+  const wallpaperBackground = npWallpaper && wallpaperSrc ? (
+    npWallpaper.kind === "video" ? (
+      <video
+        key={wallpaperSrc}
+        className="np-wallpaper"
+        src={wallpaperSrc}
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
+    ) : (
+      <iframe
+        key={wallpaperSrc}
+        className="np-wallpaper"
+        src={wallpaperSrc}
+        title={npWallpaper.title}
+        scrolling="no"
+      />
+    )
+  ) : null;
 
   return (
     <div
@@ -254,6 +328,11 @@ export default function NowPlayingView() {
       )}
 
       <div className="np-stage-3d">
+        {/* 反歌词层：位于粒子封面之后，经 Y 轴翻转的镜像画面 */}
+        <div className="np-lyrics-3d np-lyrics-back" aria-hidden>
+          <Lyrics3D {...lyricsProps} side="back" />
+        </div>
+
         <div className="np-cover-3d">
           {!currentSong?.picUrl ? (
             <div className="np-cover-ph">
@@ -278,26 +357,24 @@ export default function NowPlayingView() {
                   imageUrl={sizedImage(currentSong.picUrl, COVER_IMAGE_SIZE)}
                   effect={particleEffect}
                   grid={QUALITY_GRID[coverQuality]}
+                  fpsLimit={npFrameRate}
+                  rotationRef={rotationRef}
                   onOverload={() =>
                     usePlayerStore.getState().degradeCoverQuality()
                   }
-                  onDoubleClick={handleDoubleClick}
                 />
               </Suspense>
             </CoverErrorBoundary>
           )}
         </div>
-        {/* 3D lyrics overlay */}
-        <div className="np-lyrics-3d">
-          <Lyrics3D
-            currentLine={currentLyricLine}
-            nextLine={nextLyricLine}
-            rotation={rotation}
-            theme={lyricTheme}
-            accent={coverAccent}
-          />
+
+        {/* 正歌词层：与封面同一 3D 装配体，悬浮于封面平面之前 */}
+        <div className="np-lyrics-3d np-lyrics-front">
+          <Lyrics3D {...lyricsProps} side="front" />
         </div>
       </div>
+
+      {wallpaperBackground}
     </div>
   );
 }
