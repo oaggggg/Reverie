@@ -11,9 +11,7 @@ function parsePlain(lrc: string): RawLine[] {
   const lines: RawLine[] = [];
   for (const raw of lrc.split(/\r?\n/)) {
     const times: number[] = [];
-    TIME_TAG.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = TIME_TAG.exec(raw))) {
+    for (const m of raw.matchAll(TIME_TAG)) {
       const mm = Number(m[1]);
       const ss = Number(m[2]);
       const frac = String(m[3] ?? "0")
@@ -23,6 +21,9 @@ function parsePlain(lrc: string): RawLine[] {
     }
     const text = raw.replace(TIME_TAG, "").replace(/^\s+|\s+$/g, "");
     if (!times.length) continue;
+    // 空行与纯符号行（网易云常用 "♪" 标记间奏）不是歌词，
+    // 在源头剔除，避免播放页把间奏标记当成一句歌词展示。
+    if (!/\p{L}|\p{N}/u.test(text)) continue;
     for (const t of times) lines.push({ time: t, text });
   }
   lines.sort((a, b) => a.time - b.time);
