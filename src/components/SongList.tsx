@@ -14,7 +14,7 @@ import {
   Heart,
   MessageCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { PlaybackQuality, Song } from "../api/types";
 import { useMediaStore } from "../store/mediaStore";
 import {
@@ -30,14 +30,11 @@ import {
 import { downloadSongFile } from "../api/client";
 import { likeSong } from "../api/client";
 import { useCommentStore } from "../store/commentStore";
-import { getResourceCommentCount } from "../api/comment";
-import { getSongCollectionCounts } from "../api/songStatus";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { openAlbumModal, openArtistModal } from "../utils/detailModals";
 import { LoadingState } from "./Page";
 import { captureInteractionOrigin, useOriginTransition } from "../utils/originTransition";
-import { formatCount } from "../utils/formatCount";
 
 interface Props {
   songs: Song[];
@@ -84,8 +81,6 @@ export default function SongList({
   );
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadQualityOpen, setDownloadQualityOpen] = useState(false);
-  const [commentCounts, setCommentCounts] = useState<Record<number, number>>({});
-  const [collectionCounts, setCollectionCounts] = useState<Record<number, number>>({});
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
   const vipInfo = usePlayerStore((s) => s.vipInfo);
@@ -98,44 +93,6 @@ export default function SongList({
     setDownloadQualityOpen(false);
     window.setTimeout(() => setDownloadViewSong(null), 220);
   };
-
-  useEffect(() => {
-    let alive = true;
-    const commentCandidates = songs.filter(
-      (song) => song.commentCount === undefined || song.commentCount <= 0,
-    );
-    const collectionCandidates = songs.filter(
-      (song) => song.likedCount === undefined || song.likedCount <= 0,
-    );
-    if (!commentCandidates.length && !collectionCandidates.length) return;
-    const commentsPromise = Promise.all(
-      commentCandidates.map(async (song) => {
-        try {
-          const count = await getResourceCommentCount(
-            { type: "song", id: String(song.id), title: song.name },
-          );
-          return [song.id, count] as const;
-        } catch {
-          return null;
-        }
-      }),
-    );
-    void Promise.all([
-      commentsPromise,
-      getSongCollectionCounts(collectionCandidates.map((song) => song.id)).catch(
-        () => ({}),
-      ),
-    ]).then(([entries, counts]) => {
-      if (!alive) return;
-      const next: Record<number, number> = {};
-      for (const entry of entries) if (entry) next[entry[0]] = entry[1];
-      if (Object.keys(next).length) setCommentCounts((current) => ({ ...current, ...next }));
-      if (Object.keys(counts).length) setCollectionCounts((current) => ({ ...current, ...counts }));
-    });
-    return () => {
-      alive = false;
-    };
-  }, [songs]);
 
   return (
     <>
@@ -308,13 +265,13 @@ export default function SongList({
                       usePlayerStore.setState((state) => ({ likedIds: nextLiked ? [...new Set([...state.likedIds, song.id])] : state.likedIds.filter((id) => id !== song.id) }));
                     }).catch(() => usePlayerStore.getState().toast("喜欢操作失败", "error"));
                   }}>
-                    <Heart size={13} fill={likedIds.includes(song.id) ? "currentColor" : "none"} />{formatCount(collectionCounts[song.id] ?? song.likedCount)}
+                    <Heart size={13} fill={likedIds.includes(song.id) ? "currentColor" : "none"} />
                   </button>
                   <button className="song-stat-btn" title="查看歌曲评论" onClick={() => {
                     void openSongComments(song);
                     usePlayerStore.getState().setShowCommentsModal(true);
                   }}>
-                    <MessageCircle size={13} />{formatCount(commentCounts[song.id] ?? song.commentCount)}
+                    <MessageCircle size={13} />
                   </button>
                   {song.mvId ? (
                     <button

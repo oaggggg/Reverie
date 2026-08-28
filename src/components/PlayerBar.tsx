@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getDynamicSongCover, getSongLikeStatus, getSongCollectionCounts } from "../api/songStatus";
-import { getResourceCommentCount } from "../api/comment";
+import { getDynamicSongCover, getSongLikeStatus } from "../api/songStatus";
 import {
   ALL_PLAYBACK_QUALITIES,
   PLAYBACK_QUALITY_LABELS,
@@ -12,7 +11,6 @@ import {
 } from "../store/playerStore";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
-import { formatCount } from "../utils/formatCount";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
 import {
   captureInteractionOrigin,
@@ -75,8 +73,6 @@ export default function PlayerBar() {
   const [shareOpen, setShareOpen] = useState(false);
   const [dynamicCover, setDynamicCover] = useState("");
   const [remoteLiked, setRemoteLiked] = useState<boolean | null>(null);
-  const [remoteCommentCount, setRemoteCommentCount] = useState<number | null>(null);
-  const [remoteCollectionCount, setRemoteCollectionCount] = useState<number | null>(null);
   const [qualityOpen, setQualityOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [volumeOpen, setVolumeOpen] = useState(false);
@@ -156,8 +152,6 @@ export default function PlayerBar() {
     let alive = true;
     setDynamicCover("");
     setRemoteLiked(null);
-    setRemoteCommentCount(null);
-    setRemoteCollectionCount(null);
     if (!currentSong) return;
     // 预热播放栏 120px 缩略图与队列下一曲：封面在真正挂载前已进缓存。
     warmCoverImage(currentSong.picUrl, 120);
@@ -178,16 +172,6 @@ export default function PlayerBar() {
         })
         .catch(() => {});
     }
-    void getResourceCommentCount({ type: "song", id: String(currentSong.id), title: currentSong.name })
-      .then((count) => {
-        if (alive) setRemoteCommentCount(count);
-      })
-      .catch(() => {});
-    void getSongCollectionCounts([currentSong.id])
-      .then((counts) => {
-        if (alive && currentSong.id in counts) setRemoteCollectionCount(counts[currentSong.id]!);
-      })
-      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -583,7 +567,6 @@ export default function PlayerBar() {
               title="歌曲评论"
             >
               <MessageCircleMore size={17} />
-              <span className="player-stat-count">{formatCount(remoteCommentCount ?? currentSong?.commentCount)}</span>
             </button>
             <button
               className={`icon-btn ${shareOpen ? "active" : ""}`}
@@ -612,7 +595,6 @@ export default function PlayerBar() {
               style={liked ? { color: "#ec4141" } : undefined}
             >
               <Heart size={18} fill={liked ? "currentColor" : "none"} />
-              <span className="player-stat-count">{formatCount(remoteCollectionCount ?? currentSong?.likedCount)}</span>
             </button>
             <div
               className="vol-wrap"
