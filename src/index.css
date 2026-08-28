@@ -6676,6 +6676,82 @@ select option:checked {
   background: var(--glass-popup-hover);
 }
 
+/* Player controls use the same lively icon language as the reference UI:
+   motion stays inside the fixed button box so the transport row never shifts. */
+.player-bar .icon-btn {
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+}
+.player-bar .icon-btn svg {
+  position: relative;
+  z-index: 1;
+  transform-origin: center;
+  transition:
+    transform var(--motion-fast) var(--motion-enter),
+    filter var(--motion-fast) ease,
+    color var(--motion-fast) ease;
+}
+.player-bar .icon-btn:not(.primary):hover svg {
+  transform: translateY(-2px) scale(1.08);
+  filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--accent) 28%, transparent));
+}
+.player-bar .icon-btn:active svg {
+  transform: scale(0.84);
+  transition-duration: 70ms;
+}
+.player-bar .icon-btn:not(.primary)::after {
+  position: absolute;
+  inset: 5px;
+  z-index: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+  opacity: 0;
+  transform: scale(0.45);
+  pointer-events: none;
+}
+.player-bar .icon-btn:not(.primary):hover::after {
+  animation: player-icon-hover 420ms var(--motion-enter) both;
+}
+.player-bar .icon-btn.active:not(.primary) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.player-bar .icon-btn.active:not(.primary) svg {
+  animation: player-icon-active 1.8s ease-in-out infinite;
+}
+.player-bar .icon-btn.primary {
+  animation: player-primary-glow 2.4s ease-in-out infinite;
+}
+.player-bar .icon-btn.primary svg {
+  transition: transform var(--motion-fast) var(--motion-enter);
+}
+.player-bar .icon-btn.primary:hover svg {
+  transform: scale(1.12);
+}
+
+@keyframes player-icon-hover {
+  0% { opacity: 0.18; transform: scale(0.45); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+@keyframes player-icon-active {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50% { filter: drop-shadow(0 0 7px var(--accent-glow)); }
+}
+@keyframes player-primary-glow {
+  0%, 100% { box-shadow: 0 6px 20px var(--accent-glow); }
+  50% { box-shadow: 0 7px 27px color-mix(in srgb, var(--accent) 62%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-bar .icon-btn,
+  .player-bar .icon-btn svg,
+  .player-bar .icon-btn::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* 控件一律不显示焦点描边/阴影（含键盘输入模式）：桌面播放器追求
    干净视觉，截图里用户胶囊上的红色框就是全局键盘模式描边所致。
    输入框/文本域的编辑焦点与容器的 :focus-within 高亮不受影响。 */
