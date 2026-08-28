@@ -3363,8 +3363,10 @@ select option:checked {
 }
 
 .download-modal {
+  position: relative;
   width: min(440px, calc(100vw - 32px));
   padding: 22px;
+  overflow: visible;
 }
 .download-modal .modal-head {
   margin-bottom: 18px;
