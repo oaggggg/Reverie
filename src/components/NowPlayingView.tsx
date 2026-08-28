@@ -75,9 +75,11 @@ export default function NowPlayingView() {
   });
   const [wallpaperSrc, setWallpaperSrc] = useState("");
   // 顶部按钮（返回 / DIY）与底部播放栏的显隐：进入页面展示，
-  // 停顿后自动隐藏，指针靠近顶部 / 底部边缘时呼出。
-  const [topShown, setTopShown] = useState(true);
-  const [bottomShown, setBottomShown] = useState(true);
+  // 停顿后自动隐藏。呼出区按各控件收窄：返回=左上角、DIY=右上角、
+  // 播放栏=底部边缘，各自独立呼出互不影响。
+  const [backShown, setBackShown] = useState(true);
+  const [diyShown, setDiyShown] = useState(true);
+  const [barShown, setBarShown] = useState(true);
 
   useEffect(() => {
     if (!visualOpen) return;
@@ -132,49 +134,86 @@ export default function NowPlayingView() {
     };
   }, [npWallpaper]);
 
-  // 播放页 chrome 自动隐藏：进入页面展示，指针停顿 2.6s 后隐藏；
-  // 指针靠近顶部 150px（返回 / DIY 按钮）或底部 190px（播放栏）时呼出。
+  // 播放页 chrome 自动隐藏：进入页面展示；呼出区精确到各控件附近——
+  // 左上角 100×160 呼出返回、右上角 100×160 呼出 DIY、底部 120px 呼出
+  // 播放栏，三者独立判定：进入各自区域立即呼出，离开约 0.6s 后单独
+  // 收起，互不联动；指针完全不动则 2.6s 后全部隐藏。
   // 播放栏在 NowPlayingView 之外渲染，通过根元素 data 属性通知。
   useEffect(() => {
-    const TOP_ZONE = 150;
-    const BOTTOM_ZONE = 190;
+    const CORNER_H = 100;
+    const CORNER_W = 160;
+    const BOTTOM_ZONE = 120;
+    const LEAVE_MS = 600;
     const IDLE_MS = 2600;
+    let pointerX = -1;
     let pointerY = -1;
-    let idleId = 0;
-    const inTop = () => pointerY >= 0 && pointerY <= TOP_ZONE;
-    const inBottom = () => pointerY >= window.innerHeight - BOTTOM_ZONE;
-    const arm = () => {
-      window.clearTimeout(idleId);
-      idleId = window.setTimeout(() => {
-        setTopShown(inTop());
-        setBottomShown(inBottom());
-      }, IDLE_MS);
+    const leaveTimers = { back: 0, diy: 0, bar: 0 };
+    const idleId = { current: 0 };
+    const inBack = () =>
+      pointerY >= 0 &&
+      pointerY <= CORNER_H &&
+      pointerX >= 0 &&
+      pointerX <= CORNER_W;
+    const inDiy = () =>
+      pointerY >= 0 &&
+      pointerY <= CORNER_H &&
+      pointerX >= window.innerWidth - CORNER_W;
+    const inBar = () => pointerY >= window.innerHeight - BOTTOM_ZONE;
+    const setters = {
+      back: setBackShown,
+      diy: setDiyShown,
+      bar: setBarShown,
+    };
+    const zones = { back: inBack, diy: inDiy, bar: inBar };
+    const reveal = (key: "back" | "diy" | "bar") => {
+      if (zones[key]()) {
+        window.clearTimeout(leaveTimers[key]);
+        setters[key](true);
+      } else if (!leaveTimers[key]) {
+        leaveTimers[key] = window.setTimeout(() => {
+          leaveTimers[key] = 0;
+          setters[key](false);
+        }, LEAVE_MS);
+      }
     };
     const onMove = (event: PointerEvent) => {
+      pointerX = event.clientX;
       pointerY = event.clientY;
-      if (inTop()) setTopShown(true);
-      if (inBottom()) setBottomShown(true);
-      arm();
+      reveal("back");
+      reveal("diy");
+      reveal("bar");
+      window.clearTimeout(idleId.current);
+      idleId.current = window.setTimeout(() => {
+        setBackShown(inBack());
+        setDiyShown(inDiy());
+        setBarShown(inBar());
+      }, IDLE_MS);
     };
     window.addEventListener("pointermove", onMove);
-    arm();
+    // 初始（可能没有指针移动）按停留位置判定
+    idleId.current = window.setTimeout(() => {
+      setBackShown(inBack());
+      setDiyShown(inDiy());
+      setBarShown(inBar());
+    }, IDLE_MS);
     return () => {
       window.removeEventListener("pointermove", onMove);
-      window.clearTimeout(idleId);
+      window.clearTimeout(idleId.current);
+      for (const t of Object.values(leaveTimers)) window.clearTimeout(t);
     };
   }, []);
 
   useEffect(() => {
     const root = document.documentElement;
-    root.dataset.npChromeBottom = bottomShown ? "show" : "hide";
+    root.dataset.npChromeBottom = barShown ? "show" : "hide";
     return () => {
       delete root.dataset.npChromeBottom;
     };
-  }, [bottomShown]);
+  }, [barShown]);
 
-  // DIY 面板挂在 DIY 按钮下方，面板打开期间顶部按钮保持可见。
+  // DIY 面板挂在 DIY 按钮下方，面板打开期间 DIY 按钮保持可见。
   useEffect(() => {
-    if (visualOpen) setTopShown(true);
+    if (visualOpen) setDiyShown(true);
   }, [visualOpen]);
 
   // A session restored on startup never went through playSong, so its lyrics
@@ -344,7 +383,7 @@ export default function NowPlayingView() {
 
   return (
     <div
-      className={`now-playing now-playing-3d ${fadedIn ? "np-scene-ready" : "np-scene-leaving"}${topShown ? "" : " np-chrome-hidden"}`}
+      className={`now-playing now-playing-3d ${fadedIn ? "np-scene-ready" : "np-scene-leaving"}${backShown ? "" : " np-hide-back"}${diyShown ? "" : " np-hide-diy"}`}
     >
       <button
         className={`np-btn np-back ${fadedIn ? "np-fade-in" : ""}`}

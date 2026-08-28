@@ -6950,13 +6950,13 @@ select option:checked {
     background 0.15s ease,
     border-color 0.15s ease;
 }
-.now-playing-3d.np-chrome-hidden .np-back {
+.now-playing-3d.np-hide-back .np-back {
   animation: none;
   opacity: 0;
   transform: translateY(-16px);
   pointer-events: none;
 }
-.now-playing-3d.np-chrome-hidden .np-visual-trigger {
+.now-playing-3d.np-hide-diy .np-visual-trigger {
   opacity: 0;
   transform: translateX(16px);
   pointer-events: none;
