@@ -745,6 +745,8 @@ interface PlayerState {
   coverQuality: CoverQuality;
   /** Why the current level was chosen, shown in settings. */
   coverQualityReason: string;
+  /** 虚空模式：隐藏封面与粒子，只保留歌词与背景。 */
+  npVoid: boolean;
   coverBenchmarking: boolean;
 
   // --- ui / data ---
@@ -847,7 +849,8 @@ interface PlayerState {
   setLyricLayout: (layout: LyricLayout) => void;
   setNpWallpaper: (wallpaper: NpWallpaper | null) => void;
   setParticleEffect: (e: ParticleEffect) => void;
-  applyDiyPreset: (preset: "pure") => void;
+  applyDiyPreset: (preset: "pure" | "void") => void;
+  setNpVoid: (v: boolean) => void;
   setCoverQuality: (q: CoverQuality, reason?: string) => void;
   /** Step one level down after sustained dropped frames. */
   degradeCoverQuality: () => void;
@@ -1182,6 +1185,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   coverQuality: readCoverQuality(),
   coverQualityReason: readStr("reverie_cover_reason", ""),
   coverBenchmarking: false,
+  npVoid: readBool("reverie_np_void", false),
 
   // --- ui / data ---
   activeView: "home",
@@ -1859,31 +1863,61 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     write("reverie_lyriclayout", layout);
   },
   setNpWallpaper: (wallpaper) => {
-    set({ npWallpaper: wallpaper });
+    // 启用动态壁纸时自动退出虚空模式。
+    set({ npWallpaper: wallpaper, npVoid: wallpaper ? false : get().npVoid });
     if (wallpaper) write("reverie_np_wallpaper", JSON.stringify(wallpaper));
     else write("reverie_np_wallpaper", "");
+    if (wallpaper) write("reverie_np_void", "0");
   },
   setParticleEffect: (e) => {
-    set({ particleEffect: e });
+    // 选粒子效果意味着想看到动态封面，自动退出虚空模式。
+    set({ particleEffect: e, npVoid: false });
     write("reverie_particle", e);
+    write("reverie_np_void", "0");
   },
   applyDiyPreset: (preset) => {
-    if (preset !== "pure") return;
+    if (preset === "pure") {
+      set({
+        lyricTheme: "pure",
+        particleEffect: "none",
+        coverQuality: "image",
+        coverQualityReason: "纯净预设",
+        npVoid: false,
+      });
+      write("reverie_lyrictheme", "pure");
+      write("reverie_particle", "none");
+      write(COVER_QUALITY_KEY, "image");
+      write("reverie_cover_reason", "纯净预设");
+      write("reverie_np_void", "0");
+      return;
+    }
+    if (preset !== "void") return;
+    // 虚空：隐藏封面与粒子，纯白歌词，关闭壁纸背景。
     set({
+      npVoid: true,
       lyricTheme: "pure",
       particleEffect: "none",
       coverQuality: "image",
-      coverQualityReason: "纯净预设",
+      coverQualityReason: "虚空预设",
+      npWallpaper: null,
     });
     write("reverie_lyrictheme", "pure");
     write("reverie_particle", "none");
     write(COVER_QUALITY_KEY, "image");
-    write("reverie_cover_reason", "纯净预设");
+    write("reverie_cover_reason", "虚空预设");
+    write("reverie_np_void", "1");
+    write("reverie_np_wallpaper", "");
+  },
+  setNpVoid: (v) => {
+    set({ npVoid: v });
+    write("reverie_np_void", v ? "1" : "0");
   },
   setCoverQuality: (q, reason = "") => {
-    set({ coverQuality: q, coverQualityReason: reason });
+    // 手动选画质意味着想看到封面，自动退出虚空模式。
+    set({ coverQuality: q, coverQualityReason: reason, npVoid: false });
     write(COVER_QUALITY_KEY, q);
     write("reverie_cover_reason", reason);
+    write("reverie_np_void", "0");
   },
   degradeCoverQuality: () => {
     const order: CoverQuality[] = ["ultra", "high", "medium", "low", "image"];

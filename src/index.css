@@ -7013,6 +7013,21 @@ select option:checked {
   justify-content: center;
 }
 
+/* 纯净 / 虚空预设并排 */
+.np-preset-row {
+  display: flex;
+  gap: 8px;
+}
+.np-preset-row .np-pure-btn {
+  flex: 1;
+}
+
+/* 虚空模式：封面区域完全隐去 */
+.np-cover-void {
+  width: 100%;
+  height: 100%;
+}
+
 .np-visual-row.diy-note {
   min-height: 0;
   padding-top: 2px;
