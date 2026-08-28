@@ -5498,6 +5498,7 @@ select option:checked {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  overflow: hidden;
   min-height: 52px;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -5512,7 +5513,14 @@ select option:checked {
   min-width: 0;
 }
 .saved-account.current { border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border)); }
-.saved-account > img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.saved-account-main > img,
+.saved-account-main > svg {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 .saved-account-copy { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .saved-account-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
 .saved-account-copy span { color: var(--text-faint); font-size: 11px; }
