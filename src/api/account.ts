@@ -4,6 +4,14 @@ type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj =>
   value && typeof value === "object" ? (value as Obj) : {};
 
+function firstPositiveNumber(...values: unknown[]): number {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number) && number > 0) return number;
+  }
+  return 0;
+}
+
 export interface AccountOverview {
   userId: number;
   nickname: string;
@@ -45,11 +53,15 @@ export async function getAccountOverview(): Promise<AccountOverview> {
   // 第二步：扩展信息各自独立降级。注意 /user/binding 与 /user/detail/new
   // 都要求 uid 参数，缺参时接口直接返回 code 400“参数错误”——
   // 实测这正是设置页绑定方式永远“未读取到”、手机/邮箱为空的根因。
-  const [detail, binding] = await Promise.all([
+  const [detail, binding, levelResponse] = await Promise.all([
     request<Obj>("/user/detail/new", { uid }, false).catch(() => ({}) as Obj),
     request<Obj>("/user/binding", { uid }, false).catch(() => ({}) as Obj),
+    // /user/detail/new 在部分账号上不会返回 level，/user/level 才是
+    // 当前客户端等级的稳定来源，且接口不需要 uid 参数。
+    request<Obj>("/user/level", {}, false).catch(() => ({}) as Obj),
   ]);
   const detailProfile = obj(detail.profile ?? detail.data ?? detail);
+  const levelData = obj(levelResponse.data ?? levelResponse);
   const mergedProfile: Obj = { ...detailProfile };
   for (const [key, value] of Object.entries(accountProfile)) {
     if (value !== null && value !== undefined && value !== "") {
@@ -70,7 +82,13 @@ export async function getAccountOverview(): Promise<AccountOverview> {
     ),
     nickname: String(mergedProfile.nickname ?? accountData.nickname ?? "网易云用户"),
     accountType: Number(accountData.type ?? accountData.accountType ?? 0),
-    level: Number(mergedProfile.level ?? accountData.level ?? 0),
+    level: firstPositiveNumber(
+      levelData.level,
+      detailProfile.level,
+      mergedProfile.level,
+      accountData.level,
+      accountProfile.level,
+    ),
     vipType: Number(
       mergedProfile.vipType ?? accountData.vipType ?? accountProfile.vipType ?? 0,
     ),
