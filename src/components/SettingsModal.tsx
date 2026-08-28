@@ -708,38 +708,35 @@ export default function SettingsModal() {
                   </div>
                   {savedAccounts.length ? savedAccounts.map((account) => (
                     <div className={`saved-account ${account.userId === profile?.userId ? "current" : ""}`} key={account.userId}>
-                      {account.avatarUrl ? <img src={account.avatarUrl} alt="" /> : <CircleUserRound size={22} />}
-                      <div className="saved-account-copy">
-                        <strong>{account.nickname || "网易云用户"}</strong>
-                        <span>ID {account.userId}{account.userId === profile?.userId ? " · 当前使用" : ""}</span>
+                      <div className="saved-account-main">
+                        {account.avatarUrl ? <img src={account.avatarUrl} alt="" /> : <CircleUserRound size={22} />}
+                        <div className="saved-account-copy">
+                          <strong>{account.nickname || "网易云用户"}</strong>
+                          <span>ID {account.userId}{account.userId === profile?.userId ? " · 当前使用" : ""}</span>
+                        </div>
+                        <div className="saved-account-actions">
+                          {account.userId !== profile?.userId && <button className="btn" onClick={() => void switchAccount(account.userId)}>切换</button>}
+                          <button className="icon-btn" title="删除账号" onClick={() => { removeAccount(account.userId); setSavedAccounts(getSavedAccounts()); }}><Trash2 size={14} /></button>
+                        </div>
                       </div>
-                      <div className="saved-account-actions">
-                        {account.userId !== profile?.userId && <button className="btn" onClick={() => void switchAccount(account.userId)}>切换</button>}
-                        <button className="icon-btn" title="删除账号" onClick={() => { removeAccount(account.userId); setSavedAccounts(getSavedAccounts()); }}><Trash2 size={14} /></button>
-                      </div>
+                      {account.userId === profile?.userId && (
+                        <div className="saved-account-details">
+                          {accountLoading ? <span className="setting-status">账号信息同步中…</span> : (
+                            <>
+                              <div><span>账号 ID</span><strong>{accountOverview?.userId || account.userId}</strong></div>
+                              <div><span>账号类型</span><strong>网易云音乐账号</strong></div>
+                              <div><span>等级</span><strong>Lv.{accountOverview?.level || 0}</strong></div>
+                              <div><span>会员类型</span><strong>{vipInfo?.svip && vipActive ? "黑胶 SVIP" : vipActive || accountOverview?.vipType ? "黑胶 VIP" : "普通账号"}</strong></div>
+                              <div><span>会员等级</span><strong>{vipInfo?.vipLevel ? `Lv.${vipInfo.vipLevel}` : "—"}</strong></div>
+                              <div><span>会员到期</span><strong>{vipInfo?.expireTime ? new Date(vipInfo.expireTime).toLocaleDateString("zh-CN") : "未开通"}</strong></div>
+                              {accountOverview?.phone && <div><span>手机号</span><strong>{accountOverview.phone}</strong></div>}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )) : <p className="setting-status">暂无保存的账号</p>}
                 </div>
-                {loggedIn && (
-                  <div className="account-details" aria-live="polite">
-                    <div className="account-details-header">
-                      <h3>账号信息</h3>
-                      {accountLoading && <span className="setting-status">同步中…</span>}
-                    </div>
-                    <div className="account-details-grid">
-                      <div><span>账号 ID</span><strong>{accountOverview?.userId || profile?.userId || "—"}</strong></div>
-                      <div><span>账号类型</span><strong>{accountOverview?.accountType === 1000 ? "游客" : "网易云音乐账号"}</strong></div>
-                      <div><span>等级</span><strong>Lv.{accountOverview?.level || 0}</strong></div>
-                      <div><span>会员类型</span><strong>{vipInfo?.svip && vipActive ? "黑胶 SVIP" : vipActive || accountOverview?.vipType ? "黑胶 VIP" : "普通账号"}</strong></div>
-                      <div><span>会员等级</span><strong>{vipInfo?.vipLevel ? `Lv.${vipInfo.vipLevel}` : "—"}</strong></div>
-                      <div><span>会员到期</span><strong>{vipInfo?.expireTime ? new Date(vipInfo.expireTime).toLocaleDateString("zh-CN") : "未开通"}</strong></div>
-                      <div><span>绑定方式</span><strong>{accountOverview?.bindings?.length ? accountOverview.bindings.join("、") : "未读取到"}</strong></div>
-                      {accountOverview?.phone && <div><span>手机号</span><strong>{accountOverview.phone}</strong></div>}
-                      {accountOverview?.email && <div><span>邮箱</span><strong>{accountOverview.email}</strong></div>}
-                    </div>
-                    {accountOverview?.detail && <p className="account-details-signature">{accountOverview.detail}</p>}
-                  </div>
-                )}
               </div>
               </>
             )}
