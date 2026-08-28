@@ -217,6 +217,18 @@ export type ParticleEffect =
 export type LyricTheme =
   "auto" | "default" | "neon" | "fire" | "aurora" | "mint" | "rose" | "pure";
 
+/** 播放页歌词布局：双行浮层 / 全部歌词滚动列表。 */
+export type LyricLayout = "dual" | "full";
+
+/** 播放页 Wallpaper Engine 壁纸背景（video 可直接播放，web 用 iframe 加载）。 */
+export interface NpWallpaper {
+  id: string;
+  title: string;
+  kind: "video" | "web";
+  /** 视频文件或 web 壁纸 index.html 的本机绝对路径。 */
+  path: string;
+}
+
 /* ------------------------- persistence helpers ------------------------- */
 function readNum(key: string, def: number): number {
   try {
@@ -244,6 +256,22 @@ function readStr(key: string, def: string): string {
   } catch {
     return def;
   }
+}
+function readNpWallpaper(): NpWallpaper | null {
+  try {
+    const raw = JSON.parse(readStr("reverie_np_wallpaper", "")) as NpWallpaper;
+    if (
+      raw &&
+      typeof raw.id === "string" &&
+      typeof raw.path === "string" &&
+      (raw.kind === "video" || raw.kind === "web")
+    ) {
+      return raw;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 function write(key: string, v: string) {
   try {
@@ -706,6 +734,12 @@ interface PlayerState {
   crossDeviceResume: boolean;
   lyricTheme: LyricTheme;
   lyricFontSize: number;
+  /** 播放页渲染帧率上限；0 表示跟随显示器刷新率。 */
+  npFrameRate: number;
+  /** 播放页歌词布局：双行浮层 / 全部歌词滚动列表。 */
+  lyricLayout: LyricLayout;
+  /** 播放页 Wallpaper Engine 壁纸背景；null 表示不使用。 */
+  npWallpaper: NpWallpaper | null;
   particleEffect: ParticleEffect;
   /** Cover render level; "image" disables the particle system entirely. */
   coverQuality: CoverQuality;
@@ -809,6 +843,9 @@ interface PlayerState {
   setCrossDeviceResume: (v: boolean) => void;
   setLyricTheme: (t: LyricTheme) => void;
   setLyricFontSize: (s: number) => void;
+  setNpFrameRate: (fps: number) => void;
+  setLyricLayout: (layout: LyricLayout) => void;
+  setNpWallpaper: (wallpaper: NpWallpaper | null) => void;
   setParticleEffect: (e: ParticleEffect) => void;
   applyDiyPreset: (preset: "pure") => void;
   setCoverQuality: (q: CoverQuality, reason?: string) => void;
@@ -1136,6 +1173,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   crossDeviceResume: readBool("reverie_cross_resume", false),
   lyricTheme: readLyricTheme(),
   lyricFontSize: readNum("reverie_lyricfont", 22),
+  npFrameRate: [0, 30, 60, 120].includes(readNum("reverie_np_fps", 0))
+    ? readNum("reverie_np_fps", 0)
+    : 0,
+  lyricLayout: readStr("reverie_lyriclayout", "dual") === "full" ? "full" : "dual",
+  npWallpaper: readNpWallpaper(),
   particleEffect: readParticleEffect(),
   coverQuality: readCoverQuality(),
   coverQualityReason: readStr("reverie_cover_reason", ""),
@@ -1806,6 +1848,20 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setLyricFontSize: (s) => {
     set({ lyricFontSize: s });
     write("reverie_lyricfont", String(s));
+  },
+  setNpFrameRate: (fps) => {
+    const value = [0, 30, 60, 120].includes(fps) ? fps : 0;
+    set({ npFrameRate: value });
+    write("reverie_np_fps", String(value));
+  },
+  setLyricLayout: (layout) => {
+    set({ lyricLayout: layout });
+    write("reverie_lyriclayout", layout);
+  },
+  setNpWallpaper: (wallpaper) => {
+    set({ npWallpaper: wallpaper });
+    if (wallpaper) write("reverie_np_wallpaper", JSON.stringify(wallpaper));
+    else write("reverie_np_wallpaper", "");
   },
   setParticleEffect: (e) => {
     set({ particleEffect: e });

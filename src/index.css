@@ -4909,6 +4909,7 @@ select option:checked {
 .np-stage-3d {
   position: absolute;
   inset: 0;
+  z-index: 1;
 }
 
 .np-cover-3d {
@@ -4917,7 +4918,6 @@ select option:checked {
   z-index: 1;
   will-change: transform;
   overflow: hidden;
-  background: #090a0d;
 }
 
 .np-cover-3d::after {
@@ -4962,6 +4962,13 @@ select option:checked {
   justify-content: center;
   pointer-events: none;
   animation: np-lyrics-in 0.45s ease 0.1s both;
+  /* 透视作用于直接子元素（.lyrics-3d），两层共用同一投影参数 */
+  perspective: 1000px;
+}
+
+/* 反歌词层：与正歌词同旋转，位于粒子封面之后，透出镜像画面 */
+.np-lyrics-3d.np-lyrics-back {
+  z-index: 0;
 }
 
 .lyrics-3d {
@@ -4973,6 +4980,173 @@ select option:checked {
   text-align: center;
   padding: 28px 34px;
   border-radius: 24px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* 反歌词的镜面质感：更弱、更糊，像隔着粒子云看到的一样 */
+.lyrics-3d.lyrics-3d-back {
+  opacity: 0.42;
+  filter: blur(1.2px);
+  pointer-events: none;
+}
+
+/* 待唱状态（前奏 / 长间奏）：弱化展示下一句，替代孤零零的音符 */
+.lyrics-3d-current.is-pending {
+  opacity: 0.55;
+  font-weight: 500;
+  text-shadow: none;
+}
+
+/* 全部歌词滚动列表 */
+.np-full-lyrics {
+  width: min(92%, 560px);
+  max-height: min(52vh, 480px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24vh 12px;
+  margin: -24vh 0;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 18%,
+    #000 82%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 18%,
+    #000 82%,
+    transparent
+  );
+  scrollbar-width: none;
+}
+.np-full-lyrics::-webkit-scrollbar {
+  display: none;
+}
+.np-full-lyric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease,
+    background 0.25s ease;
+}
+.np-full-lyric small {
+  font-size: 0.72em;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.35);
+}
+.np-full-lyric:hover {
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.06);
+}
+.np-full-lyric.active {
+  color: var(--lyric-accent, #fff);
+  font-size: 1.18em;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9);
+}
+.lyrics-theme-pure .np-full-lyric.active {
+  color: #fff;
+  text-shadow: none;
+}
+.lyrics-theme-default .np-full-lyric.active {
+  color: var(--accent-2);
+}
+
+/* Wallpaper Engine 壁纸背景 */
+.np-wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  pointer-events: none;
+  filter: brightness(0.5) saturate(1.05);
+}
+
+/* DIY 面板：壁纸选择列表 */
+.np-wallpaper-list {
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.np-wallpaper-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border: 1px solid var(--glass-popup-border);
+  border-radius: 12px;
+  background: var(--glass-popup-hover);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.np-wallpaper-item:hover {
+  color: #fff;
+}
+.np-wallpaper-item.active {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--accent) 74%, white);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.np-wallpaper-thumb {
+  flex: none;
+  width: 38px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.55);
+}
+.np-wallpaper-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.np-wallpaper-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.np-wallpaper-title small {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  font-weight: 400;
+}
+.np-wallpaper-empty {
+  padding: 8px 2px;
+  color: var(--glass-readable-faint);
+  font-size: 11px;
 }
 
 .lyrics-3d-current {

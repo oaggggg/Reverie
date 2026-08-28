@@ -1,9 +1,20 @@
+import { useEffect, useState } from "react";
 import type { RefObject } from "react";
+import { Image as ImageIcon, Music4 } from "lucide-react";
 import { X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
-import type { LyricTheme, ParticleEffect } from "../store/playerStore";
+import type { LyricTheme, NpWallpaper, ParticleEffect } from "../store/playerStore";
 import type { CoverQuality } from "../utils/gpuBenchmark";
 import { particleCount, QUALITY_LABEL } from "../utils/gpuBenchmark";
+
+/** Rust 侧 list_wallpaper_engine_wallpapers 返回的条目。 */
+interface WallpaperEngineItem {
+  id: string;
+  title: string;
+  kind: "video" | "web";
+  path: string;
+  preview: string;
+}
 
 const THEMES: Array<{ id: LyricTheme; name: string; color: string }> = [
   { id: "auto", name: "封面取色", color: "#7df9ff" },
@@ -47,6 +58,12 @@ export default function PlaybackVisualPanel({
   const setLyricTheme = usePlayerStore((s) => s.setLyricTheme);
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
   const setLyricFontSize = usePlayerStore((s) => s.setLyricFontSize);
+  const lyricLayout = usePlayerStore((s) => s.lyricLayout);
+  const setLyricLayout = usePlayerStore((s) => s.setLyricLayout);
+  const npFrameRate = usePlayerStore((s) => s.npFrameRate);
+  const setNpFrameRate = usePlayerStore((s) => s.setNpFrameRate);
+  const npWallpaper = usePlayerStore((s) => s.npWallpaper);
+  const setNpWallpaper = usePlayerStore((s) => s.setNpWallpaper);
   const showTranslation = usePlayerStore((s) => s.showTranslation);
   const setShowTranslation = usePlayerStore((s) => s.setShowTranslation);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
@@ -56,6 +73,41 @@ export default function PlaybackVisualPanel({
   const coverBenchmarking = usePlayerStore((s) => s.coverBenchmarking);
   const detectCoverQuality = usePlayerStore((s) => s.detectCoverQuality);
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
+
+  // Wallpaper Engine 壁纸扫描：面板打开时扫一次，仅桌面版可用。
+  const [wallpapers, setWallpapers] = useState<WallpaperEngineItem[]>([]);
+  const [wallpaperError, setWallpaperError] = useState("");
+  useEffect(() => {
+    let disposed = false;
+    void (async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const { convertFileSrc } = await import("@tauri-apps/api/core");
+        const list = await invoke<WallpaperEngineItem[]>(
+          "list_wallpaper_engine_wallpapers",
+        );
+        if (disposed) return;
+        setWallpapers(
+          list.map((item) => ({
+            ...item,
+            preview: item.preview ? convertFileSrc(item.preview) : "",
+          })),
+        );
+      } catch {
+        if (!disposed) setWallpaperError("未找到 Wallpaper Engine（仅桌面版支持）");
+      }
+    })();
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  const selectWallpaper = (item: WallpaperEngineItem | null) => {
+    const wallpaper: NpWallpaper | null = item
+      ? { id: item.id, title: item.title, kind: item.kind, path: item.path }
+      : null;
+    setNpWallpaper(wallpaper);
+  };
 
   return (
     <aside
@@ -91,6 +143,23 @@ export default function PlaybackVisualPanel({
                   <span>{item.name}</span>
                 </button>
               ))}
+            </div>
+          </div>
+          <div className="np-visual-row">
+            <span>歌词布局</span>
+            <div className="opt-group">
+              <button
+                className={`opt-btn ${lyricLayout === "dual" ? "active" : ""}`}
+                onClick={() => setLyricLayout("dual")}
+              >
+                双行
+              </button>
+              <button
+                className={`opt-btn ${lyricLayout === "full" ? "active" : ""}`}
+                onClick={() => setLyricLayout("full")}
+              >
+                全部歌词
+              </button>
             </div>
           </div>
           <div className="np-visual-row">
@@ -148,6 +217,25 @@ export default function PlaybackVisualPanel({
               ))}
             </div>
           </div>
+          <div className="np-visual-row">
+            <span>帧率</span>
+            <div className="opt-group">
+              {[
+                { value: 0, label: "无限" },
+                { value: 120, label: "120" },
+                { value: 60, label: "60" },
+                { value: 30, label: "30" },
+              ].map((item) => (
+                <button
+                  key={item.value}
+                  className={`opt-btn ${npFrameRate === item.value ? "active" : ""}`}
+                  onClick={() => setNpFrameRate(item.value)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="np-visual-row stacked">
             <span>粒子效果</span>
             <div className="opt-group">
@@ -176,6 +264,52 @@ export default function PlaybackVisualPanel({
           >
             使用纯净预设
           </button>
+        </section>
+
+        <section>
+          <h3>Wallpaper 壁纸</h3>
+          <div className="np-visual-row stacked">
+            <span>
+              播放页背景
+              <small>Wallpaper Engine（视频 / 网页壁纸）</small>
+            </span>
+            <div className="np-wallpaper-list">
+              <button
+                className={`np-wallpaper-item ${npWallpaper === null ? "active" : ""}`}
+                onClick={() => selectWallpaper(null)}
+              >
+                <span className="np-wallpaper-thumb np-wallpaper-thumb-off">
+                  <Music4 size={14} />
+                </span>
+                <span className="np-wallpaper-title">不使用壁纸</span>
+              </button>
+              {wallpapers.map((item) => (
+                <button
+                  key={item.id}
+                  className={`np-wallpaper-item ${npWallpaper?.id === item.id ? "active" : ""}`}
+                  onClick={() => selectWallpaper(item)}
+                >
+                  <span className="np-wallpaper-thumb">
+                    {item.preview ? (
+                      <img src={item.preview} alt="" loading="lazy" />
+                    ) : (
+                      <ImageIcon size={14} />
+                    )}
+                  </span>
+                  <span className="np-wallpaper-title">
+                    {item.title}
+                    <small>{item.kind === "video" ? "视频" : "网页"}</small>
+                  </span>
+                </button>
+              ))}
+              {wallpaperError && (
+                <div className="np-wallpaper-empty">{wallpaperError}</div>
+              )}
+              {!wallpaperError && !wallpapers.length && (
+                <div className="np-wallpaper-empty">正在扫描壁纸库…</div>
+              )}
+            </div>
+          </div>
         </section>
       </div>
     </aside>
