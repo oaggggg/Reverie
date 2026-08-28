@@ -69,6 +69,7 @@ uniform float uFreq;      // spatial frequency of the flow field
 uniform float uSpeed;     // how fast the field evolves
 uniform float uPulse;     // 0..1 smoothed audio energy
 uniform float uShimmer;   // 0..1 high-band energy
+uniform float uBeat;      // 0..1 节拍冲击（onset 后指数衰减）
 uniform float uSize;      // point diameter in WORLD units
 uniform float uProjScale; // css px per world unit at distance 1 (see component)
 uniform float uPixelRatio;
@@ -90,16 +91,22 @@ void main() {
   // A touch of lateral drift stops the grid from reading as a flat sheet.
   p.xy += vec2(n2, -n1) * uAmp * 0.10;
 
+  // 节拍冲击：每个粒子按自身 seed 沿噪声场方向被随机踢一下，幅度也
+  // 依 seed 不均等——整体呈无规则的"炸开-归位"，而不是整齐的脉冲。
+  float kick = uBeat * (0.35 + aSeed * 0.65);
+  p.z += n2 * kick * 0.5;
+  p.xy += vec2(n1, n2) * kick * 0.22;
+
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   // Exact world->pixel conversion; a hand-tuned constant here is what turns a
   // crisp point cloud into an overlapping smear.
   float pxPerWorld = uProjScale / max(0.001, -mv.z);
   gl_PointSize =
-    uSize * pxPerWorld * uPixelRatio * (0.82 + aSeed * 0.3) * (1.0 + uPulse * 0.18);
+    uSize * pxPerWorld * uPixelRatio * (0.82 + aSeed * 0.3) * (1.0 + uPulse * 0.18 + uBeat * 0.22);
   gl_Position = projectionMatrix * mv;
 
   vColor = aColor;
-  vGlow = 0.9 + n1 * 0.06 + uPulse * 0.08 + uShimmer * aSeed * 0.08;
+  vGlow = 0.9 + n1 * 0.06 + uPulse * 0.08 + uBeat * 0.12 + uShimmer * aSeed * 0.08;
 }
 `;
 

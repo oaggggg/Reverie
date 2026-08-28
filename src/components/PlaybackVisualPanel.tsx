@@ -3,7 +3,7 @@ import type { RefObject } from "react";
 import { Image as ImageIcon, Moon, Music4, Sparkles } from "lucide-react";
 import { X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
-import type { LyricFx, NpWallpaper, ParticleEffect } from "../store/playerStore";
+import type { LyricFx, NpWallpaper } from "../store/playerStore";
 import type { CoverQuality } from "../utils/gpuBenchmark";
 import { particleCount, QUALITY_LABEL } from "../utils/gpuBenchmark";
 
@@ -16,23 +16,10 @@ interface WallpaperEngineItem {
   preview: string;
 }
 
-const COVER_QUALITIES: CoverQuality[] = [
-  "image",
-  "low",
-  "medium",
-  "high",
-  "ultra",
-];
-
-const PARTICLE_EFFECTS: Array<{ id: ParticleEffect; name: string }> = [
-  { id: "none", name: "静止" },
-  { id: "spin", name: "自转" },
-  { id: "wave", name: "波动" },
-  { id: "audio", name: "律动" },
-  { id: "orbit", name: "环绕" },
-  { id: "ripple", name: "涟漪" },
-  { id: "shimmer", name: "闪烁" },
-];
+// 封面清晰度档位（低→极高）。不再提供"图片"档：3D 粒子封面是唯一
+// 形态；image 仍作为渲染失败时的内部降级档保留。最低档 80×80 网格
+// 也覆盖整个封面平面，能完整显示封面。
+const COVER_QUALITIES: CoverQuality[] = ["low", "medium", "high", "ultra"];
 
 /** 3D 歌词动效预设（与颜色无关；颜色始终自动取自背景）。 */
 const LYRIC_FX: Array<{ id: LyricFx; name: string }> = [
@@ -45,7 +32,7 @@ const LYRIC_FX: Array<{ id: LyricFx; name: string }> = [
 
 type VisualTab = "background" | "lyrics";
 
-/** 画质卡片副标签用的粒子数短格式：57,600 → 5.8万。 */
+/** 清晰度卡片副标签用的粒子数短格式：57,600 → 5.8万。 */
 function shortParticleCount(quality: CoverQuality): string {
   if (quality === "image") return "静态";
   const n = particleCount(quality);
@@ -77,8 +64,6 @@ export default function PlaybackVisualPanel({
   const setShowTranslation = usePlayerStore((s) => s.setShowTranslation);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const setCoverQuality = usePlayerStore((s) => s.setCoverQuality);
-  const particleEffect = usePlayerStore((s) => s.particleEffect);
-  const setParticleEffect = usePlayerStore((s) => s.setParticleEffect);
   const coverBenchmarking = usePlayerStore((s) => s.coverBenchmarking);
   const detectCoverQuality = usePlayerStore((s) => s.detectCoverQuality);
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
@@ -242,10 +227,10 @@ export default function PlaybackVisualPanel({
               <h3>动态封面</h3>
               <div className="np-visual-row stacked">
                 <span>
-                  画质
+                  封面清晰度
                   <small>
                     {coverQuality === "image"
-                      ? "静态图"
+                      ? "渲染失败降级"
                       : `${particleCount(coverQuality).toLocaleString()} 粒子`}
                   </small>
                 </span>
@@ -266,10 +251,10 @@ export default function PlaybackVisualPanel({
                 <span>帧率</span>
                 <div className="opt-group">
                   {[
-                    { value: 0, label: "无限" },
-                    { value: 120, label: "120" },
-                    { value: 60, label: "60" },
                     { value: 30, label: "30" },
+                    { value: 60, label: "60" },
+                    { value: 120, label: "120" },
+                    { value: 0, label: "无上限" },
                   ].map((item) => (
                     <button
                       key={item.value}
@@ -281,20 +266,8 @@ export default function PlaybackVisualPanel({
                   ))}
                 </div>
               </div>
-              <div className="np-visual-row stacked">
-                <span>粒子效果</span>
-                <div className="opt-group">
-                  {PARTICLE_EFFECTS.map((item) => (
-                    <button
-                      key={item.id}
-                      className={`opt-btn ${particleEffect === item.id ? "active" : ""}`}
-                      disabled={coverQuality === "image"}
-                      onClick={() => setParticleEffect(item.id)}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
-                </div>
+              <div className="np-visual-row diy-note">
+                <span>粒子律动由歌曲节奏实时驱动：低频起伏、节拍冲击，无需选择效果</span>
               </div>
               <button
                 className="btn np-detect-btn"
@@ -359,7 +332,18 @@ export default function PlaybackVisualPanel({
                     >
                       <span className="np-wallpaper-thumb">
                         {item.preview ? (
-                          <img src={item.preview} alt="" loading="lazy" />
+                          <>
+                            {/* 模糊放大的同图垫底：竖版/异比例预览图
+                                contain 居中时两侧不再是黑边 */}
+                            <img
+                              className="np-wallpaper-thumb-bg"
+                              src={item.preview}
+                              alt=""
+                              loading="lazy"
+                              aria-hidden
+                            />
+                            <img src={item.preview} alt="" loading="lazy" />
+                          </>
                         ) : (
                           <ImageIcon size={14} />
                         )}

@@ -48,8 +48,9 @@ export function ensureAnalyser(el: HTMLAudioElement): boolean {
     ctx ??= new AudioContext();
     source = ctx.createMediaElementSource(el);
     const elementAnalyser = ctx.createAnalyser();
-    elementAnalyser.fftSize = 128;
-    elementAnalyser.smoothingTimeConstant = 0.75;
+    // 256 采样点：低/中/高频段划分更细，频谱通量对鼓点的定位也更准。
+    elementAnalyser.fftSize = 256;
+    elementAnalyser.smoothingTimeConstant = 0.7;
     source.connect(elementAnalyser);
     elementAnalyser.connect(ctx.destination);
     const elementData = new Uint8Array(
@@ -106,4 +107,93 @@ export function readBands(): Bands | null {
   mid /= midEnd - lowEnd;
   high /= Math.max(1, n - midEnd);
   return { low, mid, high, total: (low + mid + high) / 3 };
+}
+
+/* -------------------------- 节奏 / 节拍分析 -------------------------- */
+/*
+ * 在频谱三段能量之上叠加 onset（节拍）检测，供 3D 粒子封面做
+ * 完全由歌曲节奏驱动的无规则律动：
+ * - 频谱通量 flux：当前帧相对上一帧新增能量的总和，对鼓点/重音远比
+ *   绝对能量敏感；
+ * - 自适应阈值：滑动的短时能量均值 × 灵敏度，并要求距上次节拍至少
+ *   MIN_BEAT_GAP_MS（人耳节拍密度上限 ≈ 4-5 拍/秒），避免连成一片；
+ * - beat 冲击值：onset 时置 1，按指数衰减，粒子层据此做"打击感"。
+ */
+
+/** 节拍间距下限（ms）：约 250 拍/分钟封顶。 */
+const MIN_BEAT_GAP_MS = 200;
+/** 能量历史窗口长度（帧）：约 1 秒 @60fps。 */
+const ENERGY_HISTORY = 60;
+/** beat 冲击的半衰期（ms）：约 220ms 衰减到一半，符合打击感的体感。 */
+const BEAT_DECAY_MS = 220;
+
+export interface Rhythm extends Bands {
+  /** 0..1 节拍冲击值，onset 后指数衰减。 */
+  beat: number;
+  /** 距上次节拍的毫秒数。 */
+  sinceBeat: number;
+  /** 0..n 频谱通量原始值（本帧新增能量总和）。 */
+  flux: number;
+}
+
+let prevSpectrum: Uint8Array<ArrayBuffer> | null = null;
+const energyHistory: number[] = [];
+let beatValue = 0;
+let lastBeatAt = 0;
+let lastReadAt = 0;
+
+export function readRhythm(): Rhythm | null {
+  if (!analyser || !data) return null;
+  analyser.getByteFrequencyData(data);
+  const now = performance.now();
+  const dt = lastReadAt ? Math.min(now - lastReadAt, 200) : 16;
+  lastReadAt = now;
+
+  const n = data.length;
+  const lowEnd = Math.max(1, Math.floor(n * 0.18));
+  const midEnd = Math.max(lowEnd + 1, Math.floor(n * 0.55));
+  let low = 0;
+  let mid = 0;
+  let high = 0;
+  let flux = 0;
+  for (let i = 0; i < n; i++) {
+    const v = data[i] / 255;
+    if (i < lowEnd) low += v;
+    else if (i < midEnd) mid += v;
+    else high += v;
+    if (prevSpectrum) {
+      const d = v - prevSpectrum[i] / 255;
+      if (d > 0) flux += d;
+    }
+  }
+  low /= lowEnd;
+  mid /= midEnd - lowEnd;
+  high /= Math.max(1, n - midEnd);
+  const total = (low + mid + high) / 3;
+
+  if (!prevSpectrum || prevSpectrum.length !== n) {
+    prevSpectrum = new Uint8Array(data);
+  } else {
+    prevSpectrum.set(data);
+  }
+
+  // 自适应节拍判定：短时均值 × 灵敏度，且通量显著（重音而非缓变）。
+  energyHistory.push(total);
+  if (energyHistory.length > ENERGY_HISTORY) energyHistory.shift();
+  const avg =
+    energyHistory.reduce((a, b) => a + b, 0) / Math.max(1, energyHistory.length);
+  const sinceBeat = now - lastBeatAt;
+  if (
+    total > avg * 1.32 + 0.015 &&
+    flux > 0.55 &&
+    sinceBeat >= MIN_BEAT_GAP_MS
+  ) {
+    beatValue = 1;
+    lastBeatAt = now;
+  } else {
+    beatValue *= Math.exp(-dt / BEAT_DECAY_MS);
+    if (beatValue < 0.01) beatValue = 0;
+  }
+
+  return { low, mid, high, total, beat: beatValue, sinceBeat, flux };
 }

@@ -5124,6 +5124,7 @@ select option:checked {
   background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 .np-wallpaper-thumb {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   display: flex;
@@ -5135,12 +5136,20 @@ select option:checked {
   color: rgba(255, 255, 255, 0.55);
 }
 .np-wallpaper-thumb img {
+  position: relative;
   width: 100%;
   height: 100%;
   /* contain 保证任意比例的壁纸预览图都完整可见，不裁剪 */
   object-fit: contain;
   display: block;
-  background: rgba(0, 0, 0, 0.55);
+}
+/* 模糊放大的同图垫底：填充 contain 居中后两侧/上下的空隙 */
+.np-wallpaper-thumb .np-wallpaper-thumb-bg {
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  filter: blur(12px) brightness(0.72) saturate(1.1);
+  transform: scale(1.2);
 }
 .np-wallpaper-title {
   min-width: 0;

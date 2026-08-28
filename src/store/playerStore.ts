@@ -210,10 +210,6 @@ function readAccentColor(): AccentColor {
   return /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#ec4141";
 }
 
-/** Motion applied to the 3D particle album cover on the now-playing page. */
-export type ParticleEffect =
-  "none" | "spin" | "wave" | "audio" | "orbit" | "ripple" | "shimmer";
-
 /** 播放页歌词布局：两行浮层 / 多行滚动列表。 */
 export type LyricLayout = "dual" | "full";
 
@@ -379,21 +375,6 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 /** Roaming pool: prefer free tracks, VIP ones cannot be streamed. */
-function readParticleEffect(): ParticleEffect {
-  const v = readStr("reverie_particle", "spin");
-  return [
-    "none",
-    "spin",
-    "wave",
-    "audio",
-    "orbit",
-    "ripple",
-    "shimmer",
-  ].includes(v)
-    ? (v as ParticleEffect)
-    : "spin";
-}
-
 function readPlayMode(): PlayMode {
   const v = readStr("reverie_playmode", "sequence");
   // "loop" existed in older builds but was never reachable from the UI.
@@ -740,7 +721,6 @@ interface PlayerState {
   lyricLayout: LyricLayout;
   /** 播放页 Wallpaper Engine 壁纸背景；null 表示不使用。 */
   npWallpaper: NpWallpaper | null;
-  particleEffect: ParticleEffect;
   /** Cover render level; "image" disables the particle system entirely. */
   coverQuality: CoverQuality;
   /** Why the current level was chosen, shown in settings. */
@@ -848,7 +828,6 @@ interface PlayerState {
   setNpFrameRate: (fps: number) => void;
   setLyricLayout: (layout: LyricLayout) => void;
   setNpWallpaper: (wallpaper: NpWallpaper | null) => void;
-  setParticleEffect: (e: ParticleEffect) => void;
   applyDiyPreset: (preset: "void") => void;
   setNpVoid: (v: boolean) => void;
   setCoverQuality: (q: CoverQuality, reason?: string) => void;
@@ -1207,7 +1186,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     : 0,
   lyricLayout: readStr("reverie_lyriclayout", "dual") === "full" ? "full" : "dual",
   npWallpaper: readNpWallpaper(),
-  particleEffect: readParticleEffect(),
   coverQuality: readCoverQuality(),
   coverQualityReason: readStr("reverie_cover_reason", ""),
   coverBenchmarking: false,
@@ -1894,22 +1872,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     if (wallpaper) write("reverie_np_wallpaper", JSON.stringify(wallpaper));
     else write("reverie_np_wallpaper", "");
   },
-  setParticleEffect: (e) => {
-    // 选粒子效果意味着想看到动态封面，自动退出虚空模式。
-    set({ particleEffect: e, npVoid: false });
-    write("reverie_particle", e);
-    write("reverie_np_void", "0");
-  },
   applyDiyPreset: (preset) => {
     if (preset !== "void") return;
     // 虚空：隐藏封面与粒子，只留歌词与背景；壁纸保持可用。
     set({
       npVoid: true,
-      particleEffect: "none",
       coverQuality: "image",
       coverQualityReason: "虚空预设",
     });
-    write("reverie_particle", "none");
     write(COVER_QUALITY_KEY, "image");
     write("reverie_cover_reason", "虚空预设");
     write("reverie_np_void", "1");
