@@ -220,7 +220,8 @@ export default function NowPlayingView() {
     }
 
     setLyricPending(false);
-    setCurrentLyricLine(lyricLines[currentIndex].text || "♪");
+    // 解析层已剔除空行与 "♪" 间奏标记行，这里不再需要音符占位。
+    setCurrentLyricLine(lyricLines[currentIndex].text || "");
     if (currentIndex + 1 < lyricLines.length) {
       setNextLyricLine(lyricLines[currentIndex + 1].text || "");
     } else {

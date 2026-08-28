@@ -143,7 +143,7 @@ function LyricScrollList({
           className={`np-full-lyric${index === activeIndex ? " active" : ""}`}
           onClick={() => onSeekLine?.(line.time)}
         >
-          <span>{line.text || "♪"}</span>
+          <span>{line.text}</span>
           {showTranslation && line.translation && (
             <small>{line.translation}</small>
           )}
