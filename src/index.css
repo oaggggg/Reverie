@@ -8334,6 +8334,8 @@ textarea {
   z-index: 120;
 }
 .media-detail-dialog {
+  display: flex;
+  flex-direction: column;
   width: min(900px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow: hidden;
@@ -8343,6 +8345,7 @@ textarea {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
 }
 .media-detail-video {
+  flex: 0 0 auto;
   position: relative;
   display: grid;
   place-items: center;
@@ -8711,8 +8714,11 @@ textarea {
   color: var(--text-faint);
 }
 .media-detail-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 16px 18px 20px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .media-detail-head {
   display: flex;
