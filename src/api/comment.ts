@@ -175,7 +175,12 @@ export async function getResourceComments(
   return {
     comments: legacyComments.map(normalizeResourceComment),
     total: Number(
-      data.totalCount ?? data.total ?? response.total ?? legacyComments.length,
+      data.totalCount ??
+        data.total ??
+        response.total ??
+        response.cnum ??
+        data.cnum ??
+        legacyComments.length,
     ),
     hasMore: Boolean(data.hasMore ?? response.more),
     cursor: String(data.cursor ?? response.cursor ?? ""),

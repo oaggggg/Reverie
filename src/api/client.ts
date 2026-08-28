@@ -445,6 +445,7 @@ export function normalizeSong(raw: unknown): Song | null {
       statistics?.commentCountAll ??
       commentThread?.commentCount ??
       commentThread?.totalCount ??
+      s.cnum ??
       0,
   );
 
