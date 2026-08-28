@@ -7599,12 +7599,6 @@ select option:checked {
   color: var(--text);
   font-size: 12px;
 }
-.album-quality-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--accent-2);
-}
 .artist-introduction {
   margin: 0 0 18px;
   padding: 14px 16px;
