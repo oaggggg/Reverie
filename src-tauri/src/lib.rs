@@ -204,7 +204,33 @@ struct WallpaperEngineItem {
     preview: String,
 }
 
-/// 解析 Steam 库根目录：默认安装位置 + libraryfolders.vdf 登记的其它库。
+/// 从注册表读取 Steam 安装目录（Steam 可装在任意盘符，
+/// 例如 D:\Steam，不能只依赖 ProgramFiles 环境变量）。
+#[cfg(windows)]
+fn steam_install_from_registry() -> Option<PathBuf> {
+    use winreg::enums::*;
+    use winreg::RegKey;
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(key) = hkcu.open_subkey("Software\\Valve\\Steam") {
+        if let Ok(path) = key.get_value::<String, _>("SteamPath") {
+            if !path.trim().is_empty() {
+                return Some(PathBuf::from(path));
+            }
+        }
+    }
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    if let Ok(key) = hklm.open_subkey("SOFTWARE\\WOW6432Node\\Valve\\Steam") {
+        if let Ok(path) = key.get_value::<String, _>("InstallPath") {
+            if !path.trim().is_empty() {
+                return Some(PathBuf::from(path));
+            }
+        }
+    }
+    None
+}
+
+/// 解析 Steam 库根目录：注册表安装位置 + 默认位置 + libraryfolders.vdf
+/// 登记的其它库。
 fn steam_library_roots() -> Vec<PathBuf> {
     let mut roots: Vec<PathBuf> = Vec::new();
     fn push(roots: &mut Vec<PathBuf>, path: PathBuf) {
@@ -212,24 +238,33 @@ fn steam_library_roots() -> Vec<PathBuf> {
             roots.push(path);
         }
     }
+    // 注册表最可靠：无论装在哪个盘都能拿到（值形如 d:/steam）。
+    #[cfg(windows)]
+    if let Some(path) = steam_install_from_registry() {
+        push(&mut roots, path);
+    }
     if let Ok(program_files) = std::env::var("ProgramFiles(x86)") {
         push(&mut roots, Path::new(&program_files).join("Steam"));
     }
     push(&mut roots, PathBuf::from("C:\\Program Files (x86)\\Steam"));
-    // libraryfolders.vdf 用 "path"  "D:\\..." 逐行列出所有库。
-    if let Some(first) = roots.first() {
-        let vdf = first.join("steamapps").join("libraryfolders.vdf");
-        if let Ok(content) = std::fs::read_to_string(&vdf) {
-            for line in content.lines() {
-                let trimmed = line.trim();
-                if let Some(rest) = trimmed.strip_prefix("\"path\"") {
-                    let path = rest.trim().trim_matches('"');
-                    if !path.is_empty() {
-                        push(&mut roots, PathBuf::from(path));
-                    }
+    // libraryfolders.vdf 用 "path"  "D:\\..." 逐行列出所有库；主库的
+    // vdf 一定存在，逐个候选目录尝试读取直到命中。
+    let candidates = roots.clone();
+    for root in candidates {
+        let vdf = root.join("steamapps").join("libraryfolders.vdf");
+        let Ok(content) = std::fs::read_to_string(&vdf) else {
+            continue;
+        };
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("\"path\"") {
+                let path = rest.trim().trim_matches('"');
+                if !path.is_empty() {
+                    push(&mut roots, PathBuf::from(path));
                 }
             }
         }
+        break;
     }
     roots
 }
@@ -237,8 +272,7 @@ fn steam_library_roots() -> Vec<PathBuf> {
 /// 扫描 Wallpaper Engine 创意工坊，返回播放页能直接渲染的壁纸
 /// （video / web 类型）。scene 类型依赖 Wallpaper Engine 运行时，
 /// 浏览器环境无法渲染，不列出。
-#[tauri::command]
-fn list_wallpaper_engine_wallpapers() -> Vec<WallpaperEngineItem> {
+fn scan_wallpaper_engine_items() -> Vec<WallpaperEngineItem> {
     let mut items = Vec::new();
     for root in steam_library_roots() {
         let workshop = root
@@ -311,6 +345,26 @@ fn list_wallpaper_engine_wallpapers() -> Vec<WallpaperEngineItem> {
         }
     }
     items.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+    items
+}
+
+/// 扫描并把每个壁纸涉及的文件在运行时加入 asset 协议白名单。
+/// Steam 库可能装在任意盘符，静态 scope 无法穷举，逐文件放行最精确。
+#[tauri::command]
+fn list_wallpaper_engine_wallpapers(app: tauri::AppHandle) -> Vec<WallpaperEngineItem> {
+    let items = scan_wallpaper_engine_items();
+    let scope = app.asset_protocol_scope();
+    for item in &items {
+        let _ = scope.allow_file(Path::new(&item.path));
+        if !item.preview.is_empty() {
+            let _ = scope.allow_file(Path::new(&item.preview));
+        }
+        if item.kind == "web" {
+            if let Some(parent) = Path::new(&item.path).parent() {
+                let _ = scope.allow_directory(parent, true);
+            }
+        }
+    }
     items
 }
 
@@ -525,4 +579,35 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 本机存在 Wallpaper Engine 工坊内容时，扫描必须能找到
+    /// 视频/网页壁纸（覆盖 Steam 装在非默认盘符的场景）。
+    #[test]
+    fn scan_finds_workshop_wallpapers() {
+        let roots = steam_library_roots();
+        println!("steam roots: {:?}", roots);
+        let has_workshop = roots.iter().any(|root| {
+            root.join("steamapps")
+                .join("workshop")
+                .join("content")
+                .join("431960")
+                .is_dir()
+        });
+        let items = scan_wallpaper_engine_items();
+        println!("scanned {} video/web wallpapers", items.len());
+        for item in items.iter().take(8) {
+            println!("  [{}] {} -> {}", item.kind, item.title, item.path);
+        }
+        if has_workshop {
+            assert!(
+                !items.is_empty(),
+                "本机存在 Wallpaper Engine 工坊内容，但视频/网页壁纸扫描结果为空"
+            );
+        }
+    }
 }
