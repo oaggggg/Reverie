@@ -1702,6 +1702,12 @@ select option:checked {
   font-size: 9px;
 }
 
+/* 左上角变体：卡片右上角已有悬浮操作按钮（编辑/删除/收藏）时避让 */
+.playlist-play-count-left {
+  right: auto;
+  left: 10px;
+}
+
 /* 长列表回到顶部悬浮球：吸附在滚动容器可视区右下角，零高度
    不占布局、未浮现时不拦截点击。 */
 .back-to-top-dock {

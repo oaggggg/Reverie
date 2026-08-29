@@ -84,7 +84,18 @@ export default function UserListPage() {
   // 精品歌单接口返回的标签才是下拉筛选真正支持的分类；
   // 分类列表接口还会包含无法加载精品歌单的占位分类。
   const discoveryCategories = (() => {
-    const tagged = [...discovery.highQualityTags, ...discovery.hotTags];
+    // 精品标签的 resourceCount 为 0 表示该分类没有精品歌单；热门
+    // 标签只有能在精品集合中查到数据（或自带数量）才保留，避免
+    // 分类栏出现点了没有任何数据的选项。
+    const highQuality = discovery.highQualityTags.filter(
+      (category) => category.resourceCount > 0,
+    );
+    const qualityNames = new Set(highQuality.map((item) => item.name));
+    const hot = discovery.hotTags.filter(
+      (category) =>
+        category.resourceCount > 0 || qualityNames.has(category.name),
+    );
+    const tagged = [...highQuality, ...hot];
     const source = tagged.length
       ? tagged
       : discovery.categories.filter((category) => category.resourceCount > 0);
@@ -182,6 +193,8 @@ export default function UserListPage() {
             playlists={minePlaylists}
             onOpen={openPlaylist}
             loading={accountLoading || userPlaylistsLoading}
+            showPlayCount
+            playCountPosition="top-left"
             emptyText={
               !loggedIn
                 ? "登录后查看「我创建 / 收藏的歌单」"
@@ -248,6 +261,8 @@ export default function UserListPage() {
             onOpen={openPlaylist}
             loading={discovery.loading}
             emptyText="暂无精品歌单"
+            showPlayCount
+            playCountPosition="top-left"
             renderActions={(playlist) => (
               <button
                 className={`icon-action ${playlist.subscribed ? "active" : ""}`}
