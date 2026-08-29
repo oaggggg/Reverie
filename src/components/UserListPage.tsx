@@ -81,24 +81,19 @@ export default function UserListPage() {
   const minePlaylists =
     accountListMode === "all" ? userPlaylists : accountPlaylists;
 
-  // 精品歌单接口返回的标签才是下拉筛选真正支持的分类；
-  // 分类列表接口还会包含无法加载精品歌单的占位分类。
+  // 分类来源：精品标签 + 热门标签。这两个接口不带数量字段，无法
+  // 直接判断有无数据，空分类由 store 首次加载后的后台探测剔除
+  // （probedTagNames）；探测完成前先完整展示，兜底走分类列表。
   const discoveryCategories = (() => {
-    // 精品标签的 resourceCount 为 0 表示该分类没有精品歌单；热门
-    // 标签只有能在精品集合中查到数据（或自带数量）才保留，避免
-    // 分类栏出现点了没有任何数据的选项。
-    const highQuality = discovery.highQualityTags.filter(
-      (category) => category.resourceCount > 0,
-    );
-    const qualityNames = new Set(highQuality.map((item) => item.name));
-    const hot = discovery.hotTags.filter(
-      (category) =>
-        category.resourceCount > 0 || qualityNames.has(category.name),
-    );
-    const tagged = [...highQuality, ...hot];
-    const source = tagged.length
-      ? tagged
-      : discovery.categories.filter((category) => category.resourceCount > 0);
+    const tagged = [...discovery.highQualityTags, ...discovery.hotTags];
+    const probed = discovery.probedTagNames;
+    const source = probed
+      ? tagged.filter((category) => probed.includes(category.name))
+      : tagged.length
+        ? tagged
+        : discovery.categories.filter(
+            (category) => category.resourceCount > 0,
+          );
     const seen = new Set<string>();
     return source.filter((category) => {
       if (!category.name || category.name === "全部" || seen.has(category.name)) {
