@@ -301,9 +301,9 @@ export default function SettingsModal() {
   );
   const membershipLabel =
     vipInfo?.svip && vipActive
-      ? "黑胶 SVIP"
+      ? "黑胶SVIP"
       : vipActive || accountOverview?.vipType
-        ? "黑胶 VIP"
+        ? "黑胶VIP"
         : "会员";
 
   const openFeedback = async () => {
