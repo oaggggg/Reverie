@@ -1702,6 +1702,46 @@ select option:checked {
   font-size: 9px;
 }
 
+/* 长列表回到顶部悬浮球：吸附在滚动容器可视区右下角，零高度
+   不占布局、未浮现时不拦截点击。 */
+.back-to-top-dock {
+  position: sticky;
+  bottom: 18px;
+  height: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+.back-to-top {
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-surface-border);
+  color: var(--text);
+  box-shadow: 0 6px 18px var(--shadow);
+  opacity: 0;
+  transform: translateY(8px) scale(0.92);
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    background 0.15s ease;
+}
+.back-to-top.show {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.back-to-top:hover {
+  background: var(--hover);
+}
+
 .loading-hint {
   color: var(--text-faint);
   text-align: center;
