@@ -5088,7 +5088,9 @@ select option:checked {
 }
 .np-full-lyric.active {
   color: var(--lyric-accent, #fff);
-  font-size: 1.18em;
+  /* 与两行布局的当前句同一层级（1.55em）：字号滑杆的数值在两种
+     布局下指向同一个基准，当前行/当前句的视觉大小保持一致。 */
+  font-size: 1.55em;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9);
 }
 
