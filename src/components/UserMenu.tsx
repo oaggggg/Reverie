@@ -81,14 +81,6 @@ export default function UserMenu() {
   const vipType = Number(vipInfo?.vipType ?? profile?.vipType ?? 0);
   const vipLevel = Number(vipInfo?.vipLevel ?? 0);
   const expireTime = Number(vipInfo?.expireTime ?? 0);
-  const expireTimes = (vipInfo?.expireTimes?.length
-    ? vipInfo.expireTimes
-    : expireTime > 0
-      ? [expireTime]
-      : []
-  ).filter((time) => Number.isFinite(time) && time >= 1e11);
-  const displayExpireTime =
-    expireTimes.find((time) => time >= Date.now()) ?? 0;
   const isVip = vipType > 0 || vipLevel > 0 || expireTime > 0;
   // 铭牌以统一身份档位为准（/vip/info 双包生效态 + 官方 redplus 品牌位），
   // 不再用 vipType 数字猜档位：11 实为年费 VIP 而非 SVIP。
@@ -200,11 +192,6 @@ export default function UserMenu() {
                   >
                     粉丝 {profileDetail.followeds}
                   </button>
-                )}
-                {isVip && displayExpireTime > 0 && (
-                  <span className="vip-expiry-list">
-                    {new Date(displayExpireTime).toLocaleDateString("zh-CN")}
-                  </span>
                 )}
               </div>
             </div>
