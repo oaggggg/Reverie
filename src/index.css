@@ -4927,6 +4927,13 @@ select option:checked {
   z-index: 1;
   will-change: transform;
   overflow: hidden;
+  /* 虚空/恢复时透明过渡，封面保持挂载零重建 */
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.np-cover-3d.np-cover-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .np-cover-3d::after {
@@ -4956,6 +4963,8 @@ select option:checked {
   display: block;
   width: 100%;
   height: 100%;
+  /* 场景重建（切清晰度/换封面重采样完成）时淡入，缓冲突兀跳变 */
+  animation: np-el-fade-in 0.5s ease both;
 }
 
 .particle-album-cover:active {
@@ -4981,11 +4990,11 @@ select option:checked {
 }
 
 .lyrics-3d {
-  width: min(88%, 520px);
+  width: min(96%, 760px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 26px;
   text-align: center;
   padding: 28px 34px;
   border-radius: 24px;
@@ -5012,10 +5021,12 @@ select option:checked {
 /* 多行滚动歌词列表 */
 .np-full-lyrics {
   /* 可视窗口高度；上下各留半窗高的占位，让首尾行也能滚到正中 */
-  --np-full-h: min(48vh, 440px);
+  --np-full-h: min(54vh, 500px);
   /* offsetTop 的参照必须是滚动容器本身，否则滚动定位相对舞台错位 */
   position: relative;
-  width: min(92%, 560px);
+  /* preserve-3d 让每行的 translateZ 阶梯在透视下真实生效 */
+  transform-style: preserve-3d;
+  width: min(96%, 720px);
   height: var(--np-full-h);
   overflow-y: auto;
   display: flex;
@@ -5092,6 +5103,17 @@ select option:checked {
   border: none;
   pointer-events: none;
   filter: brightness(0.5) saturate(1.05);
+  /* 切换壁纸时新视频淡入，与旧画面形成交叉缓冲 */
+  animation: np-el-fade-in 0.7s ease both;
+}
+
+@keyframes np-el-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* DIY 面板：壁纸卡片网格（16:9 大图完整展示壁纸全貌） */
@@ -5177,22 +5199,22 @@ select option:checked {
 }
 
 .lyrics-3d-current {
-  font-size: clamp(22px, 2.3vw, 30px);
+  font-size: clamp(24px, 2.7vw, 37px);
   font-weight: 650;
   color: var(--lyric-accent, #ffffff);
   text-shadow:
-    0 0 16px var(--lyric-accent-soft),
-    0 2px 16px rgba(0, 0, 0, 0.95);
+    0 0 calc(18px * var(--lyric-glow, 0.4)) var(--lyric-accent-soft),
+    0 2px calc(5px + 11px * var(--lyric-glow, 0.4)) rgba(0, 0, 0, 0.95);
   transition: transform 0.3s ease;
   transform-style: preserve-3d;
   /* 当前句浮在装配平面前方，与下一句拉开纵深 */
   transform: translateZ(30px);
   line-height: 1.5;
-  max-width: 90%;
+  max-width: 96%;
 }
 
 .lyrics-3d-next {
-  font-size: clamp(14px, 1.5vw, 18px);
+  font-size: clamp(16px, 1.8vw, 22px);
   color: rgba(255, 255, 255, 0.66);
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
   transition: transform 0.3s ease;
@@ -5200,12 +5222,12 @@ select option:checked {
   /* 下一句沉到平面后方，两行形成前后层次 */
   transform: translateZ(-16px);
   line-height: 1.5;
-  max-width: 90%;
+  max-width: 96%;
 }
 
 /* Lyric swap: the incoming and outgoing lines share one grid cell so they
    cross-fade in place instead of the text changing in a single frame.
-   动效由 lyrics-fx-* 预设类选择；stair（阶梯式）为默认。 */
+   歌词效果由 lyrics-fx-* 预设类选择：流光 / 雷电 / 碎裂 / 霓虹 / 涟漪。 */
 .lyrics-3d-current,
 .lyrics-3d-next {
   display: grid;
@@ -5215,40 +5237,172 @@ select option:checked {
   grid-area: 1 / 1;
   will-change: opacity, transform, filter;
 }
-.lyrics-fx-stair .lyric-3d-text.is-entering {
+/* 译文：位于主句下方，弱化展示 */
+.lyric-3d-trans {
+  grid-area: 2 / 1;
+  margin-top: 10px;
+  font-size: 0.6em;
+  font-weight: 450;
+  color: rgba(255, 255, 255, 0.62);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
+  animation: lyric-fx-fade-in 0.5s ease both;
+}
+
+/* 通用离场：上浮淡出 */
+.lyrics-fx-shine .lyric-3d-text.is-leaving,
+.lyrics-fx-thunder .lyric-3d-text.is-leaving,
+.lyrics-fx-shatter .lyric-3d-text.is-leaving,
+.lyrics-fx-neon .lyric-3d-text.is-leaving,
+.lyrics-fx-ripple .lyric-3d-text.is-leaving {
+  animation: lyric-3d-out 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
+/* ---- 流光：光带沿当前句往复扫过 ---- */
+.lyrics-fx-shine .lyric-3d-text.is-entering {
   animation: lyric-3d-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.lyrics-fx-stair .lyric-3d-text.is-leaving {
-  animation: lyric-3d-out 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-  pointer-events: none;
+.lyrics-fx-shine .lyrics-3d-current .lyric-3d-text {
+  background: linear-gradient(
+    110deg,
+    var(--lyric-accent, #fff) 42%,
+    #ffffff 50%,
+    var(--lyric-accent, #fff) 58%
+  );
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 14px var(--lyric-accent-soft))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+  animation: lyric-fx-shine-sweep 2.6s ease-in-out infinite alternate;
 }
-.lyrics-fx-fade .lyric-3d-text.is-entering {
-  animation: lyric-fx-fade-in 0.42s ease both;
+@keyframes lyric-fx-shine-sweep {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
 }
-.lyrics-fx-fade .lyric-3d-text.is-leaving {
-  animation: lyric-fx-fade-out 0.42s ease both;
-  pointer-events: none;
+
+/* ---- 雷电：随机瞬间频闪 + 微抖，像电弧窜过 ---- */
+.lyrics-fx-thunder .lyric-3d-text.is-entering {
+  animation: lyric-3d-in 0.32s ease both;
 }
-.lyrics-fx-bounce .lyric-3d-text.is-entering {
-  animation: lyric-fx-bounce-in 0.46s cubic-bezier(0.3, 1.2, 0.4, 1) both;
+.lyrics-fx-thunder .lyrics-3d-current .lyric-3d-text {
+  animation: lyric-fx-thunder-flicker 3.4s steps(1, end) infinite;
 }
-.lyrics-fx-bounce .lyric-3d-text.is-leaving {
-  animation: lyric-fx-fade-out 0.42s ease both;
-  pointer-events: none;
+@keyframes lyric-fx-thunder-flicker {
+  0%,
+  86%,
+  100% {
+    opacity: 1;
+    text-shadow:
+      0 0 18px var(--lyric-accent-soft),
+      0 2px 14px rgba(0, 0, 0, 0.95);
+    transform: none;
+  }
+  87% {
+    opacity: 0.5;
+    text-shadow:
+      0 0 2px #ffffff,
+      0 0 28px #bfe9ff;
+    transform: translateX(1px) skewX(-2deg);
+  }
+  89% {
+    opacity: 1;
+    text-shadow:
+      0 0 30px #ffffff,
+      0 0 60px var(--lyric-accent-soft);
+    transform: translateX(-1px);
+  }
+  91% {
+    opacity: 0.7;
+  }
+  93% {
+    opacity: 1;
+    text-shadow:
+      0 0 12px var(--lyric-accent-soft),
+      0 2px 14px rgba(0, 0, 0, 0.95);
+    transform: none;
+  }
 }
-.lyrics-fx-flip .lyric-3d-text.is-entering {
-  animation: lyric-fx-flip-in 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+/* ---- 碎裂：新句沿裂纹逐步显现 ---- */
+.lyrics-fx-shatter .lyric-3d-text.is-entering {
+  animation: lyric-fx-shatter-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
-.lyrics-fx-flip .lyric-3d-text.is-leaving {
-  animation: lyric-fx-flip-out 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-  pointer-events: none;
+@keyframes lyric-fx-shatter-in {
+  0% {
+    opacity: 0;
+    clip-path: polygon(0 0, 52% 0, 44% 100%, 0 100%);
+    transform: translateX(-10px);
+    filter: blur(2px);
+  }
+  30% {
+    opacity: 1;
+  }
+  55% {
+    clip-path: polygon(0 0, 86% 0, 74% 100%, 0 100%);
+    transform: translateX(4px);
+  }
+  80% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    transform: none;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
 }
-.lyrics-fx-blur .lyric-3d-text.is-entering {
-  animation: lyric-fx-blur-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+/* ---- 霓虹：辉光呼吸脉冲 ---- */
+.lyrics-fx-neon .lyric-3d-text.is-entering {
+  animation: lyric-3d-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.lyrics-fx-blur .lyric-3d-text.is-leaving {
-  animation: lyric-fx-blur-out 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-  pointer-events: none;
+.lyrics-fx-neon .lyrics-3d-current .lyric-3d-text {
+  animation: lyric-fx-neon-pulse 2.6s ease-in-out infinite;
+}
+@keyframes lyric-fx-neon-pulse {
+  0%,
+  100% {
+    text-shadow:
+      0 0 4px var(--lyric-accent, #fff),
+      0 0 16px var(--lyric-accent-soft),
+      0 2px 12px rgba(0, 0, 0, 0.9);
+  }
+  50% {
+    text-shadow:
+      0 0 1px #ffffff,
+      0 0 9px var(--lyric-accent, #fff),
+      0 0 30px var(--lyric-accent-soft),
+      0 2px 12px rgba(0, 0, 0, 0.9);
+  }
+}
+
+/* ---- 涟漪：字距扩散的波纹式浮现 ---- */
+.lyrics-fx-ripple .lyric-3d-text.is-entering {
+  animation: lyric-fx-ripple-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes lyric-fx-ripple-in {
+  0% {
+    opacity: 0;
+    filter: blur(14px);
+    letter-spacing: 0.16em;
+    transform: scale(1.035);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    letter-spacing: normal;
+    transform: none;
+  }
 }
 @keyframes lyric-3d-in {
   from {
@@ -5280,72 +5434,6 @@ select option:checked {
   }
   to {
     opacity: 1;
-  }
-}
-@keyframes lyric-fx-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-@keyframes lyric-fx-bounce-in {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.94);
-  }
-  62% {
-    opacity: 1;
-    transform: translateY(-5px) scale(1.015);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-@keyframes lyric-fx-flip-in {
-  from {
-    opacity: 0;
-    transform: perspective(620px) rotateX(-72deg);
-  }
-  to {
-    opacity: 1;
-    transform: perspective(620px) rotateX(0deg);
-  }
-}
-@keyframes lyric-fx-flip-out {
-  from {
-    opacity: 1;
-    transform: perspective(620px) rotateX(0deg);
-  }
-  to {
-    opacity: 0;
-    transform: perspective(620px) rotateX(58deg);
-  }
-}
-@keyframes lyric-fx-blur-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-    filter: blur(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-}
-@keyframes lyric-fx-blur-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-12px);
-    filter: blur(16px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -7170,10 +7258,36 @@ select option:checked {
   padding: 6px 9px 8px;
 }
 
-/* 虚空模式：封面区域完全隐去 */
-.np-cover-void {
-  width: 100%;
-  height: 100%;
+/* 滑杆行：滑杆 + 单独重置按钮 */
+.np-slider-unit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.np-slider-unit .slider {
+  flex: 1;
+  max-width: 180px;
+}
+.np-slider-reset {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--glass-popup-border);
+  border-radius: 50%;
+  background: var(--glass-popup-hover);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.np-slider-reset:hover {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--accent) 74%, white);
 }
 
 .np-visual-row.diy-note {

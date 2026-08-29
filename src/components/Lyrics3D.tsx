@@ -6,12 +6,17 @@ import type { CoverAccent } from "../utils/coverAccent";
 interface Lyrics3DProps {
   currentLine: string;
   nextLine: string;
+  /** 当前句 / 下一句的翻译（showTranslation 开启时展示）。 */
+  currentTranslation?: string;
+  nextTranslation?: string;
   /** true = 当前还没有唱到的行（前奏/间奏），以上一行待唱样式弱化展示。 */
   pending?: boolean;
   rotationRef: { current: { x: number; y: number } };
   /** 滚轮缩放联动：粒子封面每帧写入的缩放系数（1 = 静息大小）。 */
   zoomRef?: { current: number };
   fx: LyricFx;
+  /** 歌词清晰度 0~100：越高彩色辉光越弱、字面越锐利。 */
+  clarity?: number;
   accent: CoverAccent;
   layout: LyricLayout;
   /** layout === "full" 时启用滚动歌词列表。 */
@@ -47,10 +52,14 @@ interface Slot {
  */
 function CrossfadeLine({
   text,
+  translation,
+  showTranslation,
   className,
   pending,
 }: {
   text: string;
+  translation?: string;
+  showTranslation?: boolean;
   className: string;
   pending?: boolean;
 }) {
@@ -81,6 +90,9 @@ function CrossfadeLine({
       <span key={current.id} className="lyric-3d-text is-entering">
         {current.text}
       </span>
+      {showTranslation && translation && (
+        <span className="lyric-3d-trans">{translation}</span>
+      )}
     </div>
   );
 }
@@ -133,18 +145,28 @@ function LyricScrollList({
     >
       {/* 上下各半窗高的占位，让首尾行也能滚到正中 */}
       <div className="np-full-lyrics-pad" aria-hidden />
-      {lines.map((line, index) => (
-        <button
-          key={`${line.time}-${index}`}
-          className={`np-full-lyric${index === activeIndex ? " active" : ""}`}
-          onClick={() => onSeekLine?.(line.time)}
-        >
-          <span>{line.text}</span>
-          {showTranslation && line.translation && (
-            <small>{line.translation}</small>
-          )}
-        </button>
-      ))}
+      {lines.map((line, index) => {
+        // 阶梯下沉：离当前句越远的行，沉得越深、越小、越暗——
+        // 从侧面看整个列表呈现向纵深退去的阶梯。
+        const dist = Math.min(Math.abs(index - activeIndex), 6);
+        const depth = index === activeIndex ? 0 : dist;
+        return (
+          <button
+            key={`${line.time}-${index}`}
+            className={`np-full-lyric${index === activeIndex ? " active" : ""}`}
+            style={{
+              transform: `translateZ(${-depth * 30}px)`,
+              opacity: String(Math.max(0.3, 1 - depth * 0.11)),
+            }}
+            onClick={() => onSeekLine?.(line.time)}
+          >
+            <span>{line.text}</span>
+            {showTranslation && line.translation && (
+              <small>{line.translation}</small>
+            )}
+          </button>
+        );
+      })}
       <div className="np-full-lyrics-pad" aria-hidden />
     </div>
   );
@@ -153,10 +175,13 @@ function LyricScrollList({
 export default function Lyrics3D({
   currentLine,
   nextLine,
+  currentTranslation,
+  nextTranslation,
   pending = false,
   rotationRef,
   zoomRef,
   fx,
+  clarity = 60,
   accent,
   layout,
   lyricLines = [],
@@ -215,6 +240,8 @@ export default function Lyrics3D({
         {
           "--lyric-accent": accent.color,
           "--lyric-accent-soft": accent.soft,
+          // 清晰度 → 彩色辉光强度（越高越锐利）
+          "--lyric-glow": String(1 - clarity / 100),
         } as React.CSSProperties
       }
     >
@@ -228,8 +255,19 @@ export default function Lyrics3D({
         />
       ) : (
         <>
-          <CrossfadeLine text={currentLine} className="lyrics-3d-current" pending={pending} />
-          <CrossfadeLine text={nextLine} className="lyrics-3d-next" />
+          <CrossfadeLine
+            text={currentLine}
+            translation={currentTranslation}
+            showTranslation={showTranslation}
+            className="lyrics-3d-current"
+            pending={pending}
+          />
+          <CrossfadeLine
+            text={nextLine}
+            translation={nextTranslation}
+            showTranslation={showTranslation}
+            className="lyrics-3d-next"
+          />
         </>
       )}
     </div>

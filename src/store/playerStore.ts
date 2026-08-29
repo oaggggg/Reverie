@@ -214,18 +214,24 @@ function readAccentColor(): AccentColor {
 export type LyricLayout = "dual" | "full";
 
 /**
- * 播放页 3D 歌词动效预设（与颜色无关）：
- * stair 阶梯式（默认）/ fade 淡入 / bounce 弹入 / flip 翻入 / blur 模糊滑入。
+ * 播放页歌词效果预设（与颜色无关，作用于当前句的持续观感）：
+ * shine 流光 / thunder 雷电 / shatter 碎裂 / neon 霓虹 / ripple 涟漪。
  */
-export type LyricFx = "stair" | "fade" | "bounce" | "flip" | "blur";
+export type LyricFx = "shine" | "thunder" | "shatter" | "neon" | "ripple";
+
+const LYRIC_FX_IDS: ReadonlyArray<LyricFx> = [
+  "shine",
+  "thunder",
+  "shatter",
+  "neon",
+  "ripple",
+];
 
 function readLyricFx(): LyricFx {
-  const v = readStr("reverie_lyricfx", "stair");
-  return (["stair", "fade", "bounce", "flip", "blur"] as const).includes(
-    v as LyricFx,
-  )
+  const v = readStr("reverie_lyricfx", "shine");
+  return (LYRIC_FX_IDS as readonly string[]).includes(v)
     ? (v as LyricFx)
-    : "stair";
+    : "shine";
 }
 
 /** 播放页 Wallpaper Engine 壁纸背景（仅 mp4 视频壁纸）。 */
@@ -725,6 +731,11 @@ interface PlayerState {
   coverQuality: CoverQuality;
   /** 粒子律动幅度系数 0~1.5；1.0 以下为日常合适区间。 */
   rhythmGain: number;
+  /** 歌词清晰度 0~100：越高彩色辉光越弱、字面越锐利。 */
+  lyricClarity: number;
+  /** 3D 歌词位置偏移（px），水平 / 垂直。 */
+  lyricOffsetX: number;
+  lyricOffsetY: number;
   /** Why the current level was chosen, shown in settings. */
   coverQualityReason: string;
   /** 虚空模式：隐藏封面与粒子，只保留歌词与背景。 */
@@ -831,9 +842,14 @@ interface PlayerState {
   setLyricLayout: (layout: LyricLayout) => void;
   setNpWallpaper: (wallpaper: NpWallpaper | null) => void;
   applyDiyPreset: (preset: "void") => void;
+  /** 恢复播放页 DIY 相关设置为默认值。 */
+  resetVisualDefaults: () => void;
   setNpVoid: (v: boolean) => void;
   setCoverQuality: (q: CoverQuality, reason?: string) => void;
   setRhythmGain: (v: number) => void;
+  setLyricClarity: (v: number) => void;
+  setLyricOffsetX: (v: number) => void;
+  setLyricOffsetY: (v: number) => void;
   /** Step one level down after sustained dropped frames. */
   degradeCoverQuality: () => void;
   /** Run the GPU benchmark; on first launch this picks the level. */
@@ -1192,6 +1208,15 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   coverQuality: readCoverQuality(),
   coverQualityReason: readStr("reverie_cover_reason", ""),
   rhythmGain: Math.min(1.5, Math.max(0, readNum("reverie_rhythm_gain", 0.55))),
+  lyricClarity: Math.min(100, Math.max(0, readNum("reverie_lyric_clarity", 60))),
+  lyricOffsetX: Math.min(
+    400,
+    Math.max(-400, readNum("reverie_lyric_offset_x", 0)),
+  ),
+  lyricOffsetY: Math.min(
+    400,
+    Math.max(-400, readNum("reverie_lyric_offset_y", 0)),
+  ),
   coverBenchmarking: false,
   npVoid: readBool("reverie_np_void", false),
 
@@ -1871,21 +1896,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     write("reverie_lyriclayout", layout);
   },
   setNpWallpaper: (wallpaper) => {
-    // 壁纸与虚空模式共存：虚空只隐藏封面，壁纸背景照常可用。
-    set({ npWallpaper: wallpaper });
+    // 选壁纸 = 歌词悬浮在壁纸上的虚空观感，自动进入虚空；取消壁纸则
+    // 回到粒子封面。两者互不覆盖对方已有的手动选择以外，保持联动。
+    set({ npWallpaper: wallpaper, npVoid: wallpaper !== null });
     if (wallpaper) write("reverie_np_wallpaper", JSON.stringify(wallpaper));
     else write("reverie_np_wallpaper", "");
+    write("reverie_np_void", wallpaper ? "1" : "0");
   },
   applyDiyPreset: (preset) => {
     if (preset !== "void") return;
-    // 虚空：隐藏封面与粒子，只留歌词与背景；壁纸保持可用。
-    set({
-      npVoid: true,
-      coverQuality: "image",
-      coverQualityReason: "虚空预设",
-    });
-    write(COVER_QUALITY_KEY, "image");
-    write("reverie_cover_reason", "虚空预设");
+    // 虚空：只隐藏封面与反歌词，壁纸背景照常可用。封面保持挂载
+    // （不再降画质重建场景），切换由透明过渡完成，避免卡顿。
+    set({ npVoid: true });
     write("reverie_np_void", "1");
   },
   setNpVoid: (v) => {
@@ -1896,6 +1918,47 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const gain = Math.min(1.5, Math.max(0, v));
     set({ rhythmGain: gain });
     write("reverie_rhythm_gain", String(gain));
+  },
+  setLyricClarity: (v) => {
+    const clarity = Math.min(100, Math.max(0, v));
+    set({ lyricClarity: clarity });
+    write("reverie_lyric_clarity", String(clarity));
+  },
+  setLyricOffsetX: (v) => {
+    const x = Math.min(400, Math.max(-400, v));
+    set({ lyricOffsetX: x });
+    write("reverie_lyric_offset_x", String(x));
+  },
+  setLyricOffsetY: (v) => {
+    const y = Math.min(400, Math.max(-400, v));
+    set({ lyricOffsetY: y });
+    write("reverie_lyric_offset_y", String(y));
+  },
+  resetVisualDefaults: () => {
+    set({
+      lyricFx: "shine",
+      lyricLayout: "dual",
+      lyricFontSize: 22,
+      showTranslation: false,
+      lyricClarity: 60,
+      lyricOffsetX: 0,
+      lyricOffsetY: 0,
+      rhythmGain: 0.55,
+      npFrameRate: 0,
+      npVoid: false,
+      npWallpaper: null,
+    });
+    write("reverie_lyricfx", "shine");
+    write("reverie_lyriclayout", "dual");
+    write("reverie_lyricfont", "22");
+    write("reverie_translation", "0");
+    write("reverie_lyric_clarity", "60");
+    write("reverie_lyric_offset_x", "0");
+    write("reverie_lyric_offset_y", "0");
+    write("reverie_rhythm_gain", "0.55");
+    write("reverie_np_fps", "0");
+    write("reverie_np_wallpaper", "");
+    write("reverie_np_void", "0");
   },
   setCoverQuality: (q, reason = "") => {
     // 手动选画质意味着想看到封面，自动退出虚空模式。
