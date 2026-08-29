@@ -77,32 +77,6 @@ export async function getMediaUrl(
   return String(obj(urls[0]).url ?? "");
 }
 
-export async function getRelatedMedia(
-  item: SearchMediaInfo,
-): Promise<SearchMediaInfo[]> {
-  const response =
-    item.kind === "mv"
-      ? await request<Obj>("/simi/mv", { mvid: item.id }, true)
-      : await request<Obj>("/related/allvideo", { id: item.id }, true);
-  const values = arr(response.mvs ?? response.data ?? response.videos);
-  return values
-    .map((raw) => {
-      const value = obj(raw);
-      return {
-        id: String(value.id ?? value.vid ?? ""),
-        name: String(value.name ?? value.title ?? "未命名视频"),
-        coverUrl: String(value.cover ?? value.coverUrl ?? value.imgurl ?? ""),
-        creatorName: String(
-          obj(value.creator).nickname ?? value.artistName ?? "",
-        ),
-        duration: Number(value.duration ?? value.durationms ?? 0),
-        playCount: Number(value.playCount ?? value.playTime ?? 0),
-        kind: item.kind,
-      } satisfies SearchMediaInfo;
-    })
-    .filter((media) => media.id && media.id !== item.id);
-}
-
 export async function getMediaStats(
   item: SearchMediaInfo,
 ): Promise<MediaStats> {

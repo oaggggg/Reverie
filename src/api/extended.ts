@@ -14,7 +14,6 @@ import type {
   SocialEvent,
   SocialUser,
   Song,
-  SearchMediaInfo,
 } from "./types.ts";
 
 type Obj = Record<string, unknown>;
@@ -214,15 +213,11 @@ export async function getArtist(id: number): Promise<{
   artist: ArtistInfo;
   songs: Song[];
   albums: AlbumInfo[];
-  videos: SearchMediaInfo[];
 }> {
-  const [detail, content, albums, videos] = await Promise.all([
+  const [detail, content, albums] = await Promise.all([
     request<Obj>("/artist/detail", { id }).catch(() => ({}) as Obj),
     request<Obj>("/artists", { id }),
     request<Obj>("/artist/album", { id, limit: 50 }),
-    request<Obj>("/artist/video", { id, size: 20, cursor: 0, order: 0 }).catch(
-      () => ({}) as Obj,
-    ),
   ]);
   const detailArtist = obj(obj(detail.data).artist);
   const contentArtist = obj(content.artist);
@@ -232,26 +227,6 @@ export async function getArtist(id: number): Promise<{
       .map(normalizeSong)
       .filter((song): song is Song => song !== null),
     albums: arr(albums.hotAlbums).map((item) => normalizeAlbum(item)),
-    videos: arr(
-      obj(videos.data ?? videos.result ?? videos).videos ??
-        obj(videos.data ?? videos.result ?? videos).list ??
-        obj(videos.data ?? videos.result ?? videos).data ??
-        videos.data ??
-        videos.videos,
-    )
-      .map((item) => {
-        const value = obj(item);
-        return {
-          id: String(value.id ?? value.vid ?? ""),
-          name: String(value.name ?? value.title ?? "视频"),
-          coverUrl: String(value.cover ?? value.coverUrl ?? value.imgurl ?? ""),
-          creatorName: String(value.artistName ?? ""),
-          duration: Number(value.duration ?? value.durationms ?? 0),
-          playCount: Number(value.playCount ?? 0),
-          kind: "video",
-        } satisfies SearchMediaInfo;
-      })
-      .filter((item) => item.id),
   };
 }
 

@@ -2,7 +2,6 @@ import { cachedRequest, normalizeSong, request } from "./client.ts";
 import type {
   ArtistInfo,
   PlaylistInfo,
-  SearchMediaInfo,
   Song,
 } from "./types.ts";
 
@@ -20,7 +19,6 @@ function list(response: Obj, ...keys: string[]): unknown[] {
   }
   return [];
 }
-
 function normalizePlaylist(raw: unknown): PlaylistInfo | null {
   const value = obj(raw);
   const id = Number(value.id ?? 0);
@@ -55,26 +53,6 @@ function normalizeArtist(raw: unknown): ArtistInfo | null {
     followed: Boolean(value.followed ?? value.follow),
     musicSize: Number(value.musicSize ?? 0),
     albumSize: Number(value.albumSize ?? 0),
-  };
-}
-
-function normalizeMedia(raw: unknown): SearchMediaInfo | null {
-  const value = obj(raw);
-  const id = String(value.id ?? value.vid ?? "");
-  if (!id) return null;
-  return {
-    id,
-    name: String(value.name ?? value.title ?? "视频"),
-    coverUrl: String(value.coverUrl ?? value.cover ?? value.imgurl ?? ""),
-    creatorName: String(
-      value.creatorName ??
-        value.artistName ??
-        obj(value.creator).nickname ??
-        "",
-    ),
-    duration: Number(value.duration ?? value.durationms ?? 0),
-    playCount: Number(value.playCount ?? 0),
-    kind: "video",
   };
 }
 
@@ -131,11 +109,3 @@ export async function getSimilarSongs(id: number): Promise<Song[]> {
   );
 }
 
-export async function getRelatedVideos(id: number): Promise<SearchMediaInfo[]> {
-  const response = await request<Obj>("/related/allvideo", { id }, false);
-  return uniqueById(
-    list(response, "data", "videos", "resources")
-      .map(normalizeMedia)
-      .filter((item): item is SearchMediaInfo => item !== null),
-  );
-}

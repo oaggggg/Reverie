@@ -11,8 +11,8 @@ import {
 
 test("generated registry covers every allowed NeteaseCloudMusicApi module", () => {
   assert.equal(API_MODULE_COUNT, 377);
-  assert.equal(API_ENDPOINT_COUNT, 357);
-  assert.equal(EXCLUDED_API_COUNT, 20);
+  assert.equal(API_ENDPOINT_COUNT, 286);
+  assert.equal(EXCLUDED_API_COUNT, 91);
   assert.equal(Object.keys(API_ENDPOINTS).length, API_ENDPOINT_COUNT);
   assert.equal(EXCLUDED_API_NAMES.length, EXCLUDED_API_COUNT);
 });
@@ -67,7 +67,7 @@ test("callApi supports POST bodies for upload and mutation endpoints", async () 
         headers: { "content-type": "application/json" },
       });
     }) as typeof fetch;
-    await callApi("voice_upload", {}, true, {
+    await callApi("playlist_update", {}, true, {
       method: "POST",
       body: new URLSearchParams({ name: "demo" }),
     });

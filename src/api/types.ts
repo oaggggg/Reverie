@@ -283,23 +283,13 @@ export type View =
   | "radio"
   | "radioDetail"
   | "social"
-  | "cloud"
-  | "yunbei"
-  | "voiceWorkbench"
-  | "lyricsMark"
-  | "digitalAlbum"
-  | "musician"
-  | "sati"
-  | "broadcast"
-  | "ugc"
-  | "listenReports"
   | "videos"
   | "fans"
   | "style"
   | "topics"
   | "library"
   | "calendar"
-  | "privateDj";
+;
 
 export type SearchCategory =
   | "songs"
@@ -345,31 +335,6 @@ export interface MediaStats {
   subCount: number;
   liked: boolean;
   subscribed: boolean;
-}
-
-export interface YunbeiTask {
-  id: number;
-  name: string;
-  description: string;
-  point: number;
-  status: "todo" | "done" | "claimed";
-  userTaskId?: number;
-  depositCode?: string;
-}
-
-export interface YunbeiLedgerEntry {
-  id: string;
-  title: string;
-  amount: number;
-  time: number;
-  type: "income" | "expense";
-}
-
-export interface YunbeiOverview {
-  balance: number;
-  todayEarned: number;
-  signed: boolean;
-  signDays: number;
 }
 
 export type RecentCategory =
@@ -442,29 +407,6 @@ export interface SongMusicDetail {
   url?: string;
 }
 
-export interface VoiceListInfo {
-  id: number;
-  name: string;
-  coverUrl: string;
-  description: string;
-  voiceCount: number;
-  subscribed: boolean;
-}
-
-export interface VoiceItem {
-  id: number;
-  name: string;
-  description: string;
-  coverUrl: string;
-  duration: number;
-  playCount: number;
-  voiceListId?: number;
-  voiceListName: string;
-  status: string;
-  transcribed: boolean;
-  createdAt: number;
-}
-
 export interface PlaylistImportTaskStatus {
   id: string;
   status: "pending" | "running" | "success" | "failed";
@@ -474,84 +416,9 @@ export interface PlaylistImportTaskStatus {
   playlistName?: string;
 }
 
-export interface LyricMark {
-  id: string;
-  songId: number;
-  songName: string;
-  originalLyricsText: string;
-  translateLyricsText: string;
-  translateType: number;
-  startTimeStamp: number;
-  createdAt: number;
-}
-
-export interface DigitalAlbum {
-  id: number;
-  name: string;
-  artistName: string;
-  coverUrl: string;
-  description: string;
-  price: number;
-  sales: number;
-  purchased: boolean;
-  songs: Song[];
-}
-export interface DigitalAlbumRank extends DigitalAlbum {
-  rank: number;
-  score: number;
-}
-
-export interface MusicianOverview {
-  songCount: number;
-  playCount: number;
-  fanCount: number;
-  commentCount: number;
-  cloudbean: number;
-}
-
-export interface MusicianTrendPoint {
-  date: string;
-  count: number;
-}
-
-export interface MusicianTask {
-  id: number;
-  name: string;
-  description: string;
-  reward: number;
-  status: string;
-  userMissionId?: number;
-  period?: string;
-}
-
-export interface SatiTag {
-  id: string;
-  name: string;
-}
-export interface SatiResource {
-  id: number;
-  name: string;
-  description: string;
-  coverUrl: string;
-  duration: number;
-  subscribed: boolean;
-  playCount: number;
-  audioUrl: string;
-}
-
 export interface BroadcastCategory {
   id: number;
   name: string;
-}
-export interface BroadcastChannel {
-  id: number;
-  name: string;
-  description: string;
-  coverUrl: string;
-  subscribed: boolean;
-  categoryName: string;
-  regionName: string;
-  currentSong?: Song;
 }
 export interface ChartSummary {
   id: number;
@@ -579,27 +446,6 @@ export interface DimensionChartDetail {
   songCount: number;
 }
 
-export interface UgcResource {
-  kind: "song" | "album" | "artist" | "mv";
-  id: number;
-  name: string;
-  description: string;
-  coverUrl: string;
-  extra: string;
-}
-export interface UgcContribution {
-  id: string;
-  type: number;
-  title: string;
-  status: string;
-  createTime: number;
-  description: string;
-}
-export interface UgcDevote {
-  count: number;
-  points: number;
-  yunbei: number;
-}
 export interface ListenTotal {
   duration: number;
   songCount: number;
@@ -620,17 +466,6 @@ export interface FansOverview {
 export interface FansTrendPoint {
   date: string;
   count: number;
-}
-export interface ListenReport extends ListenTotal {
-  startDate: string;
-  endDate: string;
-}
-export interface ListenTodaySong {
-  id: number;
-  name: string;
-  artists: string;
-  count: number;
-  coverUrl: string;
 }
 export interface VipTimeMachineEntry {
   date: string;
@@ -694,16 +529,6 @@ export interface DifmChannel {
   source: number;
   subscribed: boolean;
 }
-export interface PrivateDjItem {
-  id: string;
-  kind: "song" | "program";
-  title: string;
-  subtitle: string;
-  coverUrl: string;
-  programId: number;
-  audioUrl: string;
-  song: Song | null;
-}
 export interface PodcastProgramRank {
   id: number;
   name: string;
@@ -741,15 +566,6 @@ export interface CollectionResultPage {
   radios: RadioInfo[];
   total: number;
   hasMore: boolean;
-}
-
-export interface CloudSong extends Song {
-  cloudId: number;
-  fileName: string;
-  fileSize: number;
-  bitrate: number;
-  addTime: number;
-  matchedSongId?: number;
 }
 
 export type NotificationCategory =

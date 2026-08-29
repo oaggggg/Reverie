@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   getMediaDetail,
   getMediaUrl,
-  getRelatedMedia,
   getMediaStats,
   normalizeMediaDetail,
   setMediaLiked,
@@ -43,7 +42,7 @@ test("media detail normalizes metadata and preserves search fallback", () => {
   assert.equal(detail.commentCount, 7);
 });
 
-test("media detail, url and related routes use media kind-specific parameters", async () => {
+test("media detail and url routes use media kind-specific parameters", async () => {
   const originalFetch = globalThis.fetch;
   const urls: string[] = [];
   globalThis.fetch = async (input) => {
@@ -53,20 +52,15 @@ test("media detail, url and related routes use media kind-specific parameters", 
       return Response.json({ data: { name: "MV详情" } });
     if (url.includes("/mv/url"))
       return Response.json({ data: { url: "https://media" } });
-    if (url.includes("/simi/mv"))
-      return Response.json({ mvs: [{ id: 2, name: "相关 MV" }] });
     return Response.json({ code: 200 });
   };
   try {
     const detail = await getMediaDetail(fallback);
     const url = await getMediaUrl(fallback, 720);
-    const related = await getRelatedMedia(fallback);
     assert.equal(detail.name, "MV详情");
     assert.equal(url, "https://media");
-    assert.equal(related[0]?.name, "相关 MV");
     assert.match(urls[0]!, /mvid=mv-1/);
     assert.match(urls[1]!, /r=720/);
-    assert.match(urls[2]!, /mvid=mv-1/);
   } finally {
     globalThis.fetch = originalFetch;
   }
