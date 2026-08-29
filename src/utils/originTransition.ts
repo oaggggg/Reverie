@@ -110,12 +110,13 @@ export function useOriginTransition<T extends HTMLElement = HTMLDivElement>(
     surface.style.setProperty("--origin-duration", `${duration}ms`);
     surface.style.setProperty(
       "--origin-scale-x",
-      String(Math.max(0.12, Math.min(0.82, origin.width / target.width))),
+      String(Math.max(0.08, Math.min(1, origin.width / target.width))),
     );
     surface.style.setProperty(
       "--origin-scale-y",
-      String(Math.max(0.12, Math.min(0.82, origin.height / target.height))),
+      String(Math.max(0.08, Math.min(1, origin.height / target.height))),
     );
+    surface.style.setProperty("transform-origin", "center center");
   }, [duration, key, phase, rendered]);
 
   return {

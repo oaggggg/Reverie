@@ -489,8 +489,12 @@ export function normalizeSong(raw: unknown): Song | null {
     picUrl,
     duration,
     fee,
-    likedCount: Number.isFinite(likedCount) ? Math.max(0, likedCount) : 0,
-    commentCount: Number.isFinite(commentCount) ? Math.max(0, commentCount) : 0,
+    ...(Number.isFinite(likedCount) && likedCount > 0
+      ? { likedCount: Math.max(0, likedCount) }
+      : {}),
+    ...(Number.isFinite(commentCount) && commentCount > 0
+      ? { commentCount: Math.max(0, commentCount) }
+      : {}),
     mvId:
       typeof s.mv === "number"
         ? s.mv
@@ -501,9 +505,17 @@ export function normalizeSong(raw: unknown): Song | null {
     // 行内自带 privilege（/playlist/detail 的 tracks 等）时直接取
     // 歌曲最好支持音质作为标识。
     ...(() => {
-      const lvl = privilegeMaxLevel(
-        s.privilege as Record<string, unknown> | null | undefined,
-      );
+      const lvl = privilegeMaxLevel({
+        ...(s.privilege && typeof s.privilege === "object"
+          ? (s.privilege as Record<string, unknown>)
+          : {}),
+        maxBrLevel: s.maxBrLevel,
+        playMaxBrLevel: s.playMaxBrLevel,
+        downloadMaxBrLevel: s.downloadMaxBrLevel,
+        jm: s.jm,
+        jymaster: s.jymaster,
+        master: s.master,
+      });
       return lvl
         ? { master: lvl === "jymaster" || undefined, maxLevel: lvl }
         : {};
@@ -1045,7 +1057,17 @@ function pickAvatarFrame(profileRaw: Record<string, unknown> | null): string {
     const url = String(d.identityIconUrl ?? d.iconUrl ?? "");
     if (/^https?:\/\//i.test(url)) return url;
   }
-  const direct = profileRaw.avatarFrameUrl ?? profileRaw.frameUrl;
+  const pendant = profileRaw.avatarPendant ?? profileRaw.pendantData ?? profileRaw.pendant;
+  if (pendant && typeof pendant === "object") {
+    const p = pendant as Record<string, unknown>;
+    const url = String(p.imageUrl ?? p.url ?? p.iconUrl ?? p.picUrl ?? "");
+    if (/^https?:\/\//i.test(url)) return url;
+  }
+  const direct =
+    profileRaw.avatarFrameUrl ??
+    profileRaw.frameUrl ??
+    profileRaw.avatarPendantUrl ??
+    profileRaw.pendantUrl;
   return typeof direct === "string" && /^https?:\/\//i.test(direct)
     ? direct
     : "";
@@ -1079,8 +1101,7 @@ export async function loginStatus(): Promise<UserProfile | null> {
     // 徽标同 getVipInfo 的口径：先走官方品牌位（含 SVIP redplus 节点），
     // 深扫只作兜底，避免把静态等级胶囊或无关图标当官方铭牌。
     badgeUrl:
-      pickOfficialBrandIcon(findVipRights(res.data ?? res))?.url ||
-      deepFindBadgeUrl(res.data ?? res) ||
+      pickOfficialApiBadges(findVipRights(res.data ?? res))[0]?.url ||
       undefined,
   };
 }
@@ -1123,15 +1144,14 @@ export interface VipInfo {
   vipLevel: number;
   /** milliseconds epoch; 0 = not a member */
   expireTime: number;
-  /** official/custom member badge image url from the API */
+  /** All distinct membership package expiration timestamps, nearest first. */
+  expireTimes: number[];
+  /** Official static member badge image URL from vipRights. */
   badgeUrl?: string;
-  /**
-   * 徽标图片来源：dynamic=官方包动态铭牌（动效图，黑胶>畅听包，
-   * 校验有效期）；plate=佩戴中的个性化铭牌；brand=vipRights 品牌位
-   * 图标（与档位天然对应，SVIP 即 redplus 官方图）。三者均为官方
-   * 下发、可作昵称旁图片渲染；fallback=深扫兜底，仅作缓存与诊断。
-   */
-  badgeKind?: "plate" | "dynamic" | "brand" | "fallback";
+  /** All official static badge URLs returned by the membership API. */
+  badgeUrls?: string[];
+  /** 当前使用的网易云官方静态品牌铭牌来源。 */
+  badgeKind?: "brand";
   /**
    * 黑胶超级会员（SVIP）：以官方 redplus 权益节点/品牌位为准；不同
    * 月卡、季卡套餐可能使用不同 vipType 编码。
@@ -1172,6 +1192,31 @@ export interface OfficialBrandIcon {
 
 function officialImg(v: unknown): string {
   return typeof v === "string" && /^https?:\/\//i.test(v) ? v : "";
+}
+
+/** 只读取会员接口下发的静态 iconUrl，拒绝 dynamicIconUrl 等动效资源。 */
+export function pickOfficialApiBadges(vipRights: unknown): OfficialBrandIcon[] {
+  if (!vipRights || typeof vipRights !== "object") return [];
+  const root = vipRights as Record<string, unknown>;
+  const badges: OfficialBrandIcon[] = [];
+  const seen = new Set<string>();
+  const visit = (value: unknown, isSvip = false) => {
+    if (!value || typeof value !== "object") return;
+    const node = value as Record<string, unknown>;
+    const url = officialImg(node.iconUrl);
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      badges.push({ url, svip: isSvip });
+    }
+  };
+  visit(root.redplus, true);
+  visit(root.associator);
+  visit(root.musicPackage);
+  visit(root.redVip);
+  visit(root.vipPackage);
+  const list = root.badges ?? root.badgeList ?? root.vipBadges;
+  if (Array.isArray(list)) list.forEach((item) => visit(item));
+  return badges;
 }
 
 export function pickOfficialBrandIcon(
@@ -1244,95 +1289,22 @@ function parseEpoch(v: unknown): number {
   return 0;
 }
 
-/** Recursively find the membership expire time under any field name (takes the max). */
-function deepFindExpireMs(obj: unknown): number {
-  if (!obj || typeof obj !== "object") return 0;
-  let best = 0;
+/** Recursively collect distinct membership expiration times, nearest first. */
+function deepFindExpireTimes(obj: unknown): number[] {
+  if (!obj || typeof obj !== "object") return [];
+  const values = new Set<number>();
   const walk = (o: unknown, depth: number) => {
     if (!o || typeof o !== "object" || depth > 4) return;
     for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
       if (/expire|endtime|end_time|deadline|validto|valid_to/i.test(k)) {
         const n = parseEpoch(v);
-        if (n > best) best = n;
+        if (n > 0) values.add(n);
       }
       if (v && typeof v === "object") walk(v, depth + 1);
     }
   };
   walk(obj, 0);
-  return best;
-}
-
-/** Recursively find the best badge-like image URL (vip icon / custom badge). */
-function deepFindBadgeUrl(obj: unknown): string {
-  if (!obj || typeof obj !== "object") return "";
-  let best = "";
-  let bestScore = 0;
-  const walk = (o: unknown, depth: number) => {
-    if (!o || typeof o !== "object" || depth > 6) return;
-    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
-      if (typeof v === "string" && /^https?:\/\//i.test(v)) {
-        if (/avatar|background|cover|img1v1|default/i.test(k)) continue;
-        let score = 0;
-        // the official app shows the ANIMATED member badge next to the
-        // nickname; redVipDynamicIconUrl is the dynamic *level* badge when set
-        if (/^redVipDynamicIconUrl/i.test(k))
-          score = 500; // dynamic level badge
-        else if (/dynamicicon/i.test(k))
-          score = 400; // animated member badge (what official apps use)
-        else if (/levelicon|level_icon|viplevelicon/i.test(k))
-          score = 300; // static level badge fallback
-        else if (/identityicon/i.test(k)) score = 120;
-        else if (/vipicon/i.test(k)) score = 110;
-        else if (/badge/i.test(k)) score = 100;
-        else if (/decorat/i.test(k)) score = 90;
-        else if (/vip/i.test(k)) score = 60;
-        else if (/icon/i.test(k)) score = 40;
-        else if (/level/i.test(k)) score = 25;
-        if (score > bestScore) {
-          bestScore = score;
-          best = v;
-        }
-      }
-      if (v && typeof v === "object") walk(v, depth + 1);
-    }
-  };
-  walk(obj, 0);
-  return best;
-}
-
-/**
- * 深度查找「佩戴中的个性化会员铭牌」：用户在会员中心装备的自定义
- * 铭牌会以独立字段出现在会员信息或用户资料里（customBadge/nameplate/
- * medal/decorate 一类命名）。与通用择优不同，这里只认铭牌类键，
- * 且命中即为最高优先级——官方客户端在佩戴了个性化铭牌时，
- * 昵称旁展示的就是它而不是默认的黑胶动图。
- */
-function deepFindCustomPlate(obj: unknown): string {
-  if (!obj || typeof obj !== "object") return "";
-  let best = "";
-  let bestScore = 0;
-  const walk = (o: unknown, depth: number) => {
-    if (!o || typeof o !== "object" || depth > 6) return;
-    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
-      if (typeof v === "string" && /^https?:\/\//i.test(v)) {
-        if (/avatar|background|cover|img1v1|default|dynamic/i.test(k)) continue;
-        let score = 0;
-        if (/custom.*badge|badge.*custom/i.test(k)) score = 500;
-        else if (/nameplate|mingpai|铭牌/i.test(k)) score = 480;
-        else if (/medal/i.test(k)) score = 460;
-        else if (/decorat/.test(k)) score = 440;
-        else if (/wear|equipped|using/i.test(k)) score = 420;
-        else if (/badge/i.test(k)) score = 400;
-        if (score > bestScore) {
-          bestScore = score;
-          best = v;
-        }
-      }
-      if (v && typeof v === "object") walk(v, depth + 1);
-    }
-  };
-  walk(obj, 0);
-  return best;
+  return [...values].sort((a, b) => a - b);
 }
 
 /**
@@ -1416,66 +1388,39 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
   const vipType = Number(
     d.vipType ?? d.redVipType ?? d.vipStatus ?? (redLevel > 0 ? 10 : 0),
   );
-  const expireTime = deepFindExpireMs(d);
-  // ── 官方徽标解析链 ─────────────────────────────────────────────
-  // 昵称旁的动态铭牌必须是官方下发：①佩戴中的个性化铭牌（官方行为：
-  // 佩戴时用它顶掉默认铭牌）②官方包动态图标（/vip/info 各会员包的
-  // dynamicIconUrl 动效图，黑胶 > 畅听包，逐包校验有效期，已过期包
-  // 不再借用）③vipRights 品牌位静态图（与档位对应）④深扫兜底。
-  // 全部落空时才由矢量铭牌按档位自绘。
-  let badgeUrl = deepFindCustomPlate(d);
-  let badgeKind: VipInfo["badgeKind"] = badgeUrl ? "plate" : undefined;
-  const dynamicBadge = pickActiveDynamicBadge(d);
-  if (dynamicBadge && !badgeUrl) {
-    badgeUrl = dynamicBadge;
-    badgeKind = "dynamic";
-  }
+  const expireTimes = [
+    ...new Set([
+      ...deepFindExpireTimes(d),
+      ...(detailRes ? deepFindExpireTimes(detailRes) : []),
+    ]),
+  ].sort((a, b) => a - b);
+  const expireTime =
+    expireTimes.find((time) => time >= Date.now()) ?? expireTimes[0] ?? 0;
+  // 会员铭牌只使用网易云官方静态品牌位，不展示动态铭牌或自定义铭牌。
+  let badgeUrl = "";
+  let badgeKind: VipInfo["badgeKind"] = undefined;
   let vipRights: unknown = findVipRights(d);
-  if (!badgeUrl && detailRes) {
-    badgeUrl = deepFindCustomPlate(detailRes);
-    if (badgeUrl) badgeKind = "plate";
-  }
   if (!vipRights) vipRights = findVipRights(detailRes);
-  if (!vipRights || !badgeUrl) {
+  if (!vipRights) {
     // user/detail/new 拿不到资料时的次级来源（内含 profile.vipRights）
     try {
       const res = await request<unknown>("/user/detail", { uid }, false);
-      if (!badgeUrl) {
-        badgeUrl = deepFindCustomPlate(res);
-        if (badgeUrl) badgeKind = "plate";
-      }
       vipRights ||= findVipRights(res);
     } catch {
       /* ignore */
     }
   }
+  const officialBadges = pickOfficialApiBadges(vipRights);
   const brand = pickOfficialBrandIcon(vipRights);
-  // 品牌位静态图：动态铭牌缺失时的官方兜底（redplus→SVIP、
-  // associator→VIP…，均出自官方模板分支），可信可渲染。
-  if (brand?.url && !badgeUrl) {
-    badgeUrl = brand.url;
+  if (officialBadges.length) {
+    badgeUrl = officialBadges[0].url;
     badgeKind = "brand";
-  }
-  if (!brand?.url && !badgeUrl && detailRes) {
-    badgeUrl = deepFindBadgeUrl(detailRes);
-    if (badgeUrl) badgeKind = "fallback";
-  }
-  if (!badgeUrl) {
-    // 诊断：所有来源都未命中时打印可用字段名，便于用开发者工具
-    // 确认该账号的铭牌/装扮实际下发位置（只输出键名，不含值）。
-    console.debug(
-      "[reverie:vip] 未命中任何会员图标来源 | /vip/info 键:",
-      Object.keys(d).join(",") || "(空)",
-      "| uid:",
-      uid,
-    );
   }
   // SVIP 判定唯一权威口径：redplus（黑胶超级会员）节点在期，
   // 即 vipCode===300 且未过期。真实账号采样证明「双包同时生效」不成立
   // （年费 VIP 普遍被捆绑畅听包、双包 rights 同真），不得作为依据；
   // 品牌位解析命中 redplus 分支时等价可靠，作并联信号。
-  // 到期判定与 pickActiveDynamicBadge 同一口径：节点内任意过期类字段的
-  // 最大值即到期时间（秒/毫秒/日期串经 parseEpoch 归一）。
+  // 到期字段统一按秒/毫秒/日期串归一，并保留所有不同会员包的日期。
   const now = Date.now();
   const pkgActive = (o: unknown): boolean => {
     if (!o || typeof o !== "object") return false;
@@ -1498,7 +1443,9 @@ export async function getVipInfo(uid: number): Promise<VipInfo> {
     vipType,
     vipLevel: redLevel,
     expireTime,
-    badgeUrl: badgeUrl || brand?.url || undefined,
+    expireTimes,
+    badgeUrl: badgeUrl || undefined,
+    badgeUrls: officialBadges.map((item) => item.url),
     badgeKind,
     svip,
   };

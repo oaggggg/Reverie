@@ -82,6 +82,7 @@ export default function TitleBar() {
               );
             })}
           </span>
+          <span className="titlebar-sweep" aria-hidden="true">Reverie</span>
         </span>
       </div>
       <div className="titlebar-controls">

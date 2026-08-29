@@ -530,6 +530,11 @@ export default function App() {
   // keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F12" || e.code === "F12") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
       const el = e.target as HTMLElement | null;
       const editing =
         el &&
@@ -570,8 +575,8 @@ export default function App() {
           break;
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, []);
 
   // Keep the active decoder attached to the current URL. When a preloaded
