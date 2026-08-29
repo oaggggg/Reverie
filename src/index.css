@@ -1748,6 +1748,19 @@ select option:checked {
   background: var(--hover);
 }
 
+/* 定位正在播放歌曲的悬浮球：复用回到顶部样式，位于其左侧。
+   仅当前播放歌曲在该列表内时由 SongList 渲染。 */
+.locate-song-dock {
+  position: sticky;
+  bottom: 18px;
+  height: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+.locate-song-btn {
+  right: 58px;
+}
+
 .loading-hint {
   color: var(--text-faint);
   text-align: center;

@@ -12,8 +12,9 @@ import {
   Clapperboard,
   Heart,
   MessageCircle,
+  LocateFixed,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { PlaybackQuality, Song } from "../api/types";
 import { useMediaStore } from "../store/mediaStore";
 import {
@@ -65,6 +66,8 @@ export default function SongList({
   const playSong = usePlayerStore((s) => s.playSong);
   const playNext = usePlayerStore((s) => s.playNext);
   const likedIds = usePlayerStore((s) => s.likedIds);
+  const currentRowRef = useRef<HTMLDivElement | null>(null);
+  const locateEnabled = songs.some((song) => song.id === currentSong?.id);
   // 设置里的「列表展示专辑封面」总开关与调用方 showCover 取与。
   const globalCover = usePlayerStore((s) => s.showListCover);
   const coverShown = showCover && globalCover;
@@ -178,6 +181,7 @@ export default function SongList({
               <div
                 key={`${song.id}-${i}`}
                 className={`song-item ${isCur ? "playing" : ""}`}
+                ref={isCur ? currentRowRef : undefined}
                 onClick={() => playSong(song, songs)}
               >
                 <span className="idx">
@@ -358,6 +362,25 @@ export default function SongList({
           })
         )}
       </div>
+      {locateEnabled && (
+        <div className="locate-song-dock">
+          <button
+            type="button"
+            className="back-to-top locate-song-btn show"
+            title="定位到正在播放的歌曲"
+            aria-label="定位到正在播放的歌曲"
+            onClick={() =>
+              currentRowRef.current?.scrollIntoView({
+                block: "center",
+                inline: "nearest",
+                behavior: "smooth",
+              })
+            }
+          >
+            <LocateFixed size={16} />
+          </button>
+        </div>
+      )}
     </>
   );
 }
