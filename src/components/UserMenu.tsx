@@ -93,13 +93,13 @@ export default function UserMenu() {
   // 铭牌以统一身份档位为准（/vip/info 双包生效态 + 官方 redplus 品牌位），
   // 不再用 vipType 数字猜档位：11 实为年费 VIP 而非 SVIP。
   const apiBadges = vipInfo?.badgeUrls ?? [];
-  const imgBadges = apiBadges.length
+  const imgBadge = (apiBadges.length
     ? apiBadges
     : vipInfo?.badgeUrl
       ? [vipInfo.badgeUrl]
       : profile?.badgeUrl
         ? [profile.badgeUrl]
-        : [];
+        : [])[0];
   const frameUrl = profile?.avatarFrameUrl;
 
   return (
@@ -139,18 +139,14 @@ export default function UserMenu() {
         </span>
         <span className="user-nick">{profile?.nickname ?? ""}</span>
         {/* 铭牌与头像框是同一来源时只保留头像上的挂件展示，避免重复 */}
-        {isVip &&
-          imgBadges.map((badge) =>
-            brokenBadge !== badge && badge !== frameUrl ? (
-              <img
-                className="user-badge-api"
-                key={badge}
-                src={badge}
-                alt="会员"
-                onError={() => setBrokenBadge(badge)}
-              />
-            ) : null,
-          )}
+        {isVip && imgBadge && brokenBadge !== imgBadge && imgBadge !== frameUrl ? (
+          <img
+            className="user-badge-api"
+            src={imgBadge}
+            alt="会员"
+            onError={() => setBrokenBadge(imgBadge)}
+          />
+        ) : null}
       </button>
       {transition.rendered && (
         <div
