@@ -2284,8 +2284,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playlistName: name,
       prevView: previousView,
       viewHistory: [...get().viewHistory, previousView],
-      // Keep the previous rows visible while the next playlist loads. Clearing
-      // them first causes a visible blank/loading flash during navigation.
+      // A playlist has its own scroll context; never reuse the previous
+      // playlist's offset when opening another one.
+      viewScrollPositions: {
+        ...get().viewScrollPositions,
+        playlist: 0,
+      },
+      playlistSongs: [],
+      playlistId: 0,
+      playlistCover: "",
+      playlistDescription: "",
+      playlistCreatorId: 0,
+      playlistSubscribed: false,
       playlistLoading: true,
     });
     try {
@@ -2322,6 +2332,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       activeView: get().viewHistory.at(-1) ?? get().prevView ?? "home",
       prevView: get().viewHistory.length > 1 ? get().viewHistory.at(-2)! : "home",
       viewHistory: get().viewHistory.slice(0, -1),
+      viewScrollPositions: {
+        ...get().viewScrollPositions,
+        playlist: 0,
+      },
     });
   },
 
