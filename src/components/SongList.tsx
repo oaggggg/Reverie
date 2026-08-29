@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Disc3,
   Download,
-  FileText,
   ListEnd,
   Play,
   Trash2,
@@ -45,7 +44,6 @@ interface Props {
   loading?: boolean;
   onRemove?: (song: Song, index: number) => void;
   onMove?: (song: Song, index: number, direction: -1 | 1) => void;
-  onOpenProgram?: (song: Song) => void;
 }
 
 // 歌曲行标识只保留官方数据可判定的两项：VIP 歌曲（fee===1）与
@@ -61,7 +59,6 @@ export default function SongList({
   loading = false,
   onRemove,
   onMove,
-  onOpenProgram,
 }: Props) {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const playing = usePlayerStore((s) => s.playing);
@@ -308,18 +305,6 @@ export default function SongList({
                       onClick={() => openAlbumModal(song.albumId)}
                     >
                       <Disc3 size={15} />
-                    </button>
-                  ) : null}
-                  {song.programId && onOpenProgram ? (
-                    <button
-                      className="icon-action"
-                      title="节目详情"
-                      onClick={(event) => {
-                        captureInteractionOrigin("podcast-program", event.currentTarget);
-                        onOpenProgram(song);
-                      }}
-                    >
-                      <FileText size={15} />
                     </button>
                   ) : null}
                   {onMove && (

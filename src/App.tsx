@@ -555,23 +555,31 @@ export default function App() {
         return;
       }
       if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (
+        el &&
+        (el.tagName === "BUTTON" ||
+          el.tagName === "A" ||
+          el.tagName === "SELECT" ||
+          el.closest("button,a,select,[role='button'],[role='menuitem']"))
+      )
+        return;
       const s = usePlayerStore.getState();
       switch (e.code) {
         case "Space":
+          if (el && el !== document.body && el !== document.documentElement) return;
           e.preventDefault();
           s.togglePlay();
           break;
         case "ArrowRight":
-          s.seek(Math.min(s.duration, s.progress + 5000));
-          break;
         case "ArrowLeft":
-          s.seek(Math.max(0, s.progress - 5000));
-          break;
         case "ArrowUp":
-          s.setVolume(s.volume + 0.05);
-          break;
         case "ArrowDown":
-          s.setVolume(s.volume - 0.05);
+          if (s.currentPage !== "nowplaying") return;
+          e.preventDefault();
+          if (e.code === "ArrowRight") s.seek(Math.min(s.duration, s.progress + 5000));
+          if (e.code === "ArrowLeft") s.seek(Math.max(0, s.progress - 5000));
+          if (e.code === "ArrowUp") s.setVolume(s.volume + 0.05);
+          if (e.code === "ArrowDown") s.setVolume(s.volume - 0.05);
           break;
       }
     };
