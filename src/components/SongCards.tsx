@@ -153,7 +153,7 @@ export default function SongCards({
                 )}
               </div>
               <div className="n">
-                {song.name}
+                <span className="n-name">{song.name}</span>
                 {isVipSong(song) && (
                   <span
                     className="vip-badge"

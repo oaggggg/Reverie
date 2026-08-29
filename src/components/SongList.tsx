@@ -222,7 +222,7 @@ export default function SongList({
                   ))}
                 <div className="meta">
                   <div className={`t ${isCur ? "playing-text" : ""}`}>
-                    {song.name}
+                    <span className="t-name">{song.name}</span>
                     {isVipSong(song) && (
                       <span
                         className="vip-badge"

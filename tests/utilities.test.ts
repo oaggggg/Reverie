@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeSong } from "../src/api/client.ts";
+import { mergeSongPrivileges, normalizeSong } from "../src/api/client.ts";
 import { sizedImage } from "../src/utils/image.ts";
 
 test("normalizeSong accepts the common Netease song shapes", () => {
@@ -37,6 +37,27 @@ test("normalizeSong accepts the common Netease song shapes", () => {
     "Live",
   ]);
   assert.equal(normalizeSong({ name: "缺少 id" }), null);
+});
+
+test("mergeSongPrivileges fills max level from sibling privileges by id", () => {
+  const songs = [
+    normalizeSong({ id: 1, name: "无损歌" }),
+    normalizeSong({ id: 2, name: "母带歌" }),
+    normalizeSong({ id: 3, name: "行内已有", privilege: { maxBrLevel: "lossless" } }),
+  ].filter((song) => song !== null);
+  const merged = mergeSongPrivileges(songs, [
+    { id: 1, maxBrLevel: "hires" },
+    { id: 2, playMaxBrLevel: "jymaster" },
+    { id: 3, maxBrLevel: "standard" },
+    { id: 999, maxBrLevel: "lossless" },
+  ]);
+  assert.equal(merged[0]?.maxLevel, "hires");
+  assert.equal(merged[1]?.maxLevel, "jymaster");
+  // 行内已有更高档时不被低档覆盖
+  assert.equal(merged[2]?.maxLevel, "lossless");
+  // 非法输入原样返回
+  assert.equal(mergeSongPrivileges(songs, null), songs);
+  assert.equal(mergeSongPrivileges(songs, []), songs);
 });
 
 test("sizedImage upgrades insecure CDN URLs and preserves existing params", () => {
