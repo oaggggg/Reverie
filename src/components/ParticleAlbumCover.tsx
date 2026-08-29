@@ -13,6 +13,8 @@ interface ParticleAlbumCoverProps {
   grid: number;
   /** 渲染帧率上限；0 = 跟随显示器刷新率。 */
   fpsLimit?: number;
+  /** 律动幅度系数 0~1.5（DIY 可调），乘在节奏驱动的位移与节拍冲击上。 */
+  rhythmGain?: number;
   /**
    * 父组件持有的共享旋转。拖拽粒子封面时逐帧写入（含自转分量），
    * 3D 歌词层每帧读取同一份数据，保证歌词与封面是一体的。
@@ -63,6 +65,7 @@ export default function ParticleAlbumCover({
   imageUrl,
   grid,
   fpsLimit = 0,
+  rhythmGain = 0.55,
   rotationRef,
   zoomRef,
   onOverload,
@@ -75,6 +78,7 @@ export default function ParticleAlbumCover({
   const onDoubleClickRef = useRef(onDoubleClick);
   const onOverloadRef = useRef(onOverload);
   const fpsLimitRef = useRef(fpsLimit);
+  const rhythmGainRef = useRef(rhythmGain);
   const zoomTargetRef = useRef(0);
   useEffect(() => {
     onOverloadRef.current = onOverload;
@@ -85,6 +89,9 @@ export default function ParticleAlbumCover({
   useEffect(() => {
     fpsLimitRef.current = fpsLimit;
   }, [fpsLimit]);
+  useEffect(() => {
+    rhythmGainRef.current = rhythmGain;
+  }, [rhythmGain]);
 
   // 场景对象跨 imageUrl 复用：换歌只重采样颜色，绝不重建 WebGL 上下文。
   // 反复 forceContextLoss + 重建是切歌时整个 WebView 白屏一瞬的元凶。
@@ -314,6 +321,7 @@ export default function ParticleAlbumCover({
       // 频谱三段能量提供基础起伏，节拍冲击提供"炸开-归位"的打击感；
       // 拿不到频谱（未播放 / CORS 限制）时退化为缓慢呼吸，保持画面 alive。
       const rhythm = readRhythm();
+      const gain = rhythmGainRef.current;
       let ampTarget: number;
       let speedTarget: number;
       let freqTarget: number;
@@ -322,7 +330,7 @@ export default function ParticleAlbumCover({
         shimmer += (Math.min(1, rhythm.high * 1.5) - shimmer) * 0.15;
         // beat 上升沿快跟、衰减段慢放，突出打击感。
         beat += (rhythm.beat - beat) * (rhythm.beat > beat ? 0.55 : 0.14);
-        ampTarget = 0.06 + rhythm.low * 0.5 + rhythm.beat * 0.28;
+        ampTarget = (0.06 + rhythm.low * 0.5 + rhythm.beat * 0.28) * gain;
         speedTarget = 0.22 + rhythm.mid * 0.55;
         freqTarget = 0.9 + rhythm.mid * 0.7;
       } else {
@@ -330,7 +338,7 @@ export default function ParticleAlbumCover({
         pulse += (breath * 0.4 - pulse) * 0.05;
         shimmer += (0 - shimmer) * 0.1;
         beat += (0 - beat) * 0.1;
-        ampTarget = 0.1;
+        ampTarget = 0.1 * Math.max(gain, 0.4);
         speedTarget = 0.2;
         freqTarget = 0.9;
       }
@@ -341,7 +349,7 @@ export default function ParticleAlbumCover({
       uniforms.uFreq.value += (freqTarget - uniforms.uFreq.value) * 0.06;
       uniforms.uPulse.value = pulse;
       uniforms.uShimmer.value = shimmer;
-      uniforms.uBeat.value = beat;
+      uniforms.uBeat.value = beat * gain;
       if (useBloom) bloom.strength = 0.14 + pulse * 0.16 + beat * 0.1;
 
       rotation.x += (target.x - rotation.x) * 0.1;
@@ -495,7 +503,7 @@ export default function ParticleAlbumCover({
       img.onerror = null;
       img.src = "";
     };
-  }, [imageUrl]);
+  }, [imageUrl, grid]);
 
   return <div ref={containerRef} className="particle-album-cover" />;
 }

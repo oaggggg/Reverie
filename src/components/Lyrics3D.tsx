@@ -29,13 +29,9 @@ const SWAP_MS = 420;
 
 /** 歌词平面相对粒子封面平面的悬浮深度（px）。 */
 const LIFT = 150;
-/** 旋转角度小于该值视为静止，不再写 transform。 */
-const EPSILON = 0.0004;
-
-/** 反歌词静息时的弱化不透明度（正对封面时）。 */
-const BACK_BASE_OPACITY = 0.42;
-/** 反歌词静息时的模糊半径（px）。 */
-const BACK_BASE_BLUR = 1.2;
+/** 静置摆动的幅度（rad）：让歌词层随时都有立体纵深感。 */
+const SWAY_X = 0.05;
+const SWAY_Y = 0.07;
 
 interface Slot {
   text: string;
@@ -175,37 +171,36 @@ export default function Lyrics3D({
   // 逐帧读取共享旋转与缩放（拖拽/滚轮时由 ParticleAlbumCover 写入），
   // 直接写 transform，避免逐帧 setState。背面层在装配旋转之上再绕 Y
   // 翻转 180°，构成"正歌词 -> 粒子封面 -> 反歌词"的双面夹心。
-  // 反歌词的不透明度与模糊随朝向渐变：正对封面时弱化如隔着粒子云，
-  // 整体翻到背面时变为全清晰，解决反面歌词看不清的问题。
+  // 叠加缓慢的静置摆动让歌词随时都有 3D 纵深感；正反两层按朝向
+  // 交叉淡隐——翻到背面时反歌词层提到封面上方（否则被粒子云挡住
+  // 完全看不清），正面歌词随之淡出。
   useEffect(() => {
     let frameId = 0;
-    let last = { x: NaN, y: NaN, zoom: NaN };
     const apply = () => {
       frameId = requestAnimationFrame(apply);
       const el = rootRef.current;
       if (!el) return;
       const { x, y } = rotationRef.current;
+      const t = performance.now() / 1000;
+      const rx = x + Math.sin(t * 0.45) * SWAY_X;
+      const ry = y + Math.cos(t * 0.3) * SWAY_Y;
+      const rotate = `rotateX(${rx}rad) rotateY(${ry}rad)`;
       const zoom = zoomRef?.current ?? 1;
-      if (
-        Math.abs(x - last.x) < EPSILON &&
-        Math.abs(y - last.y) < EPSILON &&
-        Math.abs(zoom - last.zoom) < 0.001 &&
-        !Number.isNaN(last.x)
-      ) {
-        return;
-      }
-      last = { x, y, zoom };
-      const rotate = `rotateX(${x}rad) rotateY(${y}rad)`;
       const scale = zoom !== 1 ? ` scale(${zoom})` : "";
       el.style.transform =
         side === "back"
           ? `${rotate} translateZ(${-LIFT}px) rotateY(180deg)${scale}`
           : `${rotate} translateZ(${LIFT}px)${scale}`;
-      if (side === "back") {
-        // 朝向系数：装配体正对时 0（弱化），翻到背面时 1（全清晰）。
-        const facing = (1 - Math.cos(x) * Math.cos(y)) / 2;
-        el.style.opacity = String(BACK_BASE_OPACITY + 0.54 * facing);
-        el.style.filter = `blur(${(BACK_BASE_BLUR * (1 - facing)).toFixed(2)}px)`;
+      // 朝向系数：装配体正对时 0，翻到背面时 1。
+      const facing = (1 - Math.cos(rx) * Math.cos(ry)) / 2;
+      if (side === "front") {
+        el.style.opacity = (1 - 0.92 * facing).toFixed(3);
+      } else {
+        el.style.opacity = (0.5 + 0.5 * facing).toFixed(3);
+        el.style.filter = `blur(${(1.2 * (1 - facing)).toFixed(2)}px)`;
+        if (el.parentElement) {
+          el.parentElement.style.zIndex = facing > 0.5 ? "6" : "0";
+        }
       }
     };
     frameId = requestAnimationFrame(apply);
