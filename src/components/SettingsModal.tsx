@@ -3,6 +3,8 @@ import {
   CircleUserRound,
   ChevronRight,
   Bug,
+  Keyboard,
+  RotateCcw,
   Trash2,
   FolderOpen,
   Info,
@@ -36,6 +38,14 @@ import {
   openGitHubIssue,
 } from "../utils/diagnostics";
 import { getSavedAccounts, MAX_SAVED_ACCOUNTS, type SavedAccount } from "../store/accountStore";
+import {
+  FIXED_SHORTCUTS,
+  PLAYER_SHORTCUT_ACTIONS,
+  comboFromEvent,
+  findShortcutConflict,
+  formatCombo,
+  type ShortcutActionId,
+} from "../utils/shortcuts";
 
 const APP_THEMES: Array<{ id: ThemePreference; name: string }> = [
   { id: "system", name: "跟随系统" },
@@ -148,7 +158,7 @@ Reverie 是开源桌面音乐播放器，仅供个人学习、技术研究与合
 六、其他
 本免责声明与隐私政策、服务条款共同构成使用本应用的完整约定；如与法律法规强制性规定冲突，以法律规定为准。`;
 
-type Category = "general" | "appearance" | "account" | "about";
+type Category = "general" | "appearance" | "shortcuts" | "account" | "about";
 type Panel = "privacy" | "usage" | "disclaimer" | null;
 
 const CATEGORIES: Array<{
@@ -158,6 +168,7 @@ const CATEGORIES: Array<{
 }> = [
   { id: "general", label: "常规", icon: <MonitorCog size={17} /> },
   { id: "appearance", label: "外观", icon: <Palette size={17} /> },
+  { id: "shortcuts", label: "快捷键", icon: <Keyboard size={17} /> },
   { id: "account", label: "账号", icon: <CircleUserRound size={17} /> },
   { id: "about", label: "关于", icon: <Info size={17} /> },
 ];
@@ -223,6 +234,138 @@ function CustomColorPicker({
   );
 }
 
+/** 快捷键分类面板：展示 + 录制自定义组合键 + 冲突校验 + 恢复默认。 */
+function ShortcutSettings() {
+  const shortcutOverrides = usePlayerStore((s) => s.shortcutOverrides);
+  const setShortcutOverride = usePlayerStore((s) => s.setShortcutOverride);
+  const setCapturingShortcut = usePlayerStore((s) => s.setCapturingShortcut);
+  const [recordingId, setRecordingId] = useState<ShortcutActionId | null>(null);
+
+  const resolvedCombo = (id: ShortcutActionId) =>
+    shortcutOverrides[id] ??
+    PLAYER_SHORTCUT_ACTIONS.find((action) => action.id === id)?.combo ??
+    "";
+
+  // 录制期间独占键盘：全局快捷键处理通过 capturingShortcut 让位。
+  useEffect(() => {
+    if (!recordingId) return;
+    setCapturingShortcut(true);
+    const onKey = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.key === "Escape") {
+        setRecordingId(null);
+        return;
+      }
+      const combo = comboFromEvent(event);
+      if (!combo) return; // 纯修饰键，等待完整组合
+      const conflict = findShortcutConflict(
+        shortcutOverrides,
+        recordingId,
+        combo,
+      );
+      if (conflict) {
+        usePlayerStore
+          .getState()
+          .toast(`该组合键已被「${conflict.label}」占用`, "error");
+        return;
+      }
+      setShortcutOverride(recordingId, combo);
+      setRecordingId(null);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      setCapturingShortcut(false);
+    };
+  }, [
+    recordingId,
+    shortcutOverrides,
+    setCapturingShortcut,
+    setShortcutOverride,
+  ]);
+
+  return (
+    <>
+      <div className="settings-section">
+        <div className="shortcut-section-head">
+          <h3>播放器快捷键</h3>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setRecordingId(null);
+              for (const action of PLAYER_SHORTCUT_ACTIONS) {
+                if (shortcutOverrides[action.id])
+                  setShortcutOverride(action.id, null);
+              }
+              usePlayerStore.getState().toast("已恢复默认快捷键", "success");
+            }}
+            disabled={!Object.keys(shortcutOverrides).length}
+          >
+            <RotateCcw size={13} /> 全部恢复默认
+          </button>
+        </div>
+        <p className="setting-hint">
+          点击组合键开始修改，随后按下新的组合键完成录入（Esc
+          取消），设置即时生效并保存在本机
+        </p>
+        <div className="shortcut-list" aria-label="播放器快捷键">
+          {PLAYER_SHORTCUT_ACTIONS.map((action) => {
+            const recording = recordingId === action.id;
+            return (
+              <div
+                className={`shortcut-row ${recording ? "recording" : ""}`}
+                key={action.id}
+              >
+                <span>{action.label}</span>
+                <div className="shortcut-row-actions">
+                  {recording ? (
+                    <button type="button" className="shortcut-capture-btn">
+                      按下新的组合键…（Esc 取消）
+                    </button>
+                  ) : (
+                    <>
+                      <span className="shortcut-keys">
+                        {formatCombo(resolvedCombo(action.id)).map((key) => (
+                          <kbd key={key}>{key}</kbd>
+                        ))}
+                      </span>
+                      <button
+                        type="button"
+                        className="shortcut-edit-btn"
+                        onClick={() => setRecordingId(action.id)}
+                        title="修改快捷键"
+                      >
+                        修改
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="settings-section">
+        <h3>固定快捷键</h3>
+        <div className="shortcut-list" aria-label="固定快捷键">
+          {FIXED_SHORTCUTS.map((item) => (
+            <div className="shortcut-row" key={item.label}>
+              <span>{item.label}</span>
+              <span className="shortcut-keys">
+                {item.combo.map((key) => (
+                  <kbd key={key}>{key}</kbd>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function SettingsModal() {
   const [category, setCategory] = useState<Category>("general");
   const [panel, setPanel] = useState<Panel>(null);
@@ -269,10 +412,6 @@ export default function SettingsModal() {
   const loggedIn = usePlayerStore((s) => s.loggedIn);
   const profile = usePlayerStore((s) => s.profile);
   const vipInfo = usePlayerStore((s) => s.vipInfo);
-  const showTranslation = usePlayerStore((s) => s.showTranslation);
-  const setShowTranslation = usePlayerStore((s) => s.setShowTranslation);
-  const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
-  const setLyricFontSize = usePlayerStore((s) => s.setLyricFontSize);
   const logout = usePlayerStore((s) => s.logout);
   const switchAccount = usePlayerStore((s) => s.switchAccount);
   const removeAccount = usePlayerStore((s) => s.removeAccount);
@@ -678,59 +817,26 @@ export default function SettingsModal() {
                       )}
                     </div>
                   </SettingRow>
-                  <SettingRow title="歌词翻译" hint="在歌词页同时显示译文">
-                    <div className="opt-group">
-                      <button
-                        className={`opt-btn ${showTranslation ? "active" : ""}`}
-                        onClick={() => setShowTranslation(true)}
-                      >
-                        开启
-                      </button>
-                      <button
-                        className={`opt-btn ${!showTranslation ? "active" : ""}`}
-                        onClick={() => setShowTranslation(false)}
-                      >
-                        关闭
-                      </button>
-                    </div>
-                  </SettingRow>
-                  <SettingRow title="歌词字号" hint={`当前 ${lyricFontSize}px`}>
-                    <div className="opt-group">
-                      {[18, 22, 26, 30].map((size) => (
-                        <button
-                          key={size}
-                          className={`opt-btn ${lyricFontSize === size ? "active" : ""}`}
-                          onClick={() => setLyricFontSize(size)}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </SettingRow>
                 </div>
                 <div className="settings-section">
                   <h3>快捷键</h3>
-                  <div className="shortcut-list" aria-label="键盘快捷键">
-                    <div>
-                      <span>播放 / 暂停</span>
-                      <kbd>Space</kbd>
-                    </div>
-                    <div>
-                      <span>快进 / 快退 5 秒</span>
-                      <span>
-                        <kbd>→</kbd> <kbd>←</kbd>
-                      </span>
-                    </div>
-                    <div>
-                      <span>音量增减</span>
-                      <span>
-                        <kbd>↑</kbd> <kbd>↓</kbd>
-                      </span>
-                    </div>
-                  </div>
+                  <SettingRow
+                    title="自定义播放器快捷键"
+                    hint="播放 / 切歌 / 音量等快捷键已在「快捷键」分类中支持自定义"
+                  >
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => setCategory("shortcuts")}
+                    >
+                      前往设置
+                    </button>
+                  </SettingRow>
                 </div>
               </>
             )}
+
+            {category === "shortcuts" && <ShortcutSettings />}
 
             {category === "account" && (
               <>

@@ -22,6 +22,10 @@ import {
   searchSongs,
   setCookie,
 } from "../api/client.ts";
+import {
+  PLAYER_SHORTCUT_ACTIONS,
+  type ShortcutActionId,
+} from "../utils/shortcuts.ts";
 import { getAlbumPrivileges } from "../api/library.ts";
 import type {
   LyricLine,
@@ -309,6 +313,22 @@ function readJson<T>(key: string, fallback: T): T {
 
 function writeJson(key: string, value: unknown) {
   write(key, JSON.stringify(value));
+}
+
+/** 自定义快捷键覆盖表的本地读取：只接受字符串值的合法条目。 */
+function readShortcutOverrides(): Record<string, string> {
+  const raw = readJson<Record<string, unknown>>("reverie_shortcuts", {});
+  const out: Record<string, string> = {};
+  for (const [id, combo] of Object.entries(raw)) {
+    if (
+      typeof combo === "string" &&
+      combo &&
+      PLAYER_SHORTCUT_ACTIONS.some((action) => action.id === id)
+    ) {
+      out[id] = combo;
+    }
+  }
+  return out;
 }
 
 function readCachedProfile(): UserProfile | null {
@@ -689,6 +709,12 @@ interface PlayerState {
   lyricSongId: number | null;
   showTranslation: boolean;
 
+  // --- shortcuts ---
+  /** 自定义播放器快捷键覆盖表：动作 ID → 组合键，仅存与默认不同的项。 */
+  shortcutOverrides: Record<string, string>;
+  /** 设置面板正在录制快捷键。 */
+  capturingShortcut: boolean;
+
   // --- update ---
   updatePhase: UpdatePhase;
   updateVersion: string | null;
@@ -815,6 +841,13 @@ interface PlayerState {
     url: string,
   ) => void;
   cyclePlayMode: () => void;
+  /** 自定义播放器快捷键覆盖：动作 ID → 组合键（null 表示恢复默认）。 */
+  setShortcutOverride: (
+    actionId: ShortcutActionId,
+    combo: string | null,
+  ) => void;
+  /** 设置面板录制快捷键期间置真，全局按键处理让位。 */
+  setCapturingShortcut: (v: boolean) => void;
   setShowTranslation: (v: boolean) => void;
   loadLyrics: (song: Song) => Promise<void>;
   ensureLyrics: () => void;
@@ -1169,6 +1202,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   lyricLines: [],
   lyricSongId: null,
   showTranslation: readBool("reverie_translation", true),
+
+  // --- shortcuts ---
+  shortcutOverrides: readShortcutOverrides(),
+  capturingShortcut: false,
 
   // --- update ---
   updatePhase: "idle",
@@ -1602,6 +1639,20 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     const next = order[(order.indexOf(cur) + 1) % order.length];
     set({ playMode: next });
     write("reverie_playmode", next);
+  },
+  setShortcutOverride: (actionId, combo) => {
+    set((s) => {
+      const overrides = { ...s.shortcutOverrides };
+      const action = PLAYER_SHORTCUT_ACTIONS.find((a) => a.id === actionId);
+      // 与默认一致或显式置空都删除覆盖项，本地只保存真正的差异。
+      if (combo === null || combo === action?.combo) delete overrides[actionId];
+      else overrides[actionId] = combo;
+      writeJson("reverie_shortcuts", overrides);
+      return { shortcutOverrides: overrides };
+    });
+  },
+  setCapturingShortcut: (v) => {
+    set({ capturingShortcut: v });
   },
   setShowTranslation: (v) => {
     set({ showTranslation: v });

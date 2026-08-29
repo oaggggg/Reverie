@@ -28,6 +28,11 @@ import SettingsModal from "./components/SettingsModal";
 import MediaDetailDialog from "./components/MediaDetailDialog";
 import { reportScrobble, reportWeblog } from "./api/playbackReport";
 import {
+  comboFromEvent,
+  resolveShortcutAction,
+  type ShortcutActionId,
+} from "./utils/shortcuts";
+import {
   loadNowPlayingView,
   preloadNowPlayingAssets,
 } from "./utils/nowPlayingPreload";
@@ -536,14 +541,53 @@ export default function App() {
     root.style.setProperty("--glow-1", `color-mix(in srgb, ${accentColor} 14%, transparent)`);
   }, [accentColor]);
 
-  // keyboard shortcuts
+  // keyboard shortcuts：固定键（F12 拦截 / Ctrl+F 搜索 / Ctrl+, 设置）
+  // 与可自定义的播放器快捷键（src/utils/shortcuts.ts）两层分发。
   useEffect(() => {
+    const runShortcut = (action: ShortcutActionId) => {
+      const s = usePlayerStore.getState();
+      switch (action) {
+        case "togglePlay":
+          s.togglePlay();
+          break;
+        case "prev":
+          s.prev();
+          break;
+        case "next":
+          s.next();
+          break;
+        case "seekFwd":
+          if (s.currentSong) s.seek(Math.min(s.duration, s.progress + 5000));
+          break;
+        case "seekBack":
+          if (s.currentSong) s.seek(Math.max(0, s.progress - 5000));
+          break;
+        case "volUp":
+          s.setVolume(s.volume + 0.05);
+          break;
+        case "volDown":
+          s.setVolume(s.volume - 0.05);
+          break;
+        case "toggleMute":
+          s.toggleMute();
+          break;
+        case "toggleLike":
+          void s.toggleLike();
+          break;
+        case "cyclePlayMode":
+          s.cyclePlayMode();
+          break;
+      }
+    };
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "F12" || e.code === "F12") {
         e.preventDefault();
         e.stopImmediatePropagation();
         return;
       }
+      // 设置面板正在录制快捷键：录入窗口独占键盘，全局处理让位。
+      if (usePlayerStore.getState().capturingShortcut) return;
       const el = e.target as HTMLElement | null;
       const editing =
         el &&
@@ -563,8 +607,18 @@ export default function App() {
         usePlayerStore.getState().setShowSettings(true);
         return;
       }
-      if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (editing) return;
+      const combo = comboFromEvent(e);
+      if (!combo) return;
+      const action = resolveShortcutAction(
+        usePlayerStore.getState().shortcutOverrides,
+        combo,
+      );
+      if (!action) return;
+      // 焦点落在按钮/链接/下拉上时，Space 保留原生激活行为
+      //（否则聚焦的按钮会被播放快捷键抢先触发两次语义）。
       if (
+        action === "togglePlay" &&
         el &&
         (el.tagName === "BUTTON" ||
           el.tagName === "A" ||
@@ -572,25 +626,8 @@ export default function App() {
           el.closest("button,a,select,[role='button'],[role='menuitem']"))
       )
         return;
-      const s = usePlayerStore.getState();
-      switch (e.code) {
-        case "Space":
-          if (el && el !== document.body && el !== document.documentElement) return;
-          e.preventDefault();
-          s.togglePlay();
-          break;
-        case "ArrowRight":
-        case "ArrowLeft":
-        case "ArrowUp":
-        case "ArrowDown":
-          if (s.currentPage !== "nowplaying") return;
-          e.preventDefault();
-          if (e.code === "ArrowRight") s.seek(Math.min(s.duration, s.progress + 5000));
-          if (e.code === "ArrowLeft") s.seek(Math.max(0, s.progress - 5000));
-          if (e.code === "ArrowUp") s.setVolume(s.volume + 0.05);
-          if (e.code === "ArrowDown") s.setVolume(s.volume - 0.05);
-          break;
-      }
+      e.preventDefault();
+      runShortcut(action);
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
