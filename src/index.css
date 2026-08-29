@@ -680,6 +680,8 @@ select option:checked {
   align-items: center;
   gap: 6px;
   margin-left: auto;
+  /* 收缩态导航空间不足时允许整组操作区收缩，内部由搜索胶囊与昵称让位 */
+  min-width: 0;
   transform: translateZ(0);
 }
 .topnav-icon-btn {
@@ -800,6 +802,9 @@ select option:checked {
 }
 .search-wrap {
   position: relative;
+  /* 收缩态导航内打开搜索时允许胶囊被压缩，避免把用户胶囊挤出导航栏 */
+  flex: 0 1 auto;
+  min-width: 0;
 }
 .search-capsule {
   display: flex;
@@ -7496,9 +7501,11 @@ select option:checked {
     background 0.18s ease,
     box-shadow 0.18s ease;
 }
-.topnav .topnav-user,
-.topnav .topnav-login,
-.topnav .search-wrap { flex: 0 0 auto; }
+.topnav .topnav-login { flex: 0 0 auto; }
+/* 登录按钮固定；搜索胶囊与用户胶囊在空间不足时收缩
+   （输入框压缩、昵称截断），保证收缩态导航栏不溢出 */
+.topnav .search-wrap { flex: 0 1 auto; }
+.topnav .topnav-user { flex: 0 1 auto; min-width: 0; }
 
 .topnav.is-condensed::before {
   inset: 0;
