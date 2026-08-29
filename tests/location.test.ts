@@ -9,6 +9,10 @@ test("normalizeRegion renders ordinary provinces with city", () => {
   assert.equal(normalizeRegion("浙江省", ""), "浙江省");
 });
 
+test("normalizeRegion preserves county-level suffixes without inventing a city", () => {
+  assert.equal(normalizeRegion("海南", "定安县"), "海南省定安县");
+});
+
 test("normalizeRegion keeps same-name prefecture city (吉林省吉林市)", () => {
   assert.equal(normalizeRegion("吉林", "吉林"), "吉林省吉林市");
   assert.equal(normalizeRegion("吉林", "吉林市"), "吉林省吉林市");
