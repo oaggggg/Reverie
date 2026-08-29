@@ -825,24 +825,24 @@ export default function App() {
   }, [activeAudio, preloadedUrl, qualitySwitchUrl]);
 
   // `timeupdate` only fires a few times per second in WebView. Sample the
-  // actual audio clock at 30 fps while playing so the progress bar and lyrics
-  // move continuously without forcing the whole app to render at 60 fps.
+  // actual audio clock at a bounded cadence; a timer avoids waking the main
+  // thread once per display refresh when the visual page is idle or hidden.
   useEffect(() => {
     const audio =
       activeAudio === 0 ? audioRef.current : preloadAudioRef.current;
     if (!audio || !playing || !currentUrl) return;
-    let frame = 0;
+    let timer = 0;
     let lastPaint = 0;
     const tick = (now: number) => {
       const state = usePlayerStore.getState();
       // 切歌过渡窗口内旧解码器仍在走表，不能把旧进度写进新歌的状态。
       if (state.pendingPlayToken !== 0) {
-        frame = window.requestAnimationFrame(tick);
+        timer = window.setTimeout(() => tick(performance.now()), 250);
         return;
       }
       const foreground =
         document.visibilityState === "visible" && document.hasFocus();
-      const interval = foreground ? 32 : 250;
+      const interval = foreground ? 50 : 250;
       if (now - lastPaint >= interval && !document.hidden) {
         lastPaint = now;
         const progress = Math.floor(audio.currentTime * 1000);
@@ -926,10 +926,10 @@ export default function App() {
           usePlayerStore.setState({ progress, duration: visibleDuration });
         }
       }
-      frame = window.requestAnimationFrame(tick);
+      timer = window.setTimeout(() => tick(performance.now()), interval);
     };
-    frame = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frame);
+    timer = window.setTimeout(() => tick(performance.now()), 0);
+    return () => window.clearTimeout(timer);
   }, [activeAudio, playing, currentUrl, previewEnd]);
 
   const advanceAfterEnded = (audio: HTMLAudioElement) => {

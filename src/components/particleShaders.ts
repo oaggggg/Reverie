@@ -82,10 +82,12 @@ ${SIMPLEX_3D}
 void main() {
   vec3 p = position;
 
-  // Two octaves at different scales: the large one shapes the swell, the
-  // small one keeps neighbouring particles from moving in lockstep.
+  // One simplex octave shapes the swell. The second detail layer uses cheap
+  // trigonometry instead of another simplex evaluation; this keeps the
+  // particle field organic while roughly halving vertex ALU cost.
   float n1 = snoise(vec3(p.xy * uFreq, uTime * uSpeed));
-  float n2 = snoise(vec3(p.yx * uFreq * 2.7, uTime * uSpeed * 1.6 + aSeed * 6.283));
+  float n2 = sin(p.y * uFreq * 2.7 + uTime * uSpeed * 1.6 + aSeed * 6.283)
+    * cos(p.x * uFreq * 2.1 - uTime * uSpeed * 1.2);
 
   p.z += (n1 * 0.8 + n2 * 0.2) * uAmp;
   // A touch of lateral drift stops the grid from reading as a flat sheet.

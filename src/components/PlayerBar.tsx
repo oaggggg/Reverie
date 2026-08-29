@@ -57,6 +57,27 @@ const PLAYER_FOCUS_SCOPE_SELECTOR = [
   ".np-visual-panel",
 ].join(",");
 
+function PlayerProgress({ seek }: { seek: (ms: number) => void }) {
+  const progress = usePlayerStore((s) => s.progress);
+  const duration = usePlayerStore((s) => s.duration);
+  const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+  return (
+    <div className="pb-progress">
+      <span className="pb-time">{formatTime(progress)}</span>
+      <input
+        className="slider pb-slider"
+        type="range"
+        min={0}
+        max={duration || 0}
+        value={progress}
+        style={{ ["--val" as never]: `${pct}%` }}
+        onChange={(e) => seek(Number(e.target.value))}
+      />
+      <span className="pb-time">{formatTime(duration)}</span>
+    </div>
+  );
+}
+
 function ModeIcon({ mode }: { mode: PlayMode }) {
   if (mode === "shuffle") return <Shuffle size={18} />;
   if (mode === "one") return <Repeat1 size={18} />;
@@ -117,8 +138,6 @@ export default function PlayerBar() {
   const previewEnd = usePlayerStore((s) => s.previewEnd);
   const playing = usePlayerStore((s) => s.playing);
   const loadingUrl = usePlayerStore((s) => s.loadingUrl);
-  const progress = usePlayerStore((s) => s.progress);
-  const duration = usePlayerStore((s) => s.duration);
   const volume = usePlayerStore((s) => s.volume);
   const muted = usePlayerStore((s) => s.muted);
   const playMode = usePlayerStore((s) => s.playMode);
@@ -282,7 +301,6 @@ export default function PlayerBar() {
     };
   }, []);
 
-  const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
   const liked = currentSong
     ? (remoteLiked ?? likedIds.includes(currentSong.id))
     : false;
@@ -290,20 +308,7 @@ export default function PlayerBar() {
   return (
     <>
       <footer className="player-bar">
-        {/* progress row inside the pill, with time at both ends */}
-        <div className="pb-progress">
-          <span className="pb-time">{formatTime(progress)}</span>
-          <input
-            className="slider pb-slider"
-            type="range"
-            min={0}
-            max={duration || 0}
-            value={progress}
-            style={{ ["--val" as never]: `${pct}%` }}
-            onChange={(e) => seek(Number(e.target.value))}
-          />
-          <span className="pb-time">{formatTime(duration)}</span>
-        </div>
+        <PlayerProgress seek={seek} />
 
         <div className="pb-row">
           <div className="pb-left">

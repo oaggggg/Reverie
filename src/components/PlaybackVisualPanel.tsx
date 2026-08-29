@@ -43,7 +43,7 @@ const DEFAULTS = {
   lyricClarity: 60,
   lyricOffsetX: 0,
   lyricOffsetY: 0,
-  npFrameRate: 0,
+  npFrameRate: 30,
 };
 
 type VisualTab = "background" | "lyrics";

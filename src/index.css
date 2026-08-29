@@ -5486,6 +5486,20 @@ select option:checked {
 .lyrics-3d-sway-y {
   animation: lyrics-sway-y 21s ease-in-out infinite alternate;
 }
+
+/* 暂停歌曲时冻结歌词装饰动画，避免静态播放页继续消耗合成资源。 */
+.now-playing:not(.np-playing) .lyrics-3d-sway-x,
+.now-playing:not(.np-playing) .lyrics-3d-sway-y,
+.now-playing:not(.np-playing) .lyric-fx-core {
+  animation-play-state: paused !important;
+}
+
+/* 暂停歌曲时冻结歌词装饰动画，避免静态播放页继续消耗合成资源。 */
+.now-playing:not(.np-playing) .lyrics-3d-sway-x,
+.now-playing:not(.np-playing) .lyrics-3d-sway-y,
+.now-playing:not(.np-playing) .lyric-fx-core {
+  animation-play-state: paused !important;
+}
 @keyframes lyrics-sway-x {
   from {
     transform: rotateX(-0.05rad);
