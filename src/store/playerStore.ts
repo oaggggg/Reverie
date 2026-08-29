@@ -2029,7 +2029,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({ showPlayerComments: v, ...(v ? { showSettings: false } : {}) }),
   setShowCommentsModal: (v) => set({ showCommentsModal: v }),
   setActiveView: (v) =>
-    set((state) => ({ activeView: v, prevView: state.activeView, viewHistory: [] })),
+    set((state) => {
+      if (state.activeView === v) return state;
+      const history = state.viewHistory.at(-1) === state.activeView
+        ? state.viewHistory
+        : [...state.viewHistory, state.activeView];
+      return {
+        activeView: v,
+        prevView: state.activeView,
+        viewHistory: history,
+      };
+    }),
   goBack: () =>
     set((state) => {
       const history = [...state.viewHistory];
