@@ -931,10 +931,17 @@ select option:checked {
   min-width: 0;
 }
 .search-dropdown-item .t {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   font-size: 13px;
-  white-space: nowrap;
+}
+.search-dropdown-item .t .t-name {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .search-dropdown-item .a {
   font-size: 11px;
@@ -1578,6 +1585,12 @@ select option:checked {
   flex: none;
 }
 .song-card .vip-badge {
+  display: inline-block;
+  vertical-align: 1px;
+}
+/* 弹窗标题行（分享/乐谱等）内联展示标识时对齐基线 */
+.modal-head p .vip-badge,
+.modal-head p .song-tag {
   display: inline-block;
   vertical-align: 1px;
 }
@@ -3099,7 +3112,16 @@ select option:checked {
   text-align: center;
 }
 .pb-queue-list .pb-queue-title {
+  display: flex;
+  align-items: center;
   min-width: 0;
+}
+.pb-queue-list .pb-queue-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pb-queue-list button small {
   grid-column: 2;
@@ -8630,11 +8652,17 @@ select option:checked {
 }
 .chart-card-list .t {
   flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-size: 12.5px;
+}
+.chart-card-list .t .t-name {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
 }
 .chart-card-list .a {
   max-width: 40%;
