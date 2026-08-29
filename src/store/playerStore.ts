@@ -2449,7 +2449,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playing: autoplay,
       pendingPlayToken: 0,
     });
-    // 下一首地址同样改为临近结束才预取（见 requestPreloadNext）。
+    // 高音质地址解析和首段缓冲更慢，当前曲稳定起播后提前准备下一首，
+    // 让手动切歌也能复用已解析的 URL；标准音质仍保持临近结束再预取。
+    if (quality !== "standard" && autoplay) {
+      const scheduledSongId = song.id;
+      window.setTimeout(() => {
+        const latest = get();
+        if (latest.currentSong?.id === scheduledSongId && latest.playing) {
+          void latest.requestPreloadNext();
+        }
+      }, 1200);
+    }
   },
   /**
    * The current track cannot be played. Move on to the next one, but stop once
