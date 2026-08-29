@@ -34,9 +34,6 @@ const SWAP_MS = 420;
 
 /** 歌词平面相对粒子封面平面的悬浮深度（px）。 */
 const LIFT = 150;
-/** 静置摆动的幅度（rad）：让歌词层随时都有立体纵深感。 */
-const SWAY_X = 0.05;
-const SWAY_Y = 0.07;
 
 interface Slot {
   text: string;
@@ -49,6 +46,10 @@ interface Slot {
  * Swapping the text of a single node changes it in one frame, with nothing to
  * transition. Instead the outgoing and incoming lines are both mounted and
  * stacked in the same grid cell, so they cross-fade in place.
+ *
+ * 入场/离场动画作用在外层 .lyric-3d-text 上，效果预设的常驻动画（流光
+ * 扫带、霓虹呼吸等）作用在内层 .lyric-fx-core 上：两者分属不同元素，
+ * 避免 animation 属性互相覆盖导致换行动画失效、新旧两行叠影。
  */
 function CrossfadeLine({
   text,
@@ -84,11 +85,11 @@ function CrossfadeLine({
     <div className={`${className}${pending ? " is-pending" : ""}`}>
       {leaving && (
         <span key={leaving.id} className="lyric-3d-text is-leaving">
-          {leaving.text}
+          <span className="lyric-fx-core">{leaving.text}</span>
         </span>
       )}
       <span key={current.id} className="lyric-3d-text is-entering">
-        {current.text}
+        <span className="lyric-fx-core">{current.text}</span>
       </span>
       {showTranslation && translation && (
         <span className="lyric-3d-trans">{translation}</span>
@@ -99,19 +100,18 @@ function CrossfadeLine({
 
 /**
  * 多行滚动歌词列表：类似常规播放器的整页歌词，随播放进度自动滚动，
- * 点击任意行跳转播放。
+ * 点击任意行跳转播放。当前行同样吃歌词效果预设：行文本的 key 在
+ * 成为当前行时变化一次，促使节点重挂载并重放入场动画。
  */
 function LyricScrollList({
   lines,
   progress,
   showTranslation,
-  fontSize,
   onSeekLine,
 }: {
   lines: LyricLine[];
   progress: number;
   showTranslation: boolean;
-  fontSize: number;
   onSeekLine?: (time: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -138,11 +138,7 @@ function LyricScrollList({
   }, [activeIndex]);
 
   return (
-    <div
-      ref={containerRef}
-      className="np-full-lyrics"
-      style={{ fontSize: `${fontSize}px` }}
-    >
+    <div ref={containerRef} className="np-full-lyrics">
       {/* 上下各半窗高的占位，让首尾行也能滚到正中 */}
       <div className="np-full-lyrics-pad" aria-hidden />
       {lines.map((line, index) => {
@@ -150,17 +146,23 @@ function LyricScrollList({
         // 从侧面看整个列表呈现向纵深退去的阶梯。
         const dist = Math.min(Math.abs(index - activeIndex), 6);
         const depth = index === activeIndex ? 0 : dist;
+        const active = index === activeIndex;
         return (
           <button
             key={`${line.time}-${index}`}
-            className={`np-full-lyric${index === activeIndex ? " active" : ""}`}
+            className={`np-full-lyric${active ? " active" : ""}`}
             style={{
               transform: `translateZ(${-depth * 30}px)`,
               opacity: String(Math.max(0.3, 1 - depth * 0.11)),
             }}
             onClick={() => onSeekLine?.(line.time)}
           >
-            <span>{line.text}</span>
+            <span
+              key={active ? `act-${activeIndex}` : `idle-${index}`}
+              className={`lyric-3d-text${active ? " is-entering" : ""}`}
+            >
+              <span className="lyric-fx-core">{line.text}</span>
+            </span>
             {showTranslation && line.translation && (
               <small>{line.translation}</small>
             )}
@@ -194,30 +196,37 @@ export default function Lyrics3D({
   const rootRef = useRef<HTMLDivElement>(null);
 
   // 逐帧读取共享旋转与缩放（拖拽/滚轮时由 ParticleAlbumCover 写入），
-  // 直接写 transform，避免逐帧 setState。背面层在装配旋转之上再绕 Y
-  // 翻转 180°，构成"正歌词 -> 粒子封面 -> 反歌词"的双面夹心。
-  // 叠加缓慢的静置摆动让歌词随时都有 3D 纵深感；正反两层按朝向
-  // 交叉淡隐——翻到背面时反歌词层提到封面上方（否则被粒子云挡住
-  // 完全看不清），正面歌词随之淡出。
+  // 直接写 transform。仅在数值真正变化时才写 DOM：拖拽结束后主线程
+  // 零写入，避免在视频壁纸上持续重绘 3D 图层造成合成器撕裂/重影。
+  // 背面层在装配旋转之上再绕 Y 翻转 180°，构成"正歌词 -> 粒子封面 ->
+  // 反歌词"的双面夹心；正反两层按朝向交叉淡隐——翻到背面时反歌词层
+  // 提到封面上方（否则被粒子云挡住完全看不清），正面歌词随之淡出。
+  // 静置摆动改为纯 CSS 合成器动画（见 .lyrics-3d-sway-*），不占主线程。
   useEffect(() => {
     let frameId = 0;
+    let lastTransformKey = "";
+    let lastFacing = "";
     const apply = () => {
       frameId = requestAnimationFrame(apply);
       const el = rootRef.current;
       if (!el) return;
       const { x, y } = rotationRef.current;
-      const t = performance.now() / 1000;
-      const rx = x + Math.sin(t * 0.45) * SWAY_X;
-      const ry = y + Math.cos(t * 0.3) * SWAY_Y;
-      const rotate = `rotateX(${rx}rad) rotateY(${ry}rad)`;
       const zoom = zoomRef?.current ?? 1;
-      const scale = zoom !== 1 ? ` scale(${zoom})` : "";
-      el.style.transform =
-        side === "back"
-          ? `${rotate} translateZ(${-LIFT}px) rotateY(180deg)${scale}`
-          : `${rotate} translateZ(${LIFT}px)${scale}`;
+      const transformKey = `${x.toFixed(4)}|${y.toFixed(4)}|${zoom.toFixed(4)}`;
+      if (transformKey !== lastTransformKey) {
+        lastTransformKey = transformKey;
+        const rotate = `rotateX(${x}rad) rotateY(${y}rad)`;
+        const scale = zoom !== 1 ? ` scale(${zoom})` : "";
+        el.style.transform =
+          side === "back"
+            ? `${rotate} translateZ(${-LIFT}px) rotateY(180deg)${scale}`
+            : `${rotate} translateZ(${LIFT}px)${scale}`;
+      }
       // 朝向系数：装配体正对时 0，翻到背面时 1。
-      const facing = (1 - Math.cos(rx) * Math.cos(ry)) / 2;
+      const facing = (1 - Math.cos(x) * Math.cos(y)) / 2;
+      const facingKey = facing.toFixed(3);
+      if (facingKey === lastFacing) return;
+      lastFacing = facingKey;
       if (side === "front") {
         el.style.opacity = (1 - 0.92 * facing).toFixed(3);
       } else {
@@ -242,34 +251,38 @@ export default function Lyrics3D({
           "--lyric-accent-soft": accent.soft,
           // 清晰度 → 彩色辉光强度（越高越锐利）
           "--lyric-glow": String(1 - clarity / 100),
+          fontSize: `${lyricFontSize}px`,
         } as React.CSSProperties
       }
     >
-      {layout === "full" ? (
-        <LyricScrollList
-          lines={lyricLines}
-          progress={progress}
-          showTranslation={showTranslation}
-          fontSize={lyricFontSize}
-          onSeekLine={onSeekLine}
-        />
-      ) : (
-        <>
-          <CrossfadeLine
-            text={currentLine}
-            translation={currentTranslation}
-            showTranslation={showTranslation}
-            className="lyrics-3d-current"
-            pending={pending}
-          />
-          <CrossfadeLine
-            text={nextLine}
-            translation={nextTranslation}
-            showTranslation={showTranslation}
-            className="lyrics-3d-next"
-          />
-        </>
-      )}
+      <div className="lyrics-3d-sway-x">
+        <div className="lyrics-3d-sway-y">
+          {layout === "full" ? (
+            <LyricScrollList
+              lines={lyricLines}
+              progress={progress}
+              showTranslation={showTranslation}
+              onSeekLine={onSeekLine}
+            />
+          ) : (
+            <>
+              <CrossfadeLine
+                text={currentLine}
+                translation={currentTranslation}
+                showTranslation={showTranslation}
+                className="lyrics-3d-current"
+                pending={pending}
+              />
+              <CrossfadeLine
+                text={nextLine}
+                translation={nextTranslation}
+                showTranslation={showTranslation}
+                className="lyrics-3d-next"
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

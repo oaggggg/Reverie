@@ -1210,12 +1210,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   rhythmGain: Math.min(1.5, Math.max(0, readNum("reverie_rhythm_gain", 0.55))),
   lyricClarity: Math.min(100, Math.max(0, readNum("reverie_lyric_clarity", 60))),
   lyricOffsetX: Math.min(
-    400,
-    Math.max(-400, readNum("reverie_lyric_offset_x", 0)),
+    800,
+    Math.max(-800, readNum("reverie_lyric_offset_x", 0)),
   ),
   lyricOffsetY: Math.min(
-    400,
-    Math.max(-400, readNum("reverie_lyric_offset_y", 0)),
+    600,
+    Math.max(-600, readNum("reverie_lyric_offset_y", 0)),
   ),
   coverBenchmarking: false,
   npVoid: readBool("reverie_np_void", false),
@@ -1925,12 +1925,12 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     write("reverie_lyric_clarity", String(clarity));
   },
   setLyricOffsetX: (v) => {
-    const x = Math.min(400, Math.max(-400, v));
+    const x = Math.min(800, Math.max(-800, v));
     set({ lyricOffsetX: x });
     write("reverie_lyric_offset_x", String(x));
   },
   setLyricOffsetY: (v) => {
-    const y = Math.min(400, Math.max(-400, v));
+    const y = Math.min(600, Math.max(-600, v));
     set({ lyricOffsetY: y });
     write("reverie_lyric_offset_y", String(y));
   },

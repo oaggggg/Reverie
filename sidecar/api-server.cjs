@@ -250,6 +250,56 @@ if (Number.isInteger(parentPid) && parentPid > 0) {
     // 主源多服务投票返回城市级 JSON（province/city，城市经地级名录校验），
     // 备用 ipip 文本源仅省级。
     if (app && typeof app.get === "function") {
+      // 图片代理：网易图床不返回 CORS 头，渲染层 <img crossOrigin> 直接
+      // 加载会失败/污染画布，歌词取色等场景经本地 sidecar 中转字节。
+      // 域名白名单限定网易系图床，防止被当成任意地址的开放代理。
+      app.get("/reverie/image", async (req, res) => {
+        const target = String(req.query.url || "");
+        let parsed;
+        try {
+          parsed = new URL(target);
+        } catch {
+          res.status(400).json({ code: 400, msg: "bad url" });
+          return;
+        }
+        const host = parsed.hostname.toLowerCase();
+        const allowed =
+          (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+          (host === "music.126.net" ||
+            host.endsWith(".music.126.net") ||
+            host === "126.net" ||
+            host.endsWith(".126.net") ||
+            host === "163.com" ||
+            host.endsWith(".163.com"));
+        if (!allowed) {
+          res.status(403).json({ code: 403, msg: "host not allowed" });
+          return;
+        }
+        try {
+          const upstream = await fetch(target, {
+            signal: AbortSignal.timeout(8000),
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              Referer: "https://music.163.com/",
+            },
+          });
+          if (!upstream.ok) {
+            res.status(502).json({ code: 502, msg: `upstream ${upstream.status}` });
+            return;
+          }
+          const body = Buffer.from(await upstream.arrayBuffer());
+          res
+            .status(200)
+            .type(
+              (upstream.headers.get("content-type") || "image/jpeg").split(";")[0],
+            )
+            .set("Cache-Control", "public, max-age=86400")
+            .send(body);
+        } catch {
+          res.status(502).json({ code: 502, msg: "fetch failed" });
+        }
+      });
       app.get("/reverie/location", async (req, res) => {
         const source = String(req.query.src || "");
         if (source === "ipip") {
