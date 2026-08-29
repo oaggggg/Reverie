@@ -92,14 +92,14 @@ export default function UserMenu() {
   const isVip = vipType > 0 || vipLevel > 0 || expireTime > 0;
   // 铭牌以统一身份档位为准（/vip/info 双包生效态 + 官方 redplus 品牌位），
   // 不再用 vipType 数字猜档位：11 实为年费 VIP 而非 SVIP。
-  const imgBadges =
-    vipInfo?.badgeKind === "brand"
-      ? vipInfo.badgeUrls?.length
-        ? vipInfo.badgeUrls
-        : vipInfo.badgeUrl
-          ? [vipInfo.badgeUrl]
-          : []
-      : [];
+  const apiBadges = vipInfo?.badgeUrls ?? [];
+  const imgBadges = apiBadges.length
+    ? apiBadges
+    : vipInfo?.badgeUrl
+      ? [vipInfo.badgeUrl]
+      : profile?.badgeUrl
+        ? [profile.badgeUrl]
+        : [];
   const frameUrl = profile?.avatarFrameUrl;
 
   return (

@@ -1200,13 +1200,19 @@ export function pickOfficialApiBadges(vipRights: unknown): OfficialBrandIcon[] {
   const root = vipRights as Record<string, unknown>;
   const badges: OfficialBrandIcon[] = [];
   const seen = new Set<string>();
-  const visit = (value: unknown, isSvip = false) => {
+  const visit = (value: unknown, isSvip = false, depth = 0) => {
     if (!value || typeof value !== "object") return;
     const node = value as Record<string, unknown>;
     const url = officialImg(node.iconUrl);
     if (url && !seen.has(url)) {
       seen.add(url);
       badges.push({ url, svip: isSvip });
+    }
+    if (depth >= 4) return;
+    for (const [key, child] of Object.entries(node)) {
+      if (child && typeof child === "object" && !/dynamic/i.test(key)) {
+        visit(child, isSvip || /redplus|svip|blackgold/i.test(key), depth + 1);
+      }
     }
   };
   visit(root.redplus, true);
@@ -1216,7 +1222,7 @@ export function pickOfficialApiBadges(vipRights: unknown): OfficialBrandIcon[] {
   visit(root.vipPackage);
   const list = root.badges ?? root.badgeList ?? root.vipBadges;
   if (Array.isArray(list)) list.forEach((item) => visit(item));
-  return badges;
+  return badges.sort((a, b) => Number(b.svip) - Number(a.svip));
 }
 
 export function pickOfficialBrandIcon(
@@ -1262,6 +1268,9 @@ export function pickOfficialBrandIcon(
 export function findVipRights(obj: unknown): unknown {
   if (!obj || typeof obj !== "object") return null;
   const root = obj as Record<string, unknown>;
+  // /vip/info often returns the rights tree directly without profile.vipRights.
+  if (root.redplus || root.associator || root.musicPackage || root.vipPackage)
+    return root;
   const candidates: unknown[] = [
     root.profile,
     (root.data as Record<string, unknown> | undefined)?.profile,
