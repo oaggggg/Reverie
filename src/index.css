@@ -13839,8 +13839,13 @@ img[data-reverie-fallback="true"] {
 }
 .styled-select-trigger svg { color: var(--text-faint); transition: transform var(--motion-fast) ease; }
 .styled-select.open .styled-select-trigger svg { transform: rotate(180deg); color: var(--accent-2); }
+.styled-select,
+.styled-select-menu,
+.setting-control,
+.modal,
+.modal-body { overflow: visible; }
 .styled-select-menu {
-  position: absolute; z-index: 20; right: 0; left: 0; display: grid; gap: 2px; max-height: 270px; overflow-y: auto;
+  position: absolute; z-index: 1200; right: 0; left: 0; display: grid; gap: 2px; max-height: 270px; overflow-y: auto;
   margin-top: 6px; padding: 5px; border: 1px solid var(--glass-popup-border); border-radius: 9px;
   background: var(--glass-popup); box-shadow: 0 14px 32px var(--shadow); backdrop-filter: blur(26px) saturate(1.35);
 }
