@@ -182,6 +182,47 @@ function SettingRow({
   );
 }
 
+function CustomColorPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const commit = (next: string) => {
+    const normalized = next.trim().startsWith("#") ? next.trim() : `#${next.trim()}`;
+    if (/^#[0-9a-f]{6}$/i.test(normalized)) {
+      setDraft(normalized);
+      onChange(normalized);
+    }
+  };
+  return (
+    <div className="custom-color-picker">
+      <button type="button" className="custom-color-trigger" aria-label="打开自定义主题色" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
+        <span style={{ backgroundColor: value }} />
+        <b>{value.toUpperCase()}</b>
+      </button>
+      {open && (
+        <div className="custom-color-popover" role="dialog" aria-label="自定义主题色">
+          <div className="custom-color-preview" style={{ backgroundColor: draft }} />
+          <div className="custom-color-presets">
+            {ACCENT_COLORS.map((item) => (
+              <button key={item.id} type="button" title={item.name} aria-label={item.name} className={draft.toLowerCase() === item.id ? "active" : ""} style={{ backgroundColor: item.id }} onClick={() => commit(item.id)} />
+            ))}
+          </div>
+          <label className="custom-color-hex">
+            <span>HEX</span>
+            <input value={draft} maxLength={7} spellCheck={false} onChange={(event) => setDraft(event.target.value)} onBlur={() => commit(draft)} onKeyDown={(event) => { if (event.key === "Enter") commit(draft); }} />
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsModal() {
   const [category, setCategory] = useState<Category>("general");
   const [panel, setPanel] = useState<Panel>(null);
@@ -465,15 +506,7 @@ export default function SettingsModal() {
                           />
                         ))}
                       </div>
-                      <label className="accent-custom" title="自定义主题色">
-                        <input
-                          type="color"
-                          value={accentColor}
-                          aria-label="自定义播放器主题色"
-                          onChange={(e) => setAccentColor(e.target.value)}
-                        />
-                        <span style={{ backgroundColor: accentColor }} />
-                      </label>
+                      <CustomColorPicker value={accentColor} onChange={setAccentColor} />
                     </div>
                   </SettingRow>
                   <SettingRow title="界面主题" hint="切换应用的整体明暗外观">
@@ -772,9 +805,6 @@ export default function SettingsModal() {
                   <div className="about-app-copy">
                     <strong>Reverie</strong>
                     <span>Windows 与 macOS 桌面音乐播放器</span>
-                    <small>
-                      仅提供 Windows、macOS 客户端，不提供移动端版本
-                    </small>
                     <small>{"v" + __APP_VERSION__}</small>
                   </div>
                   <button
@@ -807,7 +837,7 @@ export default function SettingsModal() {
                     <Bug size={18} aria-hidden="true" />
                     <div>
                       <strong>问题反馈</strong>
-                      <span>自动生成脱敏错误报告并打开 GitHub Issues</span>
+                      <span>提交问题描述，帮助改进客户端体验</span>
                     </div>
                   </div>
                   <textarea

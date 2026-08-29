@@ -3,7 +3,6 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -19,14 +18,12 @@ import { QUALITY_GRID } from "../utils/gpuBenchmark";
 import Lyrics3D from "./Lyrics3D";
 import { sizedImage } from "../utils/image";
 import { extractCoverAccent, type CoverAccent } from "../utils/coverAccent";
-import { readCoverOrigin } from "../utils/sharedCoverTransition";
 import {
   captureInteractionOrigin,
   useOriginTransition,
 } from "../utils/originTransition";
 import PlaybackVisualPanel from "./PlaybackVisualPanel";
 
-const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 // The cover is displayed at roughly 380 CSS px. A 2x source is enough for
 // sharpness while avoiding the much larger decoded 1120px bitmap.
 const COVER_IMAGE_SIZE = 760;
@@ -58,7 +55,6 @@ export default function NowPlayingView() {
   const lyricClarity = usePlayerStore((s) => s.lyricClarity);
   const lyricOffsetX = usePlayerStore((s) => s.lyricOffsetX);
   const lyricOffsetY = usePlayerStore((s) => s.lyricOffsetY);
-  const transitionCoverRef = useRef<HTMLImageElement>(null);
   const [fadedIn, setFadedIn] = useState(false);
   const closingRef = useRef(false);
   const [transitionPhase, setTransitionPhase] = useState<
@@ -353,64 +349,22 @@ export default function NowPlayingView() {
     }
   }, [lyricLines, progress]);
 
-  // A lightweight shared image performs the source-to-destination transition.
-  // The full-screen WebGL scene can initialize behind it without being scaled.
-  useLayoutEffect(() => {
-    const cover = transitionCoverRef.current;
-    const origin = readCoverOrigin();
-    if (!cover || !origin || !currentSong?.picUrl) {
-      setFadedIn(true);
-      setTransitionPhase("idle");
-      return;
-    }
+  // 页面采用整体淡入并轻微上移，避免专辑封面在进入/退出时缩放跳动。
+  useEffect(() => {
+    if (transitionPhase !== "opening") return;
+    const frame = requestAnimationFrame(() => setFadedIn(true));
+    const timer = window.setTimeout(() => setTransitionPhase("idle"), 320);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [transitionPhase]);
 
-    const targetSize = Math.min(window.innerWidth * 0.34, 380);
-    const targetLeft = (window.innerWidth - targetSize) / 2;
-    const targetTop = (window.innerHeight - targetSize) / 2 - 20;
-    // Animate only composited properties to avoid layout work per frame.
-    const originCenterX = origin.left + origin.width / 2;
-    const originCenterY = origin.top + origin.height / 2;
-    const targetCenterX = targetLeft + targetSize / 2;
-    const targetCenterY = targetTop + targetSize / 2;
-    const scaleX = targetSize / Math.max(origin.width, 1);
-    const scaleY = targetSize / Math.max(origin.height, 1);
-    const fromTransform = "translate(" + originCenterX + "px, " + originCenterY + "px) translate(-50%, -50%) scale(1)";
-    const centerTransform = "translate(" + targetCenterX + "px, " + targetCenterY + "px) translate(-50%, -50%) scale(" + scaleX + ", " + scaleY + ")";
-    cover.style.left = "0px";
-    cover.style.top = "0px";
-    cover.style.width = origin.width + "px";
-    cover.style.height = origin.height + "px";
-    cover.style.borderRadius = "50%";
-
-    if (transitionPhase === "opening") {
-      setFadedIn(true);
-      const animation = cover.animate(
-        [
-          { transform: fromTransform, borderRadius: "50%", opacity: 1 },
-          { transform: centerTransform, borderRadius: "28px", opacity: 1, offset: 0.78 },
-          { transform: centerTransform, borderRadius: "28px", opacity: 0 },
-        ],
-        { duration: 520, easing: EASE, fill: "forwards" },
-      );
-      void animation.finished
-        .then(() => setTransitionPhase("idle"))
-        .catch(() => {});
-      return () => animation.cancel();
-    }
-
-    if (transitionPhase === "closing") {
-      const animation = cover.animate(
-        [
-          { transform: centerTransform, borderRadius: "28px", opacity: 0 },
-          { transform: centerTransform, borderRadius: "28px", opacity: 1, offset: 0.18 },
-          { transform: fromTransform, borderRadius: "50%", opacity: 1 },
-        ],
-        { duration: 420, easing: EASE, fill: "forwards" },
-      );
-      void animation.finished.then(() => setPage("browse")).catch(() => {});
-      return () => animation.cancel();
-    }
-  }, [currentSong?.picUrl, setPage, transitionPhase]);
+  useEffect(() => {
+    if (transitionPhase !== "closing") return;
+    const timer = window.setTimeout(() => setPage("browse"), 240);
+    return () => window.clearTimeout(timer);
+  }, [setPage, transitionPhase]);
 
   // Closing: collapse the cover back to the player bar cover, then navigate.
   const handleClose = () => {
@@ -418,11 +372,7 @@ export default function NowPlayingView() {
     closingRef.current = true;
     setVisualOpen(false);
     setFadedIn(false);
-    if (currentSong?.picUrl && readCoverOrigin()) {
-      setTransitionPhase("closing");
-    } else {
-      setPage("browse");
-    }
+    setTransitionPhase("closing");
   };
 
   const staticCover = currentSong?.picUrl ? (
@@ -501,15 +451,6 @@ export default function NowPlayingView() {
           surfaceRef={visualTransition.surfaceRef}
           transitionClassName={visualTransition.surfaceClassName}
           onClose={() => setVisualOpen(false)}
-        />
-      )}
-
-      {transitionPhase !== "idle" && currentSong?.picUrl && (
-        <img
-          ref={transitionCoverRef}
-          className="np-shared-cover"
-          src={sizedImage(currentSong.picUrl, COVER_IMAGE_SIZE)}
-          alt=""
         />
       )}
 

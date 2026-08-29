@@ -12,12 +12,10 @@ import SongList from "./SongList";
 
 const TABS = [
   ["songs", "歌曲"],
-  ["listen", "最近收听"],
   ["albums", "专辑"],
   ["playlists", "歌单"],
   ["radios", "播客"],
   ["videos", "视频"],
-  ["voices", "声音"],
 ] as const;
 
 function Cover({ src, fallback }: { src: string; fallback: ReactNode }) {
@@ -34,7 +32,6 @@ export default function RecentModal() {
   const recentSongs = usePlayerStore((s) => s.recentSongs);
   const category = useRecentStore((s) => s.category);
   const songs = useRecentStore((s) => s.songs);
-  const listenSongs = useRecentStore((s) => s.listenSongs);
   const albums = useRecentStore((s) => s.albums);
   const playlists = useRecentStore((s) => s.playlists);
   const radios = useRecentStore((s) => s.radios);
@@ -105,11 +102,9 @@ export default function RecentModal() {
             <LoadingState label="正在加载最近记录…" />
           ) : category === "songs" ? (
             <SongList songs={displaySongs} emptyText="暂无播放记录" />
-          ) : category === "listen" ? (
-            <SongList songs={listenSongs} emptyText="暂无最近收听记录" />
           ) : category === "albums" ? (
             <div className="recent-card-grid">
-              {albums.map((item) => (
+              {albums.length ? albums.map((item) => (
                 <button
                   key={item.id}
                   className="recent-card"
@@ -121,11 +116,11 @@ export default function RecentModal() {
                   <strong>{item.name}</strong>
                   <span>{item.artistName || "未知歌手"}</span>
                 </button>
-              ))}
+              )) : <div className="empty">暂无最近播放的专辑</div>}
             </div>
           ) : category === "playlists" ? (
             <div className="recent-card-grid">
-              {playlists.map((item) => (
+              {playlists.length ? playlists.map((item) => (
                 <button
                   key={item.id}
                   className="recent-card"
@@ -140,11 +135,11 @@ export default function RecentModal() {
                   <strong>{item.name}</strong>
                   <span>{item.creatorName || "歌单"}</span>
                 </button>
-              ))}
+              )) : <div className="empty">暂无最近播放的歌单</div>}
             </div>
           ) : category === "radios" ? (
             <div className="recent-card-grid">
-              {radios.map((item) => (
+              {radios.length ? radios.map((item) => (
                 <button
                   key={item.id}
                   className="recent-card"
@@ -156,11 +151,11 @@ export default function RecentModal() {
                   <strong>{item.name}</strong>
                   <span>{item.creatorName || "播客"}</span>
                 </button>
-              ))}
+              )) : <div className="empty">暂无最近播放的播客</div>}
             </div>
           ) : (
             <div className="recent-card-grid">
-              {media.map((item) => (
+              {media.length ? media.map((item) => (
                 <button
                   key={`${item.kind}-${item.id}`}
                   className="recent-card"
@@ -173,7 +168,7 @@ export default function RecentModal() {
                   <strong>{item.name}</strong>
                   <span>{item.creatorName || "未知创作者"}</span>
                 </button>
-              ))}
+              )) : <div className="empty">暂无最近播放的视频</div>}
             </div>
           )}
         </div>

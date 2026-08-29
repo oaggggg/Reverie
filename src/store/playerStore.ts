@@ -2029,7 +2029,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({ showPlayerComments: v, ...(v ? { showSettings: false } : {}) }),
   setShowCommentsModal: (v) => set({ showCommentsModal: v }),
   setActiveView: (v) =>
-    set((state) => ({ activeView: v, prevView: state.activeView, viewHistory: [] })),
+    set((state) => {
+      if (state.activeView === v) return state;
+      const history = state.viewHistory.at(-1) === state.activeView
+        ? state.viewHistory
+        : [...state.viewHistory, state.activeView];
+      return {
+        activeView: v,
+        prevView: state.activeView,
+        viewHistory: history,
+      };
+    }),
   goBack: () =>
     set((state) => {
       const history = [...state.viewHistory];
@@ -2284,8 +2294,18 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playlistName: name,
       prevView: previousView,
       viewHistory: [...get().viewHistory, previousView],
-      // Keep the previous rows visible while the next playlist loads. Clearing
-      // them first causes a visible blank/loading flash during navigation.
+      // A playlist has its own scroll context; never reuse the previous
+      // playlist's offset when opening another one.
+      viewScrollPositions: {
+        ...get().viewScrollPositions,
+        playlist: 0,
+      },
+      playlistSongs: [],
+      playlistId: 0,
+      playlistCover: "",
+      playlistDescription: "",
+      playlistCreatorId: 0,
+      playlistSubscribed: false,
       playlistLoading: true,
     });
     try {
@@ -2322,6 +2342,10 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       activeView: get().viewHistory.at(-1) ?? get().prevView ?? "home",
       prevView: get().viewHistory.length > 1 ? get().viewHistory.at(-2)! : "home",
       viewHistory: get().viewHistory.slice(0, -1),
+      viewScrollPositions: {
+        ...get().viewScrollPositions,
+        playlist: 0,
+      },
     });
   },
 
@@ -2435,7 +2459,17 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       playing: autoplay,
       pendingPlayToken: 0,
     });
-    // 下一首地址同样改为临近结束才预取（见 requestPreloadNext）。
+    // 高音质地址解析和首段缓冲更慢，当前曲稳定起播后提前准备下一首，
+    // 让手动切歌也能复用已解析的 URL；标准音质仍保持临近结束再预取。
+    if (quality !== "standard" && autoplay) {
+      const scheduledSongId = song.id;
+      window.setTimeout(() => {
+        const latest = get();
+        if (latest.currentSong?.id === scheduledSongId && latest.playing) {
+          void latest.requestPreloadNext();
+        }
+      }, 1200);
+    }
   },
   /**
    * The current track cannot be played. Move on to the next one, but stop once
@@ -2691,7 +2725,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     }
 
     const run = (async () => {
-      const pool = [186016, 347230, 509781655, 3414449762, 168160, 193535];
+      // 使用更大的候选池，避免首页歌词文案长期只在少数几首歌之间循环。
+      const pool = [
+        186016, 347230, 509781655, 3414449762, 168160, 193535,
+        406475394, 287035, 25657247, 409650, 196227, 287035,
+        108392, 2095323, 29759770, 346089, 19591732, 346576,
+        343413, 64678, 64072, 2563853, 297645, 108119,
+        287563, 65528, 332116, 64644, 64706, 64846,
+      ];
       const candidates = shuffle(pool);
       try {
         // 候选曲目详情一次批量拉取（/song/detail 支持逗号分隔 id），

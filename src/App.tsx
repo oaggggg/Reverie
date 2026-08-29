@@ -109,6 +109,15 @@ export default function App() {
   // （SILENT_RECOVERY_MS）才触发自愈，短暂打断不提示；toast 只提示一次。
   const silentSinceRef = useRef<number | null>(null);
   const silentToastShownRef = useRef(false);
+  const progressFrameRef = useRef<number | null>(null);
+  const pendingProgressRef = useRef<{ progress: number; duration: number } | null>(null);
+
+  useEffect(() => () => {
+    if (progressFrameRef.current !== null) {
+      window.cancelAnimationFrame(progressFrameRef.current);
+      progressFrameRef.current = null;
+    }
+  }, []);
 
   const cancelAudioFade = (audio: HTMLAudioElement) => {
     const fade = fadeFramesRef.current.get(audio);
@@ -555,23 +564,31 @@ export default function App() {
         return;
       }
       if (editing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (
+        el &&
+        (el.tagName === "BUTTON" ||
+          el.tagName === "A" ||
+          el.tagName === "SELECT" ||
+          el.closest("button,a,select,[role='button'],[role='menuitem']"))
+      )
+        return;
       const s = usePlayerStore.getState();
       switch (e.code) {
         case "Space":
+          if (el && el !== document.body && el !== document.documentElement) return;
           e.preventDefault();
           s.togglePlay();
           break;
         case "ArrowRight":
-          s.seek(Math.min(s.duration, s.progress + 5000));
-          break;
         case "ArrowLeft":
-          s.seek(Math.max(0, s.progress - 5000));
-          break;
         case "ArrowUp":
-          s.setVolume(s.volume + 0.05);
-          break;
         case "ArrowDown":
-          s.setVolume(s.volume - 0.05);
+          if (s.currentPage !== "nowplaying") return;
+          e.preventDefault();
+          if (e.code === "ArrowRight") s.seek(Math.min(s.duration, s.progress + 5000));
+          if (e.code === "ArrowLeft") s.seek(Math.max(0, s.progress - 5000));
+          if (e.code === "ArrowUp") s.setVolume(s.volume + 0.05);
+          if (e.code === "ArrowDown") s.setVolume(s.volume - 0.05);
           break;
       }
     };
@@ -1039,12 +1056,19 @@ export default function App() {
     const rawDuration = Number.isFinite(el.duration)
       ? Math.floor(el.duration * 1000)
       : 0;
-    usePlayerStore.setState({
+    pendingProgressRef.current = {
       progress: Math.floor(el.currentTime * 1000),
       duration:
         state.previewEnd === null
           ? rawDuration
           : Math.min(rawDuration || state.previewEnd, state.previewEnd),
+    };
+    if (progressFrameRef.current !== null) return;
+    progressFrameRef.current = window.requestAnimationFrame(() => {
+      progressFrameRef.current = null;
+      const next = pendingProgressRef.current;
+      pendingProgressRef.current = null;
+      if (next) usePlayerStore.setState(next);
     });
   };
 
