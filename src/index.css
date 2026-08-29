@@ -5239,7 +5239,9 @@ select option:checked {
 }
 .lyric-3d-text {
   grid-area: 1 / 1;
-  will-change: opacity, transform, filter;
+  /* 故意不设 will-change：常驻的 opacity/transform/filter 提升提示会把
+     文本 permanently 切到灰度抗锯齿，笔画观感变细；动画期间浏览器会
+     自动提升，结束后回落到清晰渲染。 */
 }
 /* 译文：位于主句下方，弱化展示 */
 .lyric-3d-trans {
@@ -5264,14 +5266,6 @@ select option:checked {
 }
 
 /* 常驻动画的作用范围：两行布局的当前句 + 多行布局的当前行。 */
-.lyrics-fx-shine .lyrics-3d-current .lyric-fx-core,
-.lyrics-fx-shine .np-full-lyric.active .lyric-fx-core,
-.lyrics-fx-thunder .lyrics-3d-current .lyric-fx-core,
-.lyrics-fx-thunder .np-full-lyric.active .lyric-fx-core,
-.lyrics-fx-neon .lyrics-3d-current .lyric-fx-core,
-.lyrics-fx-neon .np-full-lyric.active .lyric-fx-core {
-  will-change: text-shadow, transform;
-}
 
 /* ---- 流光：光带沿当前句往复扫过 ---- */
 .lyrics-fx-shine .lyric-3d-text.is-entering {
@@ -5431,10 +5425,16 @@ select option:checked {
     transform: translateY(16px);
     filter: blur(5px);
   }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  /* 100% 不声明 filter：fill:both 保留的是无滤镜的基准值。
+     若在 to 帧写 filter: blur(0)，动画结束后滤镜引用会永久残留，
+     文本持续走灰度抗锯齿渲染，看起来比正常状态"细"。 */
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 @keyframes lyric-3d-out {
