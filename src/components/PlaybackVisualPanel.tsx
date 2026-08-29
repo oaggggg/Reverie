@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
-import { Image as ImageIcon, Moon, Music4, Sparkles } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Moon,
+  Music4,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 import { X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
 import type { LyricFx, NpWallpaper } from "../store/playerStore";
@@ -21,14 +27,24 @@ interface WallpaperEngineItem {
 // 也覆盖整个封面平面，能完整显示封面。
 const COVER_QUALITIES: CoverQuality[] = ["low", "medium", "high", "ultra"];
 
-/** 3D 歌词动效预设（与颜色无关；颜色始终自动取自背景）。 */
+/** 歌词效果预设（与颜色无关，作用于当前句的持续观感）。 */
 const LYRIC_FX: Array<{ id: LyricFx; name: string }> = [
-  { id: "stair", name: "阶梯" },
-  { id: "fade", name: "淡入" },
-  { id: "bounce", name: "弹入" },
-  { id: "flip", name: "翻入" },
-  { id: "blur", name: "模糊滑入" },
+  { id: "shine", name: "流光" },
+  { id: "thunder", name: "雷电" },
+  { id: "shatter", name: "碎裂" },
+  { id: "neon", name: "霓虹" },
+  { id: "ripple", name: "涟漪" },
 ];
+
+/** 各可重置项的默认值（单独重置按钮 / 恢复默认共用）。 */
+const DEFAULTS = {
+  rhythmGain: 0.55,
+  lyricFontSize: 22,
+  lyricClarity: 60,
+  lyricOffsetX: 0,
+  lyricOffsetY: 0,
+  npFrameRate: 0,
+};
 
 type VisualTab = "background" | "lyrics";
 
@@ -39,6 +55,27 @@ function shortParticleCount(quality: CoverQuality): string {
   return n >= 10000
     ? `${(n / 10000).toFixed(1).replace(/\.0$/, "")}万`
     : String(n);
+}
+
+/** 滑杆旁的单独重置按钮：仅当值偏离默认时出现。 */
+function SliderReset({
+  shown,
+  onClick,
+}: {
+  shown: boolean;
+  onClick: () => void;
+}) {
+  if (!shown) return null;
+  return (
+    <button
+      className="np-slider-reset"
+      onClick={onClick}
+      title="重置此项"
+      aria-label="重置此项"
+    >
+      <RotateCcw size={12} />
+    </button>
+  );
 }
 
 export default function PlaybackVisualPanel({
@@ -66,6 +103,13 @@ export default function PlaybackVisualPanel({
   const setCoverQuality = usePlayerStore((s) => s.setCoverQuality);
   const rhythmGain = usePlayerStore((s) => s.rhythmGain);
   const setRhythmGain = usePlayerStore((s) => s.setRhythmGain);
+  const lyricClarity = usePlayerStore((s) => s.lyricClarity);
+  const setLyricClarity = usePlayerStore((s) => s.setLyricClarity);
+  const lyricOffsetX = usePlayerStore((s) => s.lyricOffsetX);
+  const setLyricOffsetX = usePlayerStore((s) => s.setLyricOffsetX);
+  const lyricOffsetY = usePlayerStore((s) => s.lyricOffsetY);
+  const setLyricOffsetY = usePlayerStore((s) => s.setLyricOffsetY);
+  const resetVisualDefaults = usePlayerStore((s) => s.resetVisualDefaults);
   const coverBenchmarking = usePlayerStore((s) => s.coverBenchmarking);
   const detectCoverQuality = usePlayerStore((s) => s.detectCoverQuality);
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
@@ -165,7 +209,7 @@ export default function PlaybackVisualPanel({
         {tab === "lyrics" ? (
           <section>
             <div className="np-visual-row stacked">
-              <span>歌词动效</span>
+              <span>歌词效果</span>
               <div className="opt-group">
                 {LYRIC_FX.map((item) => (
                   <button
@@ -199,17 +243,91 @@ export default function PlaybackVisualPanel({
               <span>
                 字号 <small>{lyricFontSize}</small>
               </span>
-              <input
-                className="slider settings-slider"
-                type="range"
-                min={14}
-                max={40}
-                value={lyricFontSize}
-                style={{
-                  ["--val" as never]: `${((lyricFontSize - 14) / 26) * 100}%`,
-                }}
-                onChange={(event) => setLyricFontSize(Number(event.target.value))}
-              />
+              <span className="np-slider-unit">
+                <input
+                  className="slider settings-slider"
+                  type="range"
+                  min={14}
+                  max={40}
+                  value={lyricFontSize}
+                  style={{
+                    ["--val" as never]: `${((lyricFontSize - 14) / 26) * 100}%`,
+                  }}
+                  onChange={(event) =>
+                    setLyricFontSize(Number(event.target.value))
+                  }
+                />
+                <SliderReset
+                  shown={lyricFontSize !== DEFAULTS.lyricFontSize}
+                  onClick={() => setLyricFontSize(DEFAULTS.lyricFontSize)}
+                />
+              </span>
+            </div>
+            <div className="np-visual-row">
+              <span>歌词清晰度</span>
+              <span className="np-slider-unit">
+                <input
+                  className="slider settings-slider"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={lyricClarity}
+                  style={{
+                    ["--val" as never]: `${lyricClarity}%`,
+                  }}
+                  onChange={(event) =>
+                    setLyricClarity(Number(event.target.value))
+                  }
+                />
+                <SliderReset
+                  shown={lyricClarity !== DEFAULTS.lyricClarity}
+                  onClick={() => setLyricClarity(DEFAULTS.lyricClarity)}
+                />
+              </span>
+            </div>
+            <div className="np-visual-row">
+              <span>歌词水平位置</span>
+              <span className="np-slider-unit">
+                <input
+                  className="slider settings-slider"
+                  type="range"
+                  min={-300}
+                  max={300}
+                  value={lyricOffsetX}
+                  style={{
+                    ["--val" as never]: `${((lyricOffsetX + 300) / 600) * 100}%`,
+                  }}
+                  onChange={(event) =>
+                    setLyricOffsetX(Number(event.target.value))
+                  }
+                />
+                <SliderReset
+                  shown={lyricOffsetX !== DEFAULTS.lyricOffsetX}
+                  onClick={() => setLyricOffsetX(DEFAULTS.lyricOffsetX)}
+                />
+              </span>
+            </div>
+            <div className="np-visual-row">
+              <span>歌词垂直位置</span>
+              <span className="np-slider-unit">
+                <input
+                  className="slider settings-slider"
+                  type="range"
+                  min={-250}
+                  max={250}
+                  value={lyricOffsetY}
+                  style={{
+                    ["--val" as never]: `${((lyricOffsetY + 250) / 500) * 100}%`,
+                  }}
+                  onChange={(event) =>
+                    setLyricOffsetY(Number(event.target.value))
+                  }
+                />
+                <SliderReset
+                  shown={lyricOffsetY !== DEFAULTS.lyricOffsetY}
+                  onClick={() => setLyricOffsetY(DEFAULTS.lyricOffsetY)}
+                />
+              </span>
             </div>
             <div className="np-visual-row">
               <span>显示翻译</span>
@@ -222,6 +340,12 @@ export default function PlaybackVisualPanel({
                 <span />
               </button>
             </div>
+            <button
+              className="btn np-detect-btn"
+              onClick={resetVisualDefaults}
+            >
+              恢复默认设置
+            </button>
           </section>
         ) : (
           <>
@@ -264,19 +388,25 @@ export default function PlaybackVisualPanel({
                 <span>
                   律动幅度 <small>{Math.round(rhythmGain * 100)}%</small>
                 </span>
-                <input
-                  className="slider settings-slider"
-                  type="range"
-                  min={0}
-                  max={150}
-                  value={Math.round(rhythmGain * 100)}
-                  style={{
-                    ["--val" as never]: `${(Math.round(rhythmGain * 100) / 150) * 100}%`,
-                  }}
-                  onChange={(event) =>
-                    setRhythmGain(Number(event.target.value) / 100)
-                  }
-                />
+                <span className="np-slider-unit">
+                  <input
+                    className="slider settings-slider"
+                    type="range"
+                    min={0}
+                    max={150}
+                    value={Math.round(rhythmGain * 100)}
+                    style={{
+                      ["--val" as never]: `${(Math.round(rhythmGain * 100) / 150) * 100}%`,
+                    }}
+                    onChange={(event) =>
+                      setRhythmGain(Number(event.target.value) / 100)
+                    }
+                  />
+                  <SliderReset
+                    shown={rhythmGain !== DEFAULTS.rhythmGain}
+                    onClick={() => setRhythmGain(DEFAULTS.rhythmGain)}
+                  />
+                </span>
               </div>
               <button
                 className="btn np-detect-btn"
@@ -307,7 +437,7 @@ export default function PlaybackVisualPanel({
                     <Moon size={22} />
                   </span>
                   <span className="np-wallpaper-title">
-                    <span className="np-wallpaper-name">虚空预设</span>
+                    <span className="np-wallpaper-name">虚空</span>
                     <small>隐藏封面 · 只留歌词</small>
                   </span>
                 </button>

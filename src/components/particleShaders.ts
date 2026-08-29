@@ -91,22 +91,23 @@ void main() {
   // A touch of lateral drift stops the grid from reading as a flat sheet.
   p.xy += vec2(n2, -n1) * uAmp * 0.10;
 
-  // 节拍冲击：每个粒子按自身 seed 沿噪声场方向被随机踢一下，幅度也
-  // 依 seed 不均等——整体呈无规则的"炸开-归位"，而不是整齐的脉冲。
+  // 节拍冲击：每个粒子按自身 seed 沿噪声场方向被轻轻推开，幅度依
+  // seed 不均等——整体呈无规律的"荡开-归位"，而不是整齐的脉冲。
+  // 冲击量级偏小 + uBeat 在 CPU 侧已做平滑，观感是流动而非跳动。
   float kick = uBeat * (0.35 + aSeed * 0.65);
-  p.z += n2 * kick * 0.5;
-  p.xy += vec2(n1, n2) * kick * 0.22;
+  p.z += n2 * kick * 0.3;
+  p.xy += vec2(n1, n2) * kick * 0.14;
 
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   // Exact world->pixel conversion; a hand-tuned constant here is what turns a
   // crisp point cloud into an overlapping smear.
   float pxPerWorld = uProjScale / max(0.001, -mv.z);
   gl_PointSize =
-    uSize * pxPerWorld * uPixelRatio * (0.82 + aSeed * 0.3) * (1.0 + uPulse * 0.18 + uBeat * 0.22);
+    uSize * pxPerWorld * uPixelRatio * (0.82 + aSeed * 0.3) * (1.0 + uPulse * 0.18 + uBeat * 0.1);
   gl_Position = projectionMatrix * mv;
 
   vColor = aColor;
-  vGlow = 0.9 + n1 * 0.06 + uPulse * 0.08 + uBeat * 0.12 + uShimmer * aSeed * 0.08;
+  vGlow = 0.9 + n1 * 0.06 + uPulse * 0.08 + uBeat * 0.06 + uShimmer * aSeed * 0.08;
 }
 `;
 

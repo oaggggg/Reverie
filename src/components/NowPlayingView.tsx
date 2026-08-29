@@ -48,6 +48,9 @@ export default function NowPlayingView() {
   const npVoid = usePlayerStore((s) => s.npVoid);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const rhythmGain = usePlayerStore((s) => s.rhythmGain);
+  const lyricClarity = usePlayerStore((s) => s.lyricClarity);
+  const lyricOffsetX = usePlayerStore((s) => s.lyricOffsetX);
+  const lyricOffsetY = usePlayerStore((s) => s.lyricOffsetY);
   const transitionCoverRef = useRef<HTMLImageElement>(null);
   const [fadedIn, setFadedIn] = useState(false);
   const closingRef = useRef(false);
@@ -63,6 +66,8 @@ export default function NowPlayingView() {
   );
   const [currentLyricLine, setCurrentLyricLine] = useState("");
   const [nextLyricLine, setNextLyricLine] = useState("");
+  const [currentLyricTranslation, setCurrentLyricTranslation] = useState("");
+  const [nextLyricTranslation, setNextLyricTranslation] = useState("");
   const [lyricPending, setLyricPending] = useState(false);
   // 封面与歌词共用的旋转状态：ParticleAlbumCover 逐帧写入，
   // 两层 Lyrics3D（正/反）逐帧读取，拖拽时歌词与封面一体联动。
@@ -264,10 +269,15 @@ export default function NowPlayingView() {
   // Parse and update lyrics based on progress. 前奏与长间奏不再显示孤零零的
   // 音符，而是把下一句歌词以"待唱"弱化样式提前展示。
   useEffect(() => {
-    if (!lyricLines || !lyricLines.length) {
+    const clear = () => {
       setCurrentLyricLine("");
       setNextLyricLine("");
+      setCurrentLyricTranslation("");
+      setNextLyricTranslation("");
       setLyricPending(false);
+    };
+    if (!lyricLines || !lyricLines.length) {
+      clear();
       return;
     }
 
@@ -284,6 +294,8 @@ export default function NowPlayingView() {
       // 前奏：还没唱到第一句。
       setCurrentLyricLine(lyricLines[0]?.text || "");
       setNextLyricLine(lyricLines[1]?.text || "");
+      setCurrentLyricTranslation(lyricLines[0]?.translation || "");
+      setNextLyricTranslation(lyricLines[1]?.translation || "");
       setLyricPending(true);
       return;
     }
@@ -293,6 +305,8 @@ export default function NowPlayingView() {
       // 长间奏：当前句早已结束，直接弱化展示下一句。
       setCurrentLyricLine(lyricLines[currentIndex + 1]?.text || "");
       setNextLyricLine(lyricLines[currentIndex + 2]?.text || "");
+      setCurrentLyricTranslation(lyricLines[currentIndex + 1]?.translation || "");
+      setNextLyricTranslation(lyricLines[currentIndex + 2]?.translation || "");
       setLyricPending(true);
       return;
     }
@@ -300,10 +314,13 @@ export default function NowPlayingView() {
     setLyricPending(false);
     // 解析层已剔除空行与 "♪" 间奏标记行，这里不再需要音符占位。
     setCurrentLyricLine(lyricLines[currentIndex].text || "");
+    setCurrentLyricTranslation(lyricLines[currentIndex].translation || "");
     if (currentIndex + 1 < lyricLines.length) {
       setNextLyricLine(lyricLines[currentIndex + 1].text || "");
+      setNextLyricTranslation(lyricLines[currentIndex + 1].translation || "");
     } else {
       setNextLyricLine("");
+      setNextLyricTranslation("");
     }
   }, [lyricLines, progress]);
 
@@ -394,10 +411,13 @@ export default function NowPlayingView() {
   const lyricsProps = {
     currentLine: currentLyricLine,
     nextLine: nextLyricLine,
+    currentTranslation: currentLyricTranslation,
+    nextTranslation: nextLyricTranslation,
     pending: lyricPending,
     rotationRef,
     zoomRef,
     fx: lyricFx,
+    clarity: lyricClarity,
     accent: coverAccent,
     layout: lyricLayout,
     lyricLines,
@@ -465,16 +485,20 @@ export default function NowPlayingView() {
       <div className="np-stage-3d">
         {/* 反歌词层：位于粒子封面之后，经 Y 轴翻转的镜像画面；虚空模式无封面，随之隐藏 */}
         {!npVoid && (
-          <div className="np-lyrics-3d np-lyrics-back" aria-hidden>
+          <div
+            className="np-lyrics-3d np-lyrics-back"
+            aria-hidden
+            style={{
+              transform: `translate(${lyricOffsetX}px, ${lyricOffsetY}px)`,
+            }}
+          >
             <Lyrics3D {...lyricsProps} side="back" />
           </div>
         )}
 
-        <div className="np-cover-3d">
-          {npVoid ? (
-            // 虚空模式：封面与粒子全部隐藏，只留歌词
-            <div className="np-cover-void" />
-          ) : !currentSong?.picUrl ? (
+        {/* 虚空时封面保持挂载仅隐藏（透明过渡），切换零重建不卡顿 */}
+        <div className={`np-cover-3d${npVoid ? " np-cover-hidden" : ""}`}>
+          {!currentSong?.picUrl ? (
             <div className="np-cover-ph">
               <MicVocal size={56} />
             </div>
@@ -498,6 +522,7 @@ export default function NowPlayingView() {
                   grid={QUALITY_GRID[coverQuality]}
                   fpsLimit={npFrameRate}
                   rhythmGain={rhythmGain}
+                  paused={npVoid}
                   rotationRef={rotationRef}
                   zoomRef={zoomRef}
                   onOverload={() =>
@@ -510,7 +535,12 @@ export default function NowPlayingView() {
         </div>
 
         {/* 正歌词层：与封面同一 3D 装配体，悬浮于封面平面之前 */}
-        <div className="np-lyrics-3d np-lyrics-front">
+        <div
+          className="np-lyrics-3d np-lyrics-front"
+          style={{
+            transform: `translate(${lyricOffsetX}px, ${lyricOffsetY}px)`,
+          }}
+        >
           <Lyrics3D {...lyricsProps} side="front" />
         </div>
       </div>
