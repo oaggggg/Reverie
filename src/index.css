@@ -5011,11 +5011,11 @@ select option:checked {
   pointer-events: none;
 }
 
-/* 待唱状态（前奏 / 长间奏）：弱化展示下一句，替代孤零零的音符 */
+/* 待唱状态（前奏 / 长间奏）：仅降低不透明度提示"还没唱到"。
+   字重与阴影保持和正常当前句一致——弱化字重会让歌词看起来
+   凭空"变细"，用户已反馈过。 */
 .lyrics-3d-current.is-pending {
   opacity: 0.55;
-  font-weight: 500;
-  text-shadow: none;
 }
 
 /* 多行滚动歌词列表 */
@@ -5469,9 +5469,13 @@ select option:checked {
 
 /* 静置摆动：纯 CSS 合成器动画（双轴不同周期叠加出利萨如轨迹），
    替代旧的逐帧 JS transform 写入——主线程零写入后，歌词层在视频
-   壁纸上不再出现新旧两帧同时上屏的重影/撕裂。 */
+   壁纸上不再出现新旧两帧同时上屏的重影/撕裂。
+   宽度必须占满 .lyrics-3d：作为 flex column 的子项默认 fit-content
+   会收缩到文本自身宽度，把歌词的 max-width:96% 百分比基准从容器
+   宽度缩成文本宽度，导致整句歌词被折成两行。 */
 .lyrics-3d-sway-x,
 .lyrics-3d-sway-y {
+  width: 100%;
   transform-style: preserve-3d;
 }
 .lyrics-3d-sway-x {
