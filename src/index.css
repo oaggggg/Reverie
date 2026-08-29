@@ -961,6 +961,9 @@ select option:checked {
   left: 0;
   right: 0;
   width: 100%;
+  max-width: min(280px, calc(100vw - 24px));
+  max-height: calc(100vh - 76px);
+  overflow-y: auto;
   min-width: 0;
   box-sizing: border-box;
   background: color-mix(in srgb, var(--bg-2) 68%, transparent);
@@ -1043,6 +1046,8 @@ select option:checked {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 2px 8px;
+  min-width: 0;
+  white-space: normal;
 }
 .user-dropdown-row {
   display: flex;
@@ -6221,6 +6226,14 @@ select option:checked {
   white-space: nowrap;
   color: var(--text);
   font-weight: 600;
+}
+.saved-account-details .vip-expiry-row {
+  grid-column: 1 / -1;
+}
+.saved-account-details .vip-expiry-row strong {
+  overflow: visible;
+  white-space: normal;
+  text-align: right;
 }
 .account-details {
   margin-top: 16px;

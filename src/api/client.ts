@@ -1277,10 +1277,12 @@ export function findVipRights(obj: unknown): unknown {
 
 /** Parse an epoch value that may be seconds or ms, or a "YYYY-MM-DD" date string. */
 function parseEpoch(v: unknown): number {
-  if (typeof v === "number") return v > 1e11 ? v : v * 1000;
+  if (typeof v === "number")
+    return Number.isFinite(v) && v >= 0 ? (v > 1e11 ? v : v * 1000) : 0;
   if (typeof v === "string") {
     const n = Number(v);
-    if (Number.isFinite(n) && n > 1e8) return n > 1e11 ? n : n * 1000;
+    if (Number.isFinite(n) && n >= 1e8)
+      return n > 1e11 ? n : n * 1000;
     if (/^\d{4}-\d{2}-\d{2}/.test(v)) {
       const t = Date.parse(v);
       if (Number.isFinite(t)) return t;
@@ -1298,7 +1300,7 @@ function deepFindExpireTimes(obj: unknown): number[] {
     for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
       if (/expire|endtime|end_time|deadline|validto|valid_to/i.test(k)) {
         const n = parseEpoch(v);
-        if (n > 0) values.add(n);
+        if (n >= 1e11) values.add(n);
       }
       if (v && typeof v === "object") walk(v, depth + 1);
     }
