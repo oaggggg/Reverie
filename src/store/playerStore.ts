@@ -723,6 +723,8 @@ interface PlayerState {
   npWallpaper: NpWallpaper | null;
   /** Cover render level; "image" disables the particle system entirely. */
   coverQuality: CoverQuality;
+  /** 粒子律动幅度系数 0~1.5；1.0 以下为日常合适区间。 */
+  rhythmGain: number;
   /** Why the current level was chosen, shown in settings. */
   coverQualityReason: string;
   /** 虚空模式：隐藏封面与粒子，只保留歌词与背景。 */
@@ -831,6 +833,7 @@ interface PlayerState {
   applyDiyPreset: (preset: "void") => void;
   setNpVoid: (v: boolean) => void;
   setCoverQuality: (q: CoverQuality, reason?: string) => void;
+  setRhythmGain: (v: number) => void;
   /** Step one level down after sustained dropped frames. */
   degradeCoverQuality: () => void;
   /** Run the GPU benchmark; on first launch this picks the level. */
@@ -1188,6 +1191,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   npWallpaper: readNpWallpaper(),
   coverQuality: readCoverQuality(),
   coverQualityReason: readStr("reverie_cover_reason", ""),
+  rhythmGain: Math.min(1.5, Math.max(0, readNum("reverie_rhythm_gain", 0.55))),
   coverBenchmarking: false,
   npVoid: readBool("reverie_np_void", false),
 
@@ -1887,6 +1891,11 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   setNpVoid: (v) => {
     set({ npVoid: v });
     write("reverie_np_void", v ? "1" : "0");
+  },
+  setRhythmGain: (v) => {
+    const gain = Math.min(1.5, Math.max(0, v));
+    set({ rhythmGain: gain });
+    write("reverie_rhythm_gain", String(gain));
   },
   setCoverQuality: (q, reason = "") => {
     // 手动选画质意味着想看到封面，自动退出虚空模式。

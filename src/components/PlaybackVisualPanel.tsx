@@ -64,17 +64,22 @@ export default function PlaybackVisualPanel({
   const setShowTranslation = usePlayerStore((s) => s.setShowTranslation);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
   const setCoverQuality = usePlayerStore((s) => s.setCoverQuality);
+  const rhythmGain = usePlayerStore((s) => s.rhythmGain);
+  const setRhythmGain = usePlayerStore((s) => s.setRhythmGain);
   const coverBenchmarking = usePlayerStore((s) => s.coverBenchmarking);
   const detectCoverQuality = usePlayerStore((s) => s.detectCoverQuality);
   const applyDiyPreset = usePlayerStore((s) => s.applyDiyPreset);
   const npVoid = usePlayerStore((s) => s.npVoid);
-  // 退出虚空：恢复封面显示；虚空预设会把画质降到静态图，这里一并
-  // 升回高画质，保证粒子封面立即可用。
+  // 退出虚空（切回 3D 粒子封面）：恢复封面显示；虚空预设会把画质降到
+  // 静态图，这里一并升回高画质；壁纸会挡住粒子封面，自动切回不使用。
   const exitVoid = () => {
     const state = usePlayerStore.getState();
     state.setNpVoid(false);
     if (state.coverQuality === "image") {
       state.setCoverQuality("high", "退出虚空");
+    }
+    if (state.npWallpaper) {
+      state.setNpWallpaper(null);
     }
   };
 
@@ -217,23 +222,12 @@ export default function PlaybackVisualPanel({
                 <span />
               </button>
             </div>
-            <div className="np-visual-row diy-note">
-              <span>歌词颜色自动取自当前背景（壁纸或专辑封面），无需手动选择</span>
-            </div>
           </section>
         ) : (
           <>
             <section>
-              <h3>动态封面</h3>
               <div className="np-visual-row stacked">
-                <span>
-                  封面清晰度
-                  <small>
-                    {coverQuality === "image"
-                      ? "渲染失败降级"
-                      : `${particleCount(coverQuality).toLocaleString()} 粒子`}
-                  </small>
-                </span>
+                <span>封面清晰度</span>
                 <div className="opt-group">
                   {COVER_QUALITIES.map((quality) => (
                     <button
@@ -266,8 +260,23 @@ export default function PlaybackVisualPanel({
                   ))}
                 </div>
               </div>
-              <div className="np-visual-row diy-note">
-                <span>粒子律动由歌曲节奏实时驱动：低频起伏、节拍冲击，无需选择效果</span>
+              <div className="np-visual-row">
+                <span>
+                  律动幅度 <small>{Math.round(rhythmGain * 100)}%</small>
+                </span>
+                <input
+                  className="slider settings-slider"
+                  type="range"
+                  min={0}
+                  max={150}
+                  value={Math.round(rhythmGain * 100)}
+                  style={{
+                    ["--val" as never]: `${(Math.round(rhythmGain * 100) / 150) * 100}%`,
+                  }}
+                  onChange={(event) =>
+                    setRhythmGain(Number(event.target.value) / 100)
+                  }
+                />
               </div>
               <button
                 className="btn np-detect-btn"
@@ -307,12 +316,7 @@ export default function PlaybackVisualPanel({
 
             <section>
               <h3>Wallpaper 壁纸</h3>
-              <div className="np-visual-row stacked">
-                <span>
-                  播放页背景
-                  <small>Wallpaper Engine（mp4 视频壁纸）</small>
-                </span>
-                <div className="np-wallpaper-list">
+              <div className="np-wallpaper-list">
                   <button
                     className={`np-wallpaper-item ${npWallpaper === null ? "active" : ""}`}
                     onClick={() => selectWallpaper(null)}
@@ -365,7 +369,6 @@ export default function PlaybackVisualPanel({
                   {!wallpaperError && wallpapers === null && (
                     <div className="np-wallpaper-empty">正在扫描壁纸库…</div>
                   )}
-                </div>
               </div>
             </section>
           </>

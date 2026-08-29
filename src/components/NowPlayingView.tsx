@@ -47,6 +47,7 @@ export default function NowPlayingView() {
   const npWallpaper = usePlayerStore((s) => s.npWallpaper);
   const npVoid = usePlayerStore((s) => s.npVoid);
   const coverQuality = usePlayerStore((s) => s.coverQuality);
+  const rhythmGain = usePlayerStore((s) => s.rhythmGain);
   const transitionCoverRef = useRef<HTMLImageElement>(null);
   const [fadedIn, setFadedIn] = useState(false);
   const closingRef = useRef(false);
@@ -496,6 +497,7 @@ export default function NowPlayingView() {
                   imageUrl={sizedImage(currentSong.picUrl, COVER_IMAGE_SIZE)}
                   grid={QUALITY_GRID[coverQuality]}
                   fpsLimit={npFrameRate}
+                  rhythmGain={rhythmGain}
                   rotationRef={rotationRef}
                   zoomRef={zoomRef}
                   onOverload={() =>
