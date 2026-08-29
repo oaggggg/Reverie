@@ -109,6 +109,15 @@ export default function App() {
   // （SILENT_RECOVERY_MS）才触发自愈，短暂打断不提示；toast 只提示一次。
   const silentSinceRef = useRef<number | null>(null);
   const silentToastShownRef = useRef(false);
+  const progressFrameRef = useRef<number | null>(null);
+  const pendingProgressRef = useRef<{ progress: number; duration: number } | null>(null);
+
+  useEffect(() => () => {
+    if (progressFrameRef.current !== null) {
+      window.cancelAnimationFrame(progressFrameRef.current);
+      progressFrameRef.current = null;
+    }
+  }, []);
 
   const cancelAudioFade = (audio: HTMLAudioElement) => {
     const fade = fadeFramesRef.current.get(audio);
@@ -1047,12 +1056,19 @@ export default function App() {
     const rawDuration = Number.isFinite(el.duration)
       ? Math.floor(el.duration * 1000)
       : 0;
-    usePlayerStore.setState({
+    pendingProgressRef.current = {
       progress: Math.floor(el.currentTime * 1000),
       duration:
         state.previewEnd === null
           ? rawDuration
           : Math.min(rawDuration || state.previewEnd, state.previewEnd),
+    };
+    if (progressFrameRef.current !== null) return;
+    progressFrameRef.current = window.requestAnimationFrame(() => {
+      progressFrameRef.current = null;
+      const next = pendingProgressRef.current;
+      pendingProgressRef.current = null;
+      if (next) usePlayerStore.setState(next);
     });
   };
 
