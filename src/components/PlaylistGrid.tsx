@@ -22,6 +22,8 @@ interface Props {
   renderActions?: (playlist: PlaylistInfo) => ReactNode;
   loading?: boolean;
   showPlayCount?: boolean;
+  /** 播放量胶囊位置：默认右上角；卡片右上角已有操作按钮时用左上角避让。 */
+  playCountPosition?: "top-left" | "top-right";
 }
 
 export default function PlaylistGrid({
@@ -31,6 +33,7 @@ export default function PlaylistGrid({
   renderActions,
   loading = false,
   showPlayCount = false,
+  playCountPosition = "top-right",
 }: Props) {
   if (!playlists.length) {
     if (loading) return <LoadingState label="正在加载歌单…" />;
@@ -54,7 +57,12 @@ export default function PlaylistGrid({
             />
             {showPlayCount && (p.playCount ?? 0) > 0 && (
               <span
-                className="playlist-play-count"
+                className={[
+                  "playlist-play-count",
+                  playCountPosition === "top-left" && "playlist-play-count-left",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 title={`播放量 ${formatPlaylistPlayCount(p.playCount)}`}
               >
                 <Play aria-hidden="true" className="playlist-play-count-icon" size={10} strokeWidth={2.5} />

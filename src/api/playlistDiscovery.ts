@@ -52,6 +52,7 @@ function normalizePlaylist(raw: unknown): PlaylistInfo | null {
       value.coverImgUrl ?? value.coverImgUrlStr ?? value.picUrl ?? "",
     ),
     trackCount: Number(value.trackCount ?? value.trackNumber ?? 0),
+    playCount: Number(value.playCount ?? 0),
     description: String(value.description ?? ""),
     creatorId: Number(creator.userId ?? creator.id ?? 0),
     creatorName: String(creator.nickname ?? creator.name ?? ""),
