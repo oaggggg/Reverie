@@ -15,8 +15,32 @@ export default function StyledSelect({
   const selected = options.find((option) => option.value === value) ?? options[0];
   useEffect(() => {
     if (!open) return;
-    const rect = ref.current?.getBoundingClientRect();
-    if (rect) setOpenUp(window.innerHeight - rect.bottom < 300 && rect.top > 300);
+    // 菜单会被最近的 overflow 裁剪祖先（如消息中心的 .message-layout
+    // overflow:hidden）截断，因此按“裁剪容器内的剩余空间”判断是否向上
+    // 展开，而不是只看窗口剩余空间。
+    const anchor = ref.current;
+    const rect = anchor?.getBoundingClientRect();
+    if (anchor && rect) {
+      let clipBottom = window.innerHeight;
+      let node = anchor.parentElement;
+      while (node) {
+        const overflowY = getComputedStyle(node).overflowY;
+        if (
+          overflowY === "hidden" ||
+          overflowY === "clip" ||
+          overflowY === "auto" ||
+          overflowY === "scroll"
+        ) {
+          clipBottom = Math.min(
+            clipBottom,
+            node.getBoundingClientRect().bottom,
+          );
+          break;
+        }
+        node = node.parentElement;
+      }
+      setOpenUp(clipBottom - rect.bottom < 300 && rect.top > 300);
+    }
     const close = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
     };
