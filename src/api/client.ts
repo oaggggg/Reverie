@@ -264,6 +264,21 @@ function authHeaders(base: HeadersInit | undefined): HeadersInit {
   return headers;
 }
 
+/**
+ * 网易图床不返回 CORS 头：<img crossOrigin> 加载失败，不带 crossOrigin
+ * 又会污染画布，歌词自动取色等需要读取像素的场景拿不到数据。经本地
+ * sidecar 的图片代理取回字节，转成同源 blob URL 供 <img> 安全绘制。
+ */
+export async function fetchImageBlobUrl(url: string): Promise<string> {
+  await apiAuthTokenReady;
+  const q = new URLSearchParams({ url });
+  const res = await fetch(`${API_BASE}/reverie/image?${q.toString()}`, {
+    headers: authHeaders(undefined),
+  });
+  if (!res.ok) throw new Error(`image proxy ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
+
 export async function request<T = unknown>(
   path: string,
   params: Record<string, string | number | boolean | null | undefined> = {},

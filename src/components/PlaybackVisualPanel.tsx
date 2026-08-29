@@ -291,11 +291,11 @@ export default function PlaybackVisualPanel({
                 <input
                   className="slider settings-slider"
                   type="range"
-                  min={-300}
-                  max={300}
+                  min={-800}
+                  max={800}
                   value={lyricOffsetX}
                   style={{
-                    ["--val" as never]: `${((lyricOffsetX + 300) / 600) * 100}%`,
+                    ["--val" as never]: `${((lyricOffsetX + 800) / 1600) * 100}%`,
                   }}
                   onChange={(event) =>
                     setLyricOffsetX(Number(event.target.value))
@@ -313,11 +313,11 @@ export default function PlaybackVisualPanel({
                 <input
                   className="slider settings-slider"
                   type="range"
-                  min={-250}
-                  max={250}
+                  min={-600}
+                  max={600}
                   value={lyricOffsetY}
                   style={{
-                    ["--val" as never]: `${((lyricOffsetY + 250) / 500) * 100}%`,
+                    ["--val" as never]: `${((lyricOffsetY + 600) / 1200) * 100}%`,
                   }}
                   onChange={(event) =>
                     setLyricOffsetY(Number(event.target.value))
