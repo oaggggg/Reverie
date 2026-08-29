@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { LyricFx, LyricLayout } from "../store/playerStore";
+import { usePlayerStore } from "../store/playerStore";
 import type { LyricLine } from "../api/types";
 import type { CoverAccent } from "../utils/coverAccent";
 
@@ -14,6 +15,8 @@ interface Lyrics3DProps {
   rotationRef: { current: { x: number; y: number } };
   /** 滚轮缩放联动：粒子封面每帧写入的缩放系数（1 = 静息大小）。 */
   zoomRef?: { current: number };
+  /** Shared listeners wake this layer only while the cover is being manipulated. */
+  motionListenersRef?: { current: Set<() => void> };
   fx: LyricFx;
   /** 歌词清晰度 0~100：越高彩色辉光越弱、字面越锐利。 */
   clarity?: number;
@@ -34,6 +37,22 @@ const SWAP_MS = 420;
 
 /** 歌词平面相对粒子封面平面的悬浮深度（px）。 */
 const LIFT = 150;
+
+function activeLyricIndex(lines: LyricLine[], progress: number): number {
+  let low = 0;
+  let high = lines.length - 1;
+  let result = -1;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    if (lines[mid].time <= progress) {
+      result = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return result;
+}
 
 interface Slot {
   text: string;
@@ -105,21 +124,19 @@ function CrossfadeLine({
  */
 function LyricScrollList({
   lines,
-  progress,
   showTranslation,
   onSeekLine,
 }: {
   lines: LyricLine[];
-  progress: number;
   showTranslation: boolean;
   onSeekLine?: (time: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  let activeIndex = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].time <= progress) activeIndex = i;
-    else break;
-  }
+  // Subscribe to the derived active line rather than raw progress. This keeps
+  // the full lyric list asleep between line changes (often several seconds).
+  const activeIndex = usePlayerStore((state) =>
+    activeLyricIndex(lines, state.progress),
+  );
 
   const activeRef = useRef(-1);
   useEffect(() => {
@@ -182,12 +199,12 @@ export default function Lyrics3D({
   pending = false,
   rotationRef,
   zoomRef,
+  motionListenersRef,
   fx,
   clarity = 60,
   accent,
   layout,
   lyricLines = [],
-  progress = 0,
   showTranslation = false,
   lyricFontSize = 22,
   onSeekLine,
@@ -195,9 +212,8 @@ export default function Lyrics3D({
 }: Lyrics3DProps) {
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // 逐帧读取共享旋转与缩放（拖拽/滚轮时由 ParticleAlbumCover 写入），
-  // 直接写 transform。仅在数值真正变化时才写 DOM：拖拽结束后主线程
-  // 零写入，避免在视频壁纸上持续重绘 3D 图层造成合成器撕裂/重影。
+  // 仅在共享旋转/缩放发生变化时唤醒一次。静止时不再保留 rAF 轮询，
+  // 避免播放页在没有交互时持续占用主线程；静置摆动仍由 CSS 合成器处理。
   // 背面层在装配旋转之上再绕 Y 翻转 180°，构成"正歌词 -> 粒子封面 ->
   // 反歌词"的双面夹心；正反两层按朝向交叉淡隐——翻到背面时反歌词层
   // 提到封面上方（否则被粒子云挡住完全看不清），正面歌词随之淡出。
@@ -207,7 +223,7 @@ export default function Lyrics3D({
     let lastTransformKey = "";
     let lastFacing = "";
     const apply = () => {
-      frameId = requestAnimationFrame(apply);
+      frameId = 0;
       const el = rootRef.current;
       if (!el) return;
       const { x, y } = rotationRef.current;
@@ -237,9 +253,16 @@ export default function Lyrics3D({
         }
       }
     };
-    frameId = requestAnimationFrame(apply);
-    return () => cancelAnimationFrame(frameId);
-  }, [rotationRef, zoomRef, side]);
+    const wake = () => {
+      if (frameId === 0) frameId = requestAnimationFrame(apply);
+    };
+    motionListenersRef?.current.add(wake);
+    wake();
+    return () => {
+      motionListenersRef?.current.delete(wake);
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [motionListenersRef, rotationRef, zoomRef, side]);
 
   return (
     <div
@@ -258,11 +281,10 @@ export default function Lyrics3D({
       <div className="lyrics-3d-sway-x">
         <div className="lyrics-3d-sway-y">
           {layout === "full" ? (
-            <LyricScrollList
-              lines={lyricLines}
-              progress={progress}
-              showTranslation={showTranslation}
-              onSeekLine={onSeekLine}
+              <LyricScrollList
+                lines={lyricLines}
+                showTranslation={showTranslation}
+                onSeekLine={onSeekLine}
             />
           ) : (
             <>

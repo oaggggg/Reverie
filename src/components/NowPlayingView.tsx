@@ -1,6 +1,7 @@
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -34,8 +35,14 @@ const INTERLUDE_MS = 10000;
 
 export default function NowPlayingView() {
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const playing = usePlayerStore((s) => s.playing);
   const lyricLines = usePlayerStore((s) => s.lyricLines);
-  const progress = usePlayerStore((s) => s.progress);
+  // In full-list mode the list subscribes to the derived active line itself;
+  // keeping raw progress out of this component prevents a whole-scene render
+  // on every playback tick.
+  const progress = usePlayerStore((s) =>
+    s.lyricLayout === "full" ? 0 : s.progress,
+  );
   const seek = usePlayerStore((s) => s.seek);
   const setPage = usePlayerStore((s) => s.setPage);
   const ensureLyrics = usePlayerStore((s) => s.ensureLyrics);
@@ -74,11 +81,16 @@ export default function NowPlayingView() {
   const rotationRef = useRef({ x: 0, y: 0 });
   // 滚轮缩放同样共享：封面推拉相机，歌词按同一系数缩放。
   const zoomRef = useRef(1);
+  const motionListenersRef = useRef(new Set<() => void>());
+  const handleCoverOverload = useCallback(() => {
+    usePlayerStore.getState().degradeCoverQuality();
+  }, []);
   const [coverAccent, setCoverAccent] = useState<CoverAccent>({
     color: "#7df9ff",
     soft: "rgba(125, 249, 255, 0.32)",
   });
   const [wallpaperSrc, setWallpaperSrc] = useState("");
+  const wallpaperRef = useRef<HTMLVideoElement>(null);
   // 顶部按钮（返回 / DIY）与底部播放栏的显隐：进入页面展示，
   // 停顿后自动隐藏。呼出区按各控件收窄：返回=左上角、DIY=右上角、
   // 播放栏=底部边缘，各自独立呼出互不影响。
@@ -138,6 +150,23 @@ export default function NowPlayingView() {
       disposed = true;
     };
   }, [npWallpaper]);
+
+  // Wallpaper video is a sizeable, continuous GPU workload. Keep it paused
+  // when audio is paused or the document is hidden, then resume on return.
+  useEffect(() => {
+    const video = wallpaperRef.current;
+    if (!video || !wallpaperSrc) return;
+    const sync = () => {
+      if (playing && !document.hidden) {
+        void video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, [playing, wallpaperSrc]);
 
   // 播放页 chrome 自动隐藏：进入页面展示。呼出范围就是各控件自身的
   // 矩形范围（外扩 8px 容差）：悬停在返回/DIY 按钮或播放栏本体上才
@@ -416,6 +445,7 @@ export default function NowPlayingView() {
     pending: lyricPending,
     rotationRef,
     zoomRef,
+    motionListenersRef,
     fx: lyricFx,
     clarity: lyricClarity,
     accent: coverAccent,
@@ -431,9 +461,10 @@ export default function NowPlayingView() {
     npWallpaper && wallpaperSrc ? (
       <video
         key={wallpaperSrc}
+        ref={wallpaperRef}
         className="np-wallpaper"
         src={wallpaperSrc}
-        autoPlay
+        autoPlay={playing}
         loop
         muted
         playsInline
@@ -442,7 +473,7 @@ export default function NowPlayingView() {
 
   return (
     <div
-      className={`now-playing now-playing-3d ${fadedIn ? "np-scene-ready" : "np-scene-leaving"}${backShown ? "" : " np-hide-back"}${diyShown ? "" : " np-hide-diy"}`}
+      className={`now-playing now-playing-3d${playing ? " np-playing" : ""} ${fadedIn ? "np-scene-ready" : "np-scene-leaving"}${backShown ? "" : " np-hide-back"}${diyShown ? "" : " np-hide-diy"}`}
     >
       <button
         ref={backRef}
@@ -522,12 +553,12 @@ export default function NowPlayingView() {
                   grid={QUALITY_GRID[coverQuality]}
                   fpsLimit={npFrameRate}
                   rhythmGain={rhythmGain}
-                  paused={npVoid}
+                  paused={npVoid || !playing}
+                  active={playing && !npVoid}
                   rotationRef={rotationRef}
                   zoomRef={zoomRef}
-                  onOverload={() =>
-                    usePlayerStore.getState().degradeCoverQuality()
-                  }
+                  motionListenersRef={motionListenersRef}
+                  onOverload={handleCoverOverload}
                 />
               </Suspense>
             </CoverErrorBoundary>

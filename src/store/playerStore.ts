@@ -1200,9 +1200,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   crossDeviceResume: readBool("reverie_cross_resume", false),
   lyricFx: readLyricFx(),
   lyricFontSize: readNum("reverie_lyricfont", 22),
-  npFrameRate: [0, 30, 60, 120].includes(readNum("reverie_np_fps", 0))
-    ? readNum("reverie_np_fps", 0)
-    : 0,
+  npFrameRate: [0, 30, 60, 120].includes(readNum("reverie_np_fps", 30))
+    ? readNum("reverie_np_fps", 30)
+    : 30,
   lyricLayout: readStr("reverie_lyriclayout", "dual") === "full" ? "full" : "dual",
   npWallpaper: readNpWallpaper(),
   coverQuality: readCoverQuality(),
@@ -1944,7 +1944,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       lyricOffsetX: 0,
       lyricOffsetY: 0,
       rhythmGain: 0.55,
-      npFrameRate: 0,
+      npFrameRate: 30,
       npVoid: false,
       npWallpaper: null,
     });
@@ -1956,7 +1956,7 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     write("reverie_lyric_offset_x", "0");
     write("reverie_lyric_offset_y", "0");
     write("reverie_rhythm_gain", "0.55");
-    write("reverie_np_fps", "0");
+    write("reverie_np_fps", "30");
     write("reverie_np_wallpaper", "");
     write("reverie_np_void", "0");
   },

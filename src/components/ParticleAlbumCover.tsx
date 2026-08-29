@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -17,6 +17,10 @@ interface ParticleAlbumCoverProps {
   rhythmGain?: number;
   /** 虚空等场景暂时隐藏时置 true：跳过渲染但保持场景挂载，切回零重建。 */
   paused?: boolean;
+  /** Visual playback is inactive; keep the last frame but stop all animation work. */
+  active?: boolean;
+  /** Shared wake listeners used by the lyric layers during pointer motion. */
+  motionListenersRef?: { current: Set<() => void> };
   /**
    * 父组件持有的共享旋转。拖拽粒子封面时逐帧写入（含自转分量），
    * 3D 歌词层每帧读取同一份数据，保证歌词与封面是一体的。
@@ -33,7 +37,7 @@ interface ParticleAlbumCoverProps {
 }
 
 /** Below this the bloom pass costs more than the cloud it decorates. */
-const BLOOM_MIN_GRID = 130;
+const BLOOM_MIN_GRID = 150;
 
 /** World size of the particle plane. */
 const PLANE = 4;
@@ -63,14 +67,16 @@ const WATCHDOG_MAX_GAP_MS = 1000;
 /** 相机静息距离：滚轮缩放围绕该值推拉。 */
 const CAMERA_Z_REST = 4.2;
 
-export default function ParticleAlbumCover({
+function ParticleAlbumCover({
   imageUrl,
   grid,
   fpsLimit = 0,
   rhythmGain = 0.55,
   paused = false,
+  active = true,
   rotationRef,
   zoomRef,
+  motionListenersRef,
   onOverload,
   onDoubleClick,
 }: ParticleAlbumCoverProps) {
@@ -83,6 +89,7 @@ export default function ParticleAlbumCover({
   const fpsLimitRef = useRef(fpsLimit);
   const rhythmGainRef = useRef(rhythmGain);
   const pausedRef = useRef(paused);
+  const activeRef = useRef(active);
   const zoomTargetRef = useRef(0);
   useEffect(() => {
     onOverloadRef.current = onOverload;
@@ -98,7 +105,11 @@ export default function ParticleAlbumCover({
   }, [rhythmGain]);
   useEffect(() => {
     pausedRef.current = paused;
-  }, [paused]);
+    activeRef.current = active;
+    if (!paused && active) wakeRef.current?.();
+  }, [active, paused]);
+
+  const wakeRef = useRef<(() => void) | null>(null);
 
   // 场景对象跨 imageUrl 复用：换歌只重采样颜色，绝不重建 WebGL 上下文。
   // 反复 forceContextLoss + 重建是切歌时整个 WebView 白屏一瞬的元凶。
@@ -233,6 +244,7 @@ export default function ParticleAlbumCover({
       target.y += (e.clientX - previous.x) * 0.01;
       target.x += (e.clientY - previous.y) * 0.01;
       previous = { x: e.clientX, y: e.clientY };
+      wakeRef.current?.();
     };
     const finishDrag = (e: PointerEvent) => {
       isDragging = false;
@@ -244,6 +256,7 @@ export default function ParticleAlbumCover({
       // deltaY 向下滚 = 拉远（缩小），向上滚 = 推近（放大）。
       const t = zoomTargetRef.current + e.deltaY * 0.0016;
       zoomTargetRef.current = Math.max(-1.9, Math.min(2.6, t));
+      wakeRef.current?.();
     };
     const onDblClick = () => {
       target.x = 0;
@@ -304,19 +317,24 @@ export default function ParticleAlbumCover({
     let lastRender = performance.now();
     let pendingDt = 0;
 
+    const renderOnce = () => {
+      try {
+        if (composer) composer.render();
+        else renderer.render(scene, camera);
+      } catch {
+        // Context loss is handled by the normal cleanup path.
+      }
+    };
+
     const animate = () => {
       // 卸载后可能有已调度的帧或 visibilitychange 触发的补帧，此处硬停。
-      if (disposed || isBackgrounded()) {
+      if (disposed || isBackgrounded() || pausedRef.current || !activeRef.current) {
         running = false;
+        if (!disposed && !isBackgrounded()) renderOnce();
         return;
       }
       running = true;
       frameId = requestAnimationFrame(animate);
-      // 暂停（虚空隐藏）时只保留 rAF 调度，跳过所有更新与渲染；
-      // 恢复时场景原样还在，无需任何重建。
-      if (pausedRef.current) {
-        return;
-      }
       const rawDt = Math.min(clock.getDelta(), 0.1);
       const limit = fpsLimitRef.current;
       let dt = rawDt;
@@ -387,6 +405,12 @@ export default function ParticleAlbumCover({
         zoomRef.current = CAMERA_Z_REST / camera.position.z;
       }
 
+      const moved =
+        Math.abs(rotation.x - target.x) > 0.0001 ||
+        Math.abs(rotation.y - target.y) > 0.0001 ||
+        Math.abs(camera.position.z - (CAMERA_Z_REST - zoomTargetRef.current)) > 0.001;
+      if (moved) motionListenersRef?.current.forEach((listener) => listener());
+
       // 渲染管线损坏（如 WebGL 上下文丢失后属性被置空）时每帧都会抛错，
       // 先调度后渲染的循环结构会让异常无限续帧；渲染失败即终止循环。
       try {
@@ -426,6 +450,11 @@ export default function ParticleAlbumCover({
         }
       }
     };
+    wakeRef.current = () => {
+      if (!running && !disposed && !isBackgrounded() && !pausedRef.current && activeRef.current) {
+        animate();
+      }
+    };
     animate();
 
     const handleResize = () => {
@@ -442,6 +471,7 @@ export default function ParticleAlbumCover({
 
     return () => {
       disposed = true;
+      wakeRef.current = null;
       recolorRef.current = null;
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
@@ -501,6 +531,9 @@ export default function ParticleAlbumCover({
         colors[i * 3 + 2] = conv(data[px + 2] / 255);
       }
       attr.needsUpdate = true;
+      // A paused scene renders once; wake it after the asynchronous colour
+      // upload so a paused player still shows the correct cover.
+      wakeRef.current?.();
       // Release the temporary CPU-side raster as soon as the attribute upload
       // has been queued. The WebGL buffer owns the data from this point on.
       canvas.width = 0;
@@ -522,3 +555,5 @@ export default function ParticleAlbumCover({
 
   return <div ref={containerRef} className="particle-album-cover" />;
 }
+
+export default memo(ParticleAlbumCover);

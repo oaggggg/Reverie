@@ -26,10 +26,10 @@ export type CoverQuality = "image" | "low" | "medium" | "high" | "ultra";
 /** Grid side length per level; particle count is GRID². */
 export const QUALITY_GRID: Record<CoverQuality, number> = {
   image: 0,
-  low: 80, // 6,400
-  medium: 130, // 16,900
-  high: 190, // 36,100
-  ultra: 240, // 57,600
+  low: 64, // 4,096
+  medium: 96, // 9,216
+  high: 128, // 16,384
+  ultra: 160, // 25,600
 };
 
 export const QUALITY_LABEL: Record<CoverQuality, string> = {
