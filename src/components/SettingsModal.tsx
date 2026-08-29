@@ -743,7 +743,7 @@ export default function SettingsModal() {
                               <div><span>等级</span><strong>Lv.{accountOverview?.level || 0}</strong></div>
                               <div><span>会员类型</span><strong>{vipInfo?.svip && vipActive ? "黑胶 SVIP" : vipActive || accountOverview?.vipType ? "黑胶 VIP" : "普通账号"}</strong></div>
                               <div><span>会员等级</span><strong>{vipInfo?.vipLevel ? `Lv.${vipInfo.vipLevel}` : "—"}</strong></div>
-                              <div><span>会员到期</span><strong>{vipInfo?.expireTime ? new Date(vipInfo.expireTime).toLocaleDateString("zh-CN") : "未开通"}</strong></div>
+                              <div><span>会员到期</span><strong className="vip-expiry-list">{vipInfo?.expireTimes?.length ? vipInfo.expireTimes.map((time) => new Date(time).toLocaleDateString("zh-CN")).join("、") : vipInfo?.expireTime ? new Date(vipInfo.expireTime).toLocaleDateString("zh-CN") : "未开通"}</strong></div>
                               {accountOverview?.phone && <div><span>手机号</span><strong>{accountOverview.phone}</strong></div>}
                             </>
                           )}

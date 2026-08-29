@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { userQualityTier, usePlayerStore } from "../store/playerStore";
+import { usePlayerStore } from "../store/playerStore";
 import { sizedImage } from "../utils/image";
 import { CircleUserRound, X } from "lucide-react";
 import { getProfileCenter } from "../api/profile";
@@ -81,42 +81,24 @@ export default function UserMenu() {
   const vipType = Number(vipInfo?.vipType ?? profile?.vipType ?? 0);
   const vipLevel = Number(vipInfo?.vipLevel ?? 0);
   const expireTime = Number(vipInfo?.expireTime ?? 0);
+  const expireTimes = (vipInfo?.expireTimes?.length
+    ? vipInfo.expireTimes
+    : expireTime > 0
+      ? [expireTime]
+      : []
+  ).filter((time) => Number.isFinite(time) && time > 0);
   const isVip = vipType > 0 || vipLevel > 0 || expireTime > 0;
   // 铭牌以统一身份档位为准（/vip/info 双包生效态 + 官方 redplus 品牌位），
   // 不再用 vipType 数字猜档位：11 实为年费 VIP 而非 SVIP。
-  const tier = userQualityTier(usePlayerStore.getState());
-  // 昵称旁图片必须是官方下发：佩戴中的个性化铭牌（plate）、官方包
-  // 动态铭牌（dynamic，动效图）、vipRights 品牌位图（brand，与档位
-  // 对应）三类可信来源直接展示；仅当全部落空时才用矢量铭牌按档位
-  // 自绘兜底。
-  const imgBadge =
-    vipInfo &&
-    (vipInfo.badgeKind === "plate" ||
-      vipInfo.badgeKind === "brand" ||
-      vipInfo.badgeKind === "dynamic")
-      ? vipInfo.badgeUrl
-      : undefined;
+  const imgBadges =
+    vipInfo?.badgeKind === "brand"
+      ? vipInfo.badgeUrls?.length
+        ? vipInfo.badgeUrls
+        : vipInfo.badgeUrl
+          ? [vipInfo.badgeUrl]
+          : []
+      : [];
   const frameUrl = profile?.avatarFrameUrl;
-  // 官方铭牌为矢量渲染，等级数字用大写中文（VIP·柒 / SVIP·柒）。
-  const cnDigits = [
-    "零",
-    "一",
-    "二",
-    "三",
-    "四",
-    "五",
-    "六",
-    "七",
-    "八",
-    "九",
-    "十",
-  ];
-  const levelText =
-    vipLevel >= 1 && vipLevel <= 10
-      ? `·${cnDigits[vipLevel]}`
-      : vipLevel > 10
-        ? `·${vipLevel}`
-        : "";
 
   return (
     <div className="user-menu" ref={ref}>
@@ -156,24 +138,17 @@ export default function UserMenu() {
         <span className="user-nick">{profile?.nickname ?? ""}</span>
         {/* 铭牌与头像框是同一来源时只保留头像上的挂件展示，避免重复 */}
         {isVip &&
-        imgBadge &&
-        brokenBadge !== imgBadge &&
-        imgBadge !== frameUrl ? (
-          <img
-            className="user-badge-api"
-            src={imgBadge}
-            alt="会员"
-            onError={() => setBrokenBadge(imgBadge)}
-          />
-        ) : isVip ? (
-          <span
-            className={`user-vip-fallback${tier === "svip" ? " svip" : ""}`}
-            aria-label={tier === "svip" ? "黑胶超级会员" : "黑胶会员"}
-          >
-            {tier === "svip" ? "SVIP" : "VIP"}
-            {levelText}
-          </span>
-        ) : null}
+          imgBadges.map((badge) =>
+            brokenBadge !== badge && badge !== frameUrl ? (
+              <img
+                className="user-badge-api"
+                key={badge}
+                src={badge}
+                alt="会员"
+                onError={() => setBrokenBadge(badge)}
+              />
+            ) : null,
+          )}
       </button>
       {transition.rendered && (
         <div
@@ -228,15 +203,13 @@ export default function UserMenu() {
                     粉丝 {profileDetail.followeds}
                   </button>
                 )}
-                {isVip && expireTime > 0 && (
-                  <span>
-                    {new Date(expireTime).getFullYear()}年
-                    {String(new Date(expireTime).getMonth() + 1).padStart(
-                      2,
-                      "0",
-                    )}
-                    月{String(new Date(expireTime).getDate()).padStart(2, "0")}
-                    日
+                {isVip && expireTimes.length > 0 && (
+                  <span className="vip-expiry-list">
+                    {expireTimes.map((time) => (
+                      <span key={time}>
+                        {new Date(time).toLocaleDateString("zh-CN")}
+                      </span>
+                    ))}
                   </span>
                 )}
               </div>

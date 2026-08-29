@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import {
-  Image as ImageIcon,
+  ImagePlay,
   Moon,
   Music4,
   RotateCcw,
@@ -479,7 +479,7 @@ export default function PlaybackVisualPanel({
                             <img src={item.preview} alt="" loading="lazy" />
                           </>
                         ) : (
-                          <ImageIcon size={14} />
+                          <ImagePlay size={14} />
                         )}
                       </span>
                       <span className="np-wallpaper-title">
