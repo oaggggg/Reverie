@@ -6,6 +6,7 @@ import {
   type UIEvent,
 } from "react";
 import { usePlayerStore } from "../store/playerStore";
+import BackToTop from "./BackToTop";
 
 export function PageHeader({
   title,
@@ -71,6 +72,7 @@ export function Page({ children }: { children: ReactNode }) {
     <div className="page">
       <div className="page-scroll" ref={scrollRef} onScroll={handleScroll}>
         {children}
+        <BackToTop />
       </div>
     </div>
   );

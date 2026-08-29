@@ -9,6 +9,7 @@ import { useOriginTransition } from "../utils/originTransition";
 import { useModalBehavior } from "../utils/modalBehavior";
 import { LoadingState } from "./Page";
 import SongList from "./SongList";
+import BackToTop from "./BackToTop";
 
 const TABS = [
   ["songs", "歌曲"],
@@ -171,6 +172,7 @@ export default function RecentModal() {
               )) : <div className="empty">暂无最近播放的视频</div>}
             </div>
           )}
+          <BackToTop />
         </div>
       </div>
     </div>

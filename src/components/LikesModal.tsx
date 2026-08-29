@@ -4,6 +4,7 @@ import { usePlayerStore } from "../store/playerStore";
 import { useOriginTransition } from "../utils/originTransition";
 import { useModalBehavior } from "../utils/modalBehavior";
 import SongList from "./SongList";
+import BackToTop from "./BackToTop";
 
 export default function LikesModal() {
   const showLikes = usePlayerStore((s) => s.showLikes);
@@ -61,6 +62,7 @@ export default function LikesModal() {
             loading={likedSongsLoading}
             emptyText="还没有喜欢的歌曲，点播放栏的红心收藏吧"
           />
+          <BackToTop />
         </div>
       </div>
     </div>
