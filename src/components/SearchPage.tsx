@@ -154,7 +154,11 @@ export default function SearchPage() {
           )}
 
           {category === "playlists" && (
-            <PlaylistGrid playlists={result.playlists} onOpen={openPlaylist} />
+            <PlaylistGrid
+              playlists={result.playlists}
+              onOpen={openPlaylist}
+              showPlayCount
+            />
           )}
 
           {category === "albums" && (
