@@ -6,6 +6,7 @@ import { sizedImage } from "../utils/image";
 import { Page, PageHeader } from "./Page";
 import BackButton from "./BackButton";
 import SongList from "./SongList";
+import SongBadges from "./SongBadges";
 
 /** 卡片网格里最多展示多少个官方榜单 */
 const MAX_CARDS = 8;
@@ -181,7 +182,10 @@ export default function ChartPage() {
                         title={`${song.name} · ${song.artists}`}
                       >
                         <b className={index < 3 ? "top" : ""}>{index + 1}</b>
-                        <span className="t">{song.name}</span>
+                        <span className="t">
+                          <span className="t-name">{song.name}</span>
+                          <SongBadges song={song} />
+                        </span>
                         <span className="a">{song.artists}</span>
                       </li>
                     ))}

@@ -4,11 +4,11 @@ import {
   ALL_PLAYBACK_QUALITIES,
   PLAYBACK_QUALITY_LABELS,
   PLAYBACK_QUALITY_TIER,
-  isVipSong,
   qualityAllowedFor,
   userQualityTier,
   usePlayerStore,
 } from "../store/playerStore";
+import SongBadges from "./SongBadges";
 import { formatTime } from "../utils/lyrics";
 import { sizedImage } from "../utils/image";
 import { captureCoverOrigin } from "../utils/sharedCoverTransition";
@@ -356,9 +356,7 @@ export default function PlayerBar() {
                 <span className="pb-title">
                   {currentSong?.name ?? "未在播放"}
                 </span>
-                {isVipSong(currentSong) && (
-                  <span className="vip-badge">VIP</span>
-                )}
+                <SongBadges song={currentSong} />
                 {previewEnd !== null && (
                   <span className="preview-badge" title="当前为 60 秒试听">
                     试听
@@ -455,7 +453,10 @@ export default function PlayerBar() {
                           }}
                         >
                           <span className="pb-queue-index">{index + 1}</span>
-                          <span className="pb-queue-title">{song.name}</span>
+                          <span className="pb-queue-title">
+                            <span className="pb-queue-name">{song.name}</span>
+                            <SongBadges song={song} />
+                          </span>
                           <small>{song.artists}</small>
                         </button>
                       ))

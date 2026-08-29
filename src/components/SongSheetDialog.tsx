@@ -6,6 +6,7 @@ import { sizedImage } from "../utils/image";
 import { LoadingState } from "./Page";
 import { useOriginTransition } from "../utils/originTransition";
 import { useModalBehavior } from "../utils/modalBehavior";
+import SongBadges from "./SongBadges";
 
 export default function SongSheetDialog({
   song,
@@ -66,7 +67,8 @@ export default function SongSheetDialog({
           <div>
             <h2>歌曲乐谱</h2>
             <p>
-              {song.name} · {song.artists}
+              {song.name}
+              <SongBadges song={song} /> · {song.artists}
             </p>
           </div>
           <button className="icon-btn" onClick={onClose} title="关闭">

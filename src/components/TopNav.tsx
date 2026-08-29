@@ -3,6 +3,7 @@ import { usePlayerStore } from "../store/playerStore";
 import { useSearchStore } from "../store/searchStore";
 import { useNotificationStore } from "../store/notificationStore";
 import type { ThemePreference } from "../store/playerStore";
+import SongBadges from "./SongBadges";
 import type { View } from "../api/types";
 import type { ReactElement } from "react";
 import {
@@ -383,7 +384,10 @@ export default function TopNav() {
                               </span>
                             )}
                             <div className="meta">
-                              <div className="t">{song.name}</div>
+                              <div className="t">
+                                <span className="t-name">{song.name}</span>
+                                <SongBadges song={song} />
+                              </div>
                               <div className="a">{song.artists}</div>
                             </div>
                           </div>
