@@ -50,13 +50,8 @@ export default function ProfilePage({ modal = false }: { modal?: boolean }) {
   const medals = useProfileStore((state) => state.medals);
   const createdRadios = useProfileStore((state) => state.createdRadios);
   const createdPrograms = useProfileStore((state) => state.createdPrograms);
-  const records = useProfileStore((state) => state.records);
-  const period = useProfileStore((state) => state.period);
   const loading = useProfileStore((state) => state.loading);
-  const recordsLoading = useProfileStore((state) => state.recordsLoading);
-  const setPeriod = useProfileStore((state) => state.setPeriod);
   const openCollections = useCollectionStore((state) => state.openCollections);
-  const playSong = usePlayerStore((state) => state.playSong);
   const openRadio = useExploreStore((state) => state.openRadio);
   const setShowLogin = usePlayerStore((state) => state.setShowLogin);
 
@@ -108,8 +103,6 @@ export default function ProfilePage({ modal = false }: { modal?: boolean }) {
     0,
     Math.min(100, (level?.progress ?? 0) * 100),
   );
-  const songs = records.map((record) => record.song);
-
   return (
     <Page>
       {!modal && <BackButton />}
@@ -315,62 +308,6 @@ export default function ProfilePage({ modal = false }: { modal?: boolean }) {
         </section>
       )}
 
-      <section className="content-section">
-        <div className="profile-record-heading">
-          <div>
-            <h2>听歌排行</h2>
-            <span>{records.length} 首</span>
-          </div>
-          <div className="segmented">
-            <button
-              className={period === "week" ? "active" : ""}
-              onClick={() => void setPeriod("week")}
-            >
-              最近一周
-            </button>
-            <button
-              className={period === "all" ? "active" : ""}
-              onClick={() => void setPeriod("all")}
-            >
-              所有时间
-            </button>
-          </div>
-        </div>
-        {recordsLoading ? (
-          <LoadingState label="正在加载听歌排行…" />
-        ) : records.length ? (
-          <div className="profile-record-list">
-            {records.map((record, index) => (
-              <button
-                key={`${record.song.id}-${index}`}
-                onClick={() => void playSong(record.song, songs)}
-              >
-                <span className="profile-record-rank">{index + 1}</span>
-                {record.song.picUrl ? (
-                  <img
-                    src={sizedImage(record.song.picUrl, 100)}
-                    alt=""
-                    loading="lazy"
-                  />
-                ) : (
-                  <span className="profile-record-cover">
-                    <Disc3 size={17} />
-                  </span>
-                )}
-                <span className="profile-record-copy">
-                  <strong>{record.song.name}</strong>
-                  <small>{record.song.artists}</small>
-                </span>
-                <span className="profile-record-count">
-                  播放 {record.playCount} 次
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="empty">听歌排行未公开或暂无记录</div>
-        )}
-      </section>
       {followDialog && (
         <FollowListDialog
           type={followDialog}

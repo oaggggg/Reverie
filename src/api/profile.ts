@@ -49,59 +49,20 @@ export interface UserMedal {
   obtained: boolean;
 }
 
-export interface ListeningRecord {
-  song: Song;
-  playCount: number;
-  score: number;
-}
-
 export interface ProfileCenterData {
   detail: ProfileDetail;
   level: UserLevelInfo;
   subcount: UserSubcount;
-  records: ListeningRecord[];
 }
 
-function normalizeRecords(value: unknown): ListeningRecord[] {
-  return arr(value)
-    .map((raw) => {
-      const record = obj(raw);
-      const song = normalizeSong(record.song);
-      return song
-        ? {
-            song,
-            playCount: Number(record.playCount ?? 0),
-            score: Number(record.score ?? 0),
-          }
-        : null;
-    })
-    .filter((record): record is ListeningRecord => record !== null);
-}
-
-/** 个人中心读接口缓存：重进个人页不再全量重拉（听歌排行 2min，其余 5min）。 */
-const RECORD_TTL = 2 * 60 * 1000;
 const PROFILE_TTL = 5 * 60 * 1000;
-
-export async function getListeningRecords(
-  uid: number,
-  period: "week" | "all",
-): Promise<ListeningRecord[]> {
-  const response = await cachedRequest<Obj>(
-    "/user/record",
-    { uid, type: period === "week" ? 1 : 0 },
-    RECORD_TTL,
-  );
-  return normalizeRecords(
-    period === "week" ? response.weekData : response.allData,
-  );
-}
 
 export async function getProfileCenter(
   uid: number,
 ): Promise<ProfileCenterData> {
   // /user/detail 偶发失败不应让个人中心整页空白：降级为空档案继续返回，
   // 由调用方（profileStore）叠加本地缓存的基础身份信息。
-  const [detailResponse, levelResponse, subcountResponse, records] =
+  const [detailResponse, levelResponse, subcountResponse] =
     await Promise.all([
       cachedRequest<Obj>("/user/detail", { uid }, PROFILE_TTL).catch(
         () => ({}) as Obj,
@@ -112,7 +73,6 @@ export async function getProfileCenter(
       cachedRequest<Obj>("/user/subcount", {}, PROFILE_TTL).catch(
         () => ({}) as Obj,
       ),
-      getListeningRecords(uid, "week").catch(() => []),
     ]);
   const profile = obj(detailResponse.profile);
   const levelData = obj(levelResponse.data);
@@ -149,7 +109,6 @@ export async function getProfileCenter(
       ),
       subPlaylistCount: Number(subcountResponse.subPlaylistCount ?? 0),
     },
-    records,
   };
 }
 

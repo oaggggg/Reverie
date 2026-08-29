@@ -13,7 +13,7 @@ import {
 } from "../api/artist.ts";
 import { getArtistFans } from "../api/artistFans.ts";
 import { getSimilarArtists } from "../api/related";
-import type { ArtistFan, ArtistInfo } from "../api/types";
+import type { ArtistFan, ArtistInfo, SearchMediaInfo } from "../api/types";
 import { useExploreStore } from "../store/exploreStore";
 import { useMediaStore } from "../store/mediaStore.ts";
 import { sizedImage } from "../utils/image";
@@ -25,7 +25,6 @@ export default function ArtistPage() {
   const artist = useExploreStore((s) => s.artist);
   const songs = useExploreStore((s) => s.artistSongs);
   const albums = useExploreStore((s) => s.artistAlbums);
-  const videos = useExploreStore((s) => s.artistVideos);
   const loading = useExploreStore((s) => s.loading);
   const toggleSubscription = useExploreStore((s) => s.toggleArtistSubscription);
   const openAlbum = useExploreStore((s) => s.openAlbum);
@@ -40,8 +39,8 @@ export default function ArtistPage() {
   );
   const [dynamic, setDynamic] = useState<ArtistDynamic | null>(null);
   const [topSongs, setTopSongs] = useState<typeof songs>([]);
-  const [newMvs, setNewMvs] = useState<typeof videos>([]);
-  const [artistMvs, setArtistMvs] = useState<typeof videos>([]);
+  const [newMvs, setNewMvs] = useState<SearchMediaInfo[]>([]);
+  const [artistMvs, setArtistMvs] = useState<SearchMediaInfo[]>([]);
   const [newSongs, setNewSongs] = useState<typeof songs>([]);
   const [allSongs, setAllSongs] = useState<typeof songs>([]);
 
@@ -340,29 +339,6 @@ export default function ArtistPage() {
               </button>
             ))}
           </div>
-          {videos.length > 0 && (
-            <>
-              <div className="list-header">
-                <h3>相关视频</h3>
-                <span className="count">{videos.length} 个</span>
-              </div>
-              <div className="media-grid compact">
-                {videos.map((video) => (
-                  <button
-                    className="media-card"
-                    key={video.id}
-                    onClick={() => void openMedia(video)}
-                  >
-                    <div className="card-cover">
-                      <img src={sizedImage(video.coverUrl, 320)} alt="" />
-                    </div>
-                    <strong>{video.name}</strong>
-                    <span>{video.creatorName || "视频"}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
           {similarArtists.length > 0 && (
             <>
               <div className="list-header">

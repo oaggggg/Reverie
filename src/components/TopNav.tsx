@@ -62,8 +62,6 @@ const preloadView = (view: View) => {
   switch (view) {
     case "chart":
       return import("./ChartPage");
-    case "videos":
-      return import("./VideoPage");
     case "search":
       return import("./SearchPage");
     case "userlist":
@@ -72,26 +70,6 @@ const preloadView = (view: View) => {
       return import("./RadioPage");
     case "social":
       return import("./SocialPage");
-    case "cloud":
-      return import("./CloudPage");
-    case "yunbei":
-      return import("./YunbeiPage");
-    case "voiceWorkbench":
-      return import("./VoiceWorkbenchPage");
-    case "lyricsMark":
-      return import("./LyricsMarkPage");
-    case "digitalAlbum":
-      return import("./DigitalAlbumPage");
-    case "musician":
-      return import("./MusicianPage");
-    case "sati":
-      return import("./SatiPage");
-    case "broadcast":
-      return import("./BroadcastPage");
-    case "ugc":
-      return import("./UgcPage");
-    case "listenReports":
-      return import("./ListenReportsPage");
     case "fans":
       return import("./FansPage");
     case "style":
@@ -102,8 +80,6 @@ const preloadView = (view: View) => {
       return import("./LibraryPage");
     case "calendar":
       return import("./CalendarPage");
-    case "privateDj":
-      return import("./PrivateDjPage");
     default:
       return Promise.resolve();
   }
@@ -274,8 +250,6 @@ export default function TopNav() {
         break;
       case "radio":
       case "social":
-      case "cloud":
-      case "yunbei":
         setActiveView(view);
         break;
       default:

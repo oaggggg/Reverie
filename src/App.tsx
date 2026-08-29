@@ -67,8 +67,6 @@ const ArtistPage = lazy(() => import("./components/ArtistPage"));
 const RadioPage = lazy(() => import("./components/RadioPage"));
 const RadioDetailPage = lazy(() => import("./components/RadioDetailPage"));
 const SocialPage = lazy(() => import("./components/SocialPage"));
-const CloudPage = lazy(() => import("./components/CloudPage"));
-const YunbeiPage = lazy(() => import("./components/YunbeiPage"));
 const CommentHistoryModal = lazy(
   () => import("./components/CommentHistoryModal"),
 );
@@ -76,22 +74,11 @@ const LikesModal = lazy(() => import("./components/LikesModal"));
 const RecentModal = lazy(() => import("./components/RecentModal"));
 const ArtistModal = lazy(() => import("./components/ArtistModal"));
 const AlbumModal = lazy(() => import("./components/AlbumModal"));
-const VoiceWorkbenchPage = lazy(
-  () => import("./components/VoiceWorkbenchPage"),
-);
-const LyricsMarkPage = lazy(() => import("./components/LyricsMarkPage"));
-const DigitalAlbumPage = lazy(() => import("./components/DigitalAlbumPage"));
-const MusicianPage = lazy(() => import("./components/MusicianPage"));
-const SatiPage = lazy(() => import("./components/SatiPage"));
-const BroadcastPage = lazy(() => import("./components/BroadcastPage"));
-const UgcPage = lazy(() => import("./components/UgcPage"));
-const ListenReportsPage = lazy(() => import("./components/ListenReportsPage"));
 const FansPage = lazy(() => import("./components/FansPage"));
 const StylePage = lazy(() => import("./components/StylePage"));
 const TopicPage = lazy(() => import("./components/TopicPage"));
 const LibraryPage = lazy(() => import("./components/LibraryPage"));
 const CalendarPage = lazy(() => import("./components/CalendarPage"));
-const PrivateDjPage = lazy(() => import("./components/PrivateDjPage"));
 const VideoPage = lazy(() => import("./components/VideoPage"));
 const PlayerCommentsDrawer = lazy(
   () => import("./components/PlayerCommentsDrawer"),
@@ -1209,26 +1196,6 @@ export default function App() {
         return <RadioDetailPage />;
       case "social":
         return <SocialPage />;
-      case "cloud":
-        return <CloudPage />;
-      case "yunbei":
-        return <YunbeiPage />;
-      case "voiceWorkbench":
-        return <VoiceWorkbenchPage />;
-      case "lyricsMark":
-        return <LyricsMarkPage />;
-      case "digitalAlbum":
-        return <DigitalAlbumPage />;
-      case "musician":
-        return <MusicianPage />;
-      case "sati":
-        return <SatiPage />;
-      case "broadcast":
-        return <BroadcastPage />;
-      case "ugc":
-        return <UgcPage />;
-      case "listenReports":
-        return <ListenReportsPage />;
       case "fans":
         return <FansPage />;
       case "style":
@@ -1239,8 +1206,6 @@ export default function App() {
         return <LibraryPage />;
       case "calendar":
         return <CalendarPage />;
-      case "privateDj":
-        return <PrivateDjPage />;
       case "videos":
         return <VideoPage />;
       default:
