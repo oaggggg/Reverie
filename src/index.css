@@ -10177,6 +10177,10 @@ select option:checked {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
+/* 空态提示横跨整行居中，避免落在首个网格单元里贴左显示 */
+.recent-card-grid > .empty {
+  grid-column: 1 / -1;
+}
 .recent-card {
   display: grid;
   gap: 5px;
