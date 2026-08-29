@@ -1,6 +1,7 @@
 import {
   cachedRequest,
   invalidateResponseCache,
+  mergeSongPrivileges,
   normalizeSong,
   request,
 } from "./client.ts";
@@ -38,9 +39,12 @@ export async function getPlaylistAllTracks(
     { id: playlistId, limit, offset },
     5 * 60 * 1000,
   );
-  return arr(response.songs ?? response.data ?? response.result)
+  const songs = arr(response.songs ?? response.data ?? response.result)
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
     .filter((song): song is Song => song !== null);
+  // /playlist/track/all 的音质特权在平级 privileges 数组里，
+  // 丢弃会导致整个歌单列表没有最高音质标识。
+  return mergeSongPrivileges(songs, response.privileges);
 }
 
 export async function addPlaylistTracks(

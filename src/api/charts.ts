@@ -1,4 +1,4 @@
-import { cachedRequest, normalizeSong } from "./client.ts";
+import { cachedRequest, mergeSongPrivileges, normalizeSong } from "./client.ts";
 import type {
   ArtistInfo,
   ChartCity,
@@ -145,7 +145,9 @@ export async function getDimensionChartSongs(
   query: DimensionChartQuery,
 ): Promise<Song[]> {
   const response = await cachedRequest<Obj>("/chart/song/detail", { ...query }, CHART_TTL);
-  return firstArray(response, "songs", "list", "data", "records")
+  const songs = firstArray(response, "songs", "list", "data", "records")
     .map((raw) => normalizeSong(obj(raw).song ?? raw))
     .filter((song): song is Song => song !== null);
+  // 平级 privileges 数组携带歌曲最好音质，按 id 合并补全标识。
+  return mergeSongPrivileges(songs, response.privileges);
 }

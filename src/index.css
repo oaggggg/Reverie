@@ -1473,10 +1473,18 @@ select option:checked {
   min-width: 0;
 }
 .song-item .t {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   font-size: 13px;
-  white-space: nowrap;
+}
+/* 歌名收缩省略，VIP / 音质标识 flex:none 固定显示，不再被挤出裁剪区 */
+.song-item .t .t-name {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .song-item .a {
   font-size: 11px;
@@ -2855,10 +2863,20 @@ select option:checked {
   font-size: 12.5px;
   margin-top: 7px;
   line-height: 1.35;
+  display: flex;
+  align-items: flex-end;
+}
+.song-card .n .n-name {
+  flex: 0 1 auto;
+  min-width: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.song-card .n .vip-badge,
+.song-card .n .song-tag {
+  flex: none;
 }
 .song-card .a {
   font-size: 11px;

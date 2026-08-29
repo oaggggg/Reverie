@@ -1,4 +1,4 @@
-import { normalizeSong, request } from "./client.ts";
+import { mergeSongPrivileges, normalizeSong, request } from "./client.ts";
 import type { SearchMediaInfo, Song } from "./types.ts";
 
 type Obj = Record<string, unknown>;
@@ -58,9 +58,14 @@ export async function getArtistDynamic(id: number): Promise<ArtistDynamic> {
 export async function getArtistTopSongs(id: number): Promise<Song[]> {
   const response = await request<Obj>("/artist/top/song", { id }, false);
   const value = obj(response.data ?? response.result ?? response);
-  return arr(value.songs ?? value.list ?? response.songs ?? response.data)
+  const songs = arr(value.songs ?? value.list ?? response.songs ?? response.data)
     .map(normalizeSong)
     .filter((song): song is Song => song !== null);
+  // 平级 privileges 数组携带歌曲最好音质，按 id 合并补全标识。
+  return mergeSongPrivileges(
+    songs,
+    value.privileges ?? response.privileges,
+  );
 }
 
 export async function getArtistNewMvs(

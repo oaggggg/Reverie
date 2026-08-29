@@ -79,10 +79,15 @@ test("playlist full-track loader normalizes song records and paging", async () =
       return Response.json({ songs: [
         { id: 1, name: "歌曲一", ar: [{ name: "歌手" }], al: { name: "专辑" } },
         { song: { id: 2, name: "歌曲二", ar: [{ name: "歌手" }], al: { name: "专辑" } } },
+      ], privileges: [
+        { id: 1, maxBrLevel: "lossless" },
+        { id: 2, maxBrLevel: "hires" },
       ] });
     };
     const songs = await getPlaylistAllTracks(10, 2, 4);
     assert.deepEqual(songs.map((song) => song.id), [1, 2]);
+    // 平级 privileges 数组按 id 合并，补全列表的最好音质标识
+    assert.deepEqual(songs.map((song) => song.maxLevel), ["lossless", "hires"]);
   } finally {
     globalThis.fetch = originalFetch;
   }

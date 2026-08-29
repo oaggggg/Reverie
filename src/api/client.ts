@@ -505,16 +505,23 @@ export function normalizeSong(raw: unknown): Song | null {
     // 行内自带 privilege（/playlist/detail 的 tracks 等）时直接取
     // 歌曲最好支持音质作为标识。
     ...(() => {
-      const lvl = privilegeMaxLevel({
-        ...(s.privilege && typeof s.privilege === "object"
-          ? (s.privilege as Record<string, unknown>)
-          : {}),
+      // 行级平铺字段可能不存在（undefined），不能覆盖行内 privilege 的值
+      const overrides: Record<string, unknown> = {
         maxBrLevel: s.maxBrLevel,
         playMaxBrLevel: s.playMaxBrLevel,
         downloadMaxBrLevel: s.downloadMaxBrLevel,
         jm: s.jm,
         jymaster: s.jymaster,
         master: s.master,
+      };
+      for (const key of Object.keys(overrides)) {
+        if (overrides[key] === undefined) delete overrides[key];
+      }
+      const lvl = privilegeMaxLevel({
+        ...(s.privilege && typeof s.privilege === "object"
+          ? (s.privilege as Record<string, unknown>)
+          : {}),
+        ...overrides,
       });
       return lvl
         ? { master: lvl === "jymaster" || undefined, maxLevel: lvl }
@@ -542,6 +549,22 @@ async function enrichSongs(ids: number[]): Promise<Map<number, Song>> {
     map.set(song.id, songWithMaxLevel(song, privs.get(song.id)));
   }
   return map;
+}
+
+/**
+ * 把接口平级返回的 privileges 数组（如 /playlist/track/all、
+ * /chart/song/detail）按歌曲 id 合并进已归一化的列表，补全最好音质标识。
+ */
+export function mergeSongPrivileges(songs: Song[], privileges: unknown): Song[] {
+  if (!Array.isArray(privileges) || !privileges.length) return songs;
+  const privs = new Map<number, Record<string, unknown>>();
+  for (const p of privileges) {
+    const o = p as Record<string, unknown>;
+    const pid = Number(o?.id ?? 0);
+    if (pid > 0) privs.set(pid, o);
+  }
+  if (!privs.size) return songs;
+  return songs.map((song) => songWithMaxLevel(song, privs.get(song.id)));
 }
 
 export async function searchSongs(
@@ -893,7 +916,14 @@ export async function getTopSongs(type = 0, limit = 100): Promise<Song[]> {
     10 * 60 * 1000,
   );
   const raws = (res.data ?? []).slice(0, limit) as unknown[];
-  return raws.map((r) => normalizeSong(r)).filter((s): s is Song => s !== null);
+  const songs = raws
+    .map((r) => normalizeSong(r))
+    .filter((s): s is Song => s !== null);
+  // /top/song 的特权在平级 privileges 数组里（个别行内也有），合并兜底。
+  return mergeSongPrivileges(
+    songs,
+    (res as { privileges?: unknown }).privileges,
+  );
 }
 
 export async function getPlaylistDetail(id: number): Promise<{
