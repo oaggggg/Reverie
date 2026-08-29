@@ -231,8 +231,9 @@ function normalizeProvince(value) {
   return String(value || "")
     .trim()
     .replace(/^(中国|中华人民共和国)/, "")
+    // 先匹配最长的行政区后缀，避免“广西壮族自治区”被截成“广西壮族”。
     .replace(
-      /(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/,
+      /(维吾尔自治区|壮族自治区|回族自治区|特别行政区|自治区|省|市)$/,
       "",
     );
 }
@@ -286,11 +287,15 @@ function chooseLocation(candidates) {
     (a, b) => b[1] - a[1],
   )[0];
   const province = topProvince?.[0] || clean[0].province;
-  // 城市结果不要求所有来源完全一致：只要与最高票省份匹配，就使用
-  // 该省份下票数最高的城市，避免定位结果无故退化为只有省份。
-  const cityEntry = [...cityVotes.entries()]
+  // 多来源给出不同城市时，单个来源不足以确认城市级精度，降级为省级，
+  // 避免把运营商或 IP 库的偶发误判直接展示给用户。
+  const provinceCities = [...cityVotes.entries()]
     .filter(([key]) => key.startsWith(`${province}|`))
-    .sort((a, b) => b[1] - a[1])[0];
+    .sort((a, b) => b[1] - a[1]);
+  const cityEntry =
+    provinceCities.length === 1 || provinceCities[0]?.[1] >= 2
+      ? provinceCities[0]
+      : undefined;
   const city = cityEntry ? cityEntry[0].split("|")[1] || "" : "";
   const matching = clean.find((item) => item.province === province) || clean[0];
   return {

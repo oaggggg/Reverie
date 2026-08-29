@@ -27,7 +27,7 @@ function expandProvince(bare: string): string {
 function ensureCitySuffix(city: string): string {
   const trimmed = city.trim();
   if (!trimmed) return "";
-  if (/(?:市|自治州|地区|盟|旗)$/.test(trimmed)) return trimmed;
+  if (/(?:市|县|自治州|地区|盟|旗)$/.test(trimmed)) return trimmed;
   return `${trimmed}市`;
 }
 
@@ -48,7 +48,7 @@ export function normalizeRegion(province: string, city: string): string {
   const full = expandProvince(bare);
   const cityFull = ensureCitySuffix(c);
   if (!cityFull) return full;
-  const cityBare = cityFull.replace(/(?:自治州|[市区])$|(?:地区|盟)$/, "");
+  const cityBare = cityFull.replace(/(?:自治州|[市区县])$|(?:地区|盟)$/, "");
   if (
     (MUNICIPALITIES.has(bare) || SPECIAL_REGIONS.has(bare)) &&
     (cityBare === bare || cityFull === full)
