@@ -43,7 +43,6 @@ export default function NowPlayingView() {
   const seek = usePlayerStore((s) => s.seek);
   const setPage = usePlayerStore((s) => s.setPage);
   const ensureLyrics = usePlayerStore((s) => s.ensureLyrics);
-  const lyricFx = usePlayerStore((s) => s.lyricFx);
   const lyricLayout = usePlayerStore((s) => s.lyricLayout);
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
   const showTranslation = usePlayerStore((s) => s.showTranslation);
@@ -432,7 +431,6 @@ export default function NowPlayingView() {
     rotationRef,
     zoomRef,
     motionListenersRef,
-    fx: lyricFx,
     clarity: lyricClarity,
     accent: coverAccent,
     layout: lyricLayout,

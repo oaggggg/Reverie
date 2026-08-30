@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { LyricFx, LyricLayout } from "../store/playerStore";
+import type { LyricLayout } from "../store/playerStore";
 import { usePlayerStore } from "../store/playerStore";
 import type { LyricLine } from "../api/types";
 import type { CoverAccent } from "../utils/coverAccent";
@@ -17,7 +17,6 @@ interface Lyrics3DProps {
   zoomRef?: { current: number };
   /** Shared listeners wake this layer only while the cover is being manipulated. */
   motionListenersRef?: { current: Set<() => void> };
-  fx: LyricFx;
   /** 歌词清晰度 0~100：越高彩色辉光越弱、字面越锐利。 */
   clarity?: number;
   accent: CoverAccent;
@@ -66,9 +65,7 @@ interface Slot {
  * transition. Instead the outgoing and incoming lines are both mounted and
  * stacked in the same grid cell, so they cross-fade in place.
  *
- * 入场/离场动画作用在外层 .lyric-3d-text 上，效果预设的常驻动画（流光
- * 扫带、霓虹呼吸等）作用在内层 .lyric-fx-core 上：两者分属不同元素，
- * 避免 animation 属性互相覆盖导致换行动画失效、新旧两行叠影。
+ * 入场/离场动画作用在外层 .lyric-3d-text 上。
  */
 function CrossfadeLine({
   text,
@@ -104,11 +101,11 @@ function CrossfadeLine({
     <div className={`${className}${pending ? " is-pending" : ""}`}>
       {leaving && (
         <span key={leaving.id} className="lyric-3d-text is-leaving">
-          <span className="lyric-fx-core">{leaving.text}</span>
+          {leaving.text}
         </span>
       )}
       <span key={current.id} className="lyric-3d-text is-entering">
-        <span className="lyric-fx-core">{current.text}</span>
+        {current.text}
       </span>
       {showTranslation && translation && (
         <span className="lyric-3d-trans">{translation}</span>
@@ -119,8 +116,8 @@ function CrossfadeLine({
 
 /**
  * 多行滚动歌词列表：类似常规播放器的整页歌词，随播放进度自动滚动，
- * 点击任意行跳转播放。当前行同样吃歌词效果预设：行文本的 key 在
- * 成为当前行时变化一次，促使节点重挂载并重放入场动画。
+ * 点击任意行跳转播放。行文本的 key 在成为当前行时变化一次，促使
+ * 节点重挂载并重放入场动画。
  */
 function LyricScrollList({
   lines,
@@ -178,7 +175,7 @@ function LyricScrollList({
               key={active ? `act-${activeIndex}` : `idle-${index}`}
               className={`lyric-3d-text${active ? " is-entering" : ""}`}
             >
-              <span className="lyric-fx-core">{line.text}</span>
+              {line.text}
             </span>
             {showTranslation && line.translation && (
               <small>{line.translation}</small>
@@ -200,7 +197,6 @@ export default function Lyrics3D({
   rotationRef,
   zoomRef,
   motionListenersRef,
-  fx,
   clarity = 60,
   accent,
   layout,
@@ -267,7 +263,7 @@ export default function Lyrics3D({
   return (
     <div
       ref={rootRef}
-      className={`lyrics-3d lyrics-fx-${fx}${side === "back" ? " lyrics-3d-back" : ""}`}
+      className={`lyrics-3d${side === "back" ? " lyrics-3d-back" : ""}`}
       style={
         {
           "--lyric-accent": accent.color,
