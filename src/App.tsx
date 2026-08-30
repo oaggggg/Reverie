@@ -17,6 +17,7 @@ import {
   audioGraphState,
   ensureAnalyser,
   resumeAnalyser,
+  suspendAnalyser,
 } from "./utils/audioAnalyser";
 import TitleBar from "./components/TitleBar";
 import TopNav from "./components/TopNav";
@@ -348,6 +349,12 @@ export default function App() {
       window.removeEventListener("pageshow", resume);
     };
   }, []);
+
+  // 暂停时挂起 Web Audio 上下文：渲染线程完全停摆，后台挂机零空转。
+  // 恢复播放的各路径都会调用 resumeAnalyser()，此处无须负责恢复。
+  useEffect(() => {
+    if (!playing) suspendAnalyser();
+  }, [playing]);
 
   // 禁用播放器内的鼠标右键菜单
   useEffect(() => {
