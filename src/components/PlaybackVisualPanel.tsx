@@ -1,40 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { RefObject } from "react";
-import {
-  ImagePlay,
-  Moon,
-  Music4,
-  RotateCcw,
-  Sparkles,
-} from "lucide-react";
-import { X } from "lucide-react";
+import { ImagePlay, Moon, RotateCcw, Sparkles, X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
-import type { LyricFx, NpWallpaper } from "../store/playerStore";
+import WallpaperPickerModal from "./WallpaperPickerModal";
 import type { CoverQuality } from "../utils/gpuBenchmark";
 import { particleCount, QUALITY_LABEL } from "../utils/gpuBenchmark";
-
-/** Rust 侧 list_wallpaper_engine_wallpapers 返回的条目（仅 mp4 视频壁纸）。 */
-interface WallpaperEngineItem {
-  id: string;
-  title: string;
-  kind: "video";
-  path: string;
-  preview: string;
-}
 
 // 封面清晰度档位（低→极高）。不再提供"图片"档：3D 粒子封面是唯一
 // 形态；image 仍作为渲染失败时的内部降级档保留。最低档 80×80 网格
 // 也覆盖整个封面平面，能完整显示封面。
 const COVER_QUALITIES: CoverQuality[] = ["low", "medium", "high", "ultra"];
-
-/** 歌词效果预设（与颜色无关，作用于当前句的持续观感）。 */
-const LYRIC_FX: Array<{ id: LyricFx; name: string }> = [
-  { id: "shine", name: "流光" },
-  { id: "thunder", name: "雷电" },
-  { id: "shatter", name: "碎裂" },
-  { id: "neon", name: "霓虹" },
-  { id: "ripple", name: "涟漪" },
-];
 
 /** 各可重置项的默认值（单独重置按钮 / 恢复默认共用）。 */
 const DEFAULTS = {
@@ -87,8 +62,6 @@ export default function PlaybackVisualPanel({
   transitionClassName: string;
   onClose: () => void;
 }) {
-  const lyricFx = usePlayerStore((s) => s.lyricFx);
-  const setLyricFx = usePlayerStore((s) => s.setLyricFx);
   const lyricFontSize = usePlayerStore((s) => s.lyricFontSize);
   const setLyricFontSize = usePlayerStore((s) => s.setLyricFontSize);
   const lyricLayout = usePlayerStore((s) => s.lyricLayout);
@@ -128,50 +101,7 @@ export default function PlaybackVisualPanel({
   };
 
   const [tab, setTab] = useState<VisualTab>("background");
-
-  // Wallpaper Engine 壁纸扫描：面板打开时扫一次，仅桌面版可用。
-  // null = 扫描中；[] = 扫描完成但没有可用的 mp4 视频壁纸
-  const [wallpapers, setWallpapers] = useState<WallpaperEngineItem[] | null>(
-    null,
-  );
-  const [wallpaperError, setWallpaperError] = useState("");
-  useEffect(() => {
-    let disposed = false;
-    void (async () => {
-      try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const { convertFileSrc } = await import("@tauri-apps/api/core");
-        const list = await invoke<WallpaperEngineItem[]>(
-          "list_wallpaper_engine_wallpapers",
-        );
-        if (disposed) return;
-        setWallpapers(
-          list.map((item) => ({
-            ...item,
-            preview: item.preview ? convertFileSrc(item.preview) : "",
-          })),
-        );
-      } catch {
-        if (!disposed) setWallpaperError("未找到 Wallpaper Engine（仅桌面版支持）");
-      }
-    })();
-    return () => {
-      disposed = true;
-    };
-  }, []);
-
-  const selectWallpaper = (item: WallpaperEngineItem | null) => {
-    const wallpaper: NpWallpaper | null = item
-      ? {
-          id: item.id,
-          title: item.title,
-          kind: "video",
-          path: item.path,
-          preview: item.preview || undefined,
-        }
-      : null;
-    setNpWallpaper(wallpaper);
-  };
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
     <aside
@@ -208,20 +138,6 @@ export default function PlaybackVisualPanel({
       <div className="np-visual-scroll">
         {tab === "lyrics" ? (
           <section>
-            <div className="np-visual-row stacked">
-              <span>歌词效果</span>
-              <div className="opt-group">
-                {LYRIC_FX.map((item) => (
-                  <button
-                    key={item.id}
-                    className={`opt-btn ${lyricFx === item.id ? "active" : ""}`}
-                    onClick={() => setLyricFx(item.id)}
-                  >
-                    {item.name}
-                  </button>
-                ))}
-              </div>
-            </div>
             <div className="np-visual-row">
               <span>歌词布局</span>
               <div className="opt-group">
@@ -353,6 +269,14 @@ export default function PlaybackVisualPanel({
               <div className="np-visual-row stacked">
                 <span>封面清晰度</span>
                 <div className="opt-group">
+                  <button
+                    className="opt-btn"
+                    onClick={() => void detectCoverQuality(true)}
+                    disabled={coverBenchmarking}
+                  >
+                    自动
+                    <small>{coverBenchmarking ? "检测中…" : "性能检测"}</small>
+                  </button>
                   {COVER_QUALITIES.map((quality) => (
                     <button
                       key={quality}
@@ -408,13 +332,6 @@ export default function PlaybackVisualPanel({
                   />
                 </span>
               </div>
-              <button
-                className="btn np-detect-btn"
-                onClick={() => void detectCoverQuality(true)}
-                disabled={coverBenchmarking}
-              >
-                {coverBenchmarking ? "检测中…" : "自动检测性能"}
-              </button>
               {/* 封面模式卡片：与壁纸卡片同款样式 */}
               <div className="np-mode-cards">
                 <button
@@ -446,64 +363,36 @@ export default function PlaybackVisualPanel({
 
             <section>
               <h3>Wallpaper 壁纸</h3>
-              <div className="np-wallpaper-list">
+              <div className="np-wallpaper-picker-row">
+                <button
+                  className={`np-wallpaper-open ${npWallpaper ? "active" : ""}`}
+                  onClick={() => setPickerOpen(true)}
+                  title="选择 Wallpaper 壁纸"
+                >
+                  <ImagePlay size={14} />
+                  <span className="np-wallpaper-open-label">
+                    {npWallpaper ? npWallpaper.title : "选择壁纸"}
+                  </span>
+                </button>
+                {npWallpaper && (
                   <button
-                    className={`np-wallpaper-item ${npWallpaper === null ? "active" : ""}`}
-                    onClick={() => selectWallpaper(null)}
+                    className="np-wallpaper-open-clear"
+                    onClick={() => setNpWallpaper(null)}
+                    title="不使用壁纸"
+                    aria-label="不使用壁纸"
                   >
-                    <span className="np-wallpaper-thumb np-wallpaper-thumb-off">
-                      <Music4 size={14} />
-                    </span>
-                    <span className="np-wallpaper-title">
-                      <span className="np-wallpaper-name">不使用壁纸</span>
-                    </span>
+                    <X size={14} />
                   </button>
-                  {wallpapers?.map((item) => (
-                    <button
-                      key={item.id}
-                      className={`np-wallpaper-item ${npWallpaper?.id === item.id ? "active" : ""}`}
-                      onClick={() => selectWallpaper(item)}
-                    >
-                      <span className="np-wallpaper-thumb">
-                        {item.preview ? (
-                          <>
-                            {/* 模糊放大的同图垫底：竖版/异比例预览图
-                                contain 居中时两侧不再是黑边 */}
-                            <img
-                              className="np-wallpaper-thumb-bg"
-                              src={item.preview}
-                              alt=""
-                              loading="lazy"
-                              aria-hidden
-                            />
-                            <img src={item.preview} alt="" loading="lazy" />
-                          </>
-                        ) : (
-                          <ImagePlay size={14} />
-                        )}
-                      </span>
-                      <span className="np-wallpaper-title">
-                        <span className="np-wallpaper-name">{item.title}</span>
-                        <small>视频</small>
-                      </span>
-                    </button>
-                  ))}
-                  {wallpaperError && (
-                    <div className="np-wallpaper-empty">{wallpaperError}</div>
-                  )}
-                  {!wallpaperError && wallpapers !== null && !wallpapers.length && (
-                    <div className="np-wallpaper-empty">
-                      未找到可用的壁纸（需安装 Wallpaper Engine 的 mp4 视频壁纸）
-                    </div>
-                  )}
-                  {!wallpaperError && wallpapers === null && (
-                    <div className="np-wallpaper-empty">正在扫描壁纸库…</div>
-                  )}
+                )}
               </div>
             </section>
           </>
         )}
       </div>
+
+      {pickerOpen && (
+        <WallpaperPickerModal onClose={() => setPickerOpen(false)} />
+      )}
     </aside>
   );
 }
