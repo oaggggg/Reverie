@@ -5385,11 +5385,11 @@ select option:checked {
   color: #fff;
 }
 
-/* Wallpaper 壁纸选择弹窗：卡片网格 */
+/* Wallpaper 壁纸选择弹窗：卡片网格 / 紧凑列表 */
 .wp-picker-modal {
   display: flex;
   flex-direction: column;
-  max-width: min(920px, calc(100vw - 48px));
+  width: min(1120px, calc(100vw - 48px));
 }
 .wp-picker-body {
   overflow-y: auto;
@@ -5399,6 +5399,36 @@ select option:checked {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 12px;
+}
+/* 列表视图：一行一条，小缩略图 + 标题 */
+.wp-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wp-picker-list .wp-picker-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 10px;
+}
+.wp-picker-list .wp-picker-card:hover {
+  transform: none;
+}
+.wp-picker-list .wp-picker-thumb {
+  flex: none;
+  width: 78px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.wp-picker-list .wp-picker-thumb img {
+  object-fit: cover;
+}
+.wp-picker-list .wp-picker-meta {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
 }
 .wp-picker-card {
   display: flex;
@@ -5488,8 +5518,7 @@ select option:checked {
 }
 
 /* Lyric swap: the incoming and outgoing lines share one grid cell so they
-   cross-fade in place instead of the text changing in a single frame.
-   歌词效果由 lyrics-fx-* 预设类选择：流光 / 雷电 / 碎裂 / 霓虹 / 涟漪。 */
+   cross-fade in place instead of the text changing in a single frame. */
 .lyrics-3d-current,
 .lyrics-3d-next {
   display: grid;
@@ -5512,170 +5541,13 @@ select option:checked {
   animation: lyric-fx-fade-in 0.5s ease both;
 }
 
-/* 通用离场：上浮淡出。入场/离场动画挂在外层 .lyric-3d-text，
-   预设的常驻动画挂在内层 .lyric-fx-core，两层互不覆盖 animation。 */
-.lyrics-fx-shine .lyric-3d-text.is-leaving,
-.lyrics-fx-thunder .lyric-3d-text.is-leaving,
-.lyrics-fx-shatter .lyric-3d-text.is-leaving,
-.lyrics-fx-neon .lyric-3d-text.is-leaving,
-.lyrics-fx-ripple .lyric-3d-text.is-leaving {
+/* 通用入场/离场：离场上浮淡出，入场下方淡入。 */
+.lyric-3d-text.is-leaving {
   animation: lyric-3d-out 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   pointer-events: none;
 }
-
-/* 常驻动画的作用范围：两行布局的当前句 + 多行布局的当前行。 */
-
-/* ---- 流光：光带沿当前句往复扫过 ---- */
-.lyrics-fx-shine .lyric-3d-text.is-entering {
+.lyric-3d-text.is-entering {
   animation: lyric-3d-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.lyrics-fx-shine .lyrics-3d-current .lyric-fx-core,
-.lyrics-fx-shine .np-full-lyric.active .lyric-fx-core {
-  background: linear-gradient(
-    110deg,
-    var(--lyric-accent, #fff) 36%,
-    #ffffff 50%,
-    var(--lyric-accent, #fff) 64%
-  );
-  background-size: 240% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: none;
-  filter: drop-shadow(0 0 14px var(--lyric-accent-soft))
-    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
-  animation: lyric-fx-shine-sweep 2.6s ease-in-out infinite alternate;
-}
-@keyframes lyric-fx-shine-sweep {
-  from {
-    background-position: 0% 0;
-  }
-  to {
-    background-position: 100% 0;
-  }
-}
-
-/* ---- 雷电：瞬间频闪 + RGB 错位微抖，像电弧窜过 ---- */
-.lyrics-fx-thunder .lyric-3d-text.is-entering {
-  animation: lyric-3d-in 0.32s ease both;
-}
-.lyrics-fx-thunder .lyrics-3d-current .lyric-fx-core,
-.lyrics-fx-thunder .np-full-lyric.active .lyric-fx-core {
-  animation: lyric-fx-thunder-flicker 3.4s steps(1, end) infinite;
-}
-@keyframes lyric-fx-thunder-flicker {
-  0%,
-  86%,
-  100% {
-    opacity: 1;
-    text-shadow:
-      0 0 18px var(--lyric-accent-soft),
-      0 2px 14px rgba(0, 0, 0, 0.95);
-    transform: none;
-  }
-  87% {
-    opacity: 0.55;
-    /* 红/青通道错位：模拟电弧窜过时的色彩撕裂 */
-    text-shadow:
-      2px 0 2px rgba(255, 82, 82, 0.85),
-      -2px 0 3px rgba(94, 226, 255, 0.9),
-      0 0 24px var(--lyric-accent-soft);
-    transform: translateX(1px) skewX(-2deg);
-  }
-  89% {
-    opacity: 1;
-    text-shadow:
-      0 0 3px #ffffff,
-      0 0 26px #bfe9ff,
-      0 0 52px var(--lyric-accent-soft);
-    transform: translateX(-1px);
-  }
-  91% {
-    opacity: 0.72;
-  }
-  93% {
-    opacity: 1;
-    text-shadow:
-      0 0 12px var(--lyric-accent-soft),
-      0 2px 14px rgba(0, 0, 0, 0.95);
-    transform: none;
-  }
-}
-
-/* ---- 碎裂：新句沿裂纹逐步显现 ---- */
-.lyrics-fx-shatter .lyric-3d-text.is-entering {
-  animation: lyric-fx-shatter-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
-}
-@keyframes lyric-fx-shatter-in {
-  0% {
-    opacity: 0;
-    clip-path: polygon(0 0, 52% 0, 44% 100%, 0 100%);
-    transform: translateX(-10px);
-    filter: blur(2px);
-  }
-  30% {
-    opacity: 1;
-  }
-  55% {
-    clip-path: polygon(0 0, 86% 0, 74% 100%, 0 100%);
-    transform: translateX(4px);
-  }
-  80% {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-    transform: none;
-    filter: blur(0);
-  }
-  100% {
-    opacity: 1;
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-  }
-}
-
-/* ---- 霓虹：辉光呼吸脉冲 ---- */
-.lyrics-fx-neon .lyric-3d-text.is-entering {
-  animation: lyric-3d-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.lyrics-fx-neon .lyrics-3d-current .lyric-fx-core,
-.lyrics-fx-neon .np-full-lyric.active .lyric-fx-core {
-  animation: lyric-fx-neon-pulse 2.6s ease-in-out infinite;
-}
-@keyframes lyric-fx-neon-pulse {
-  0%,
-  100% {
-    text-shadow:
-      0 0 4px var(--lyric-accent, #fff),
-      0 0 16px var(--lyric-accent-soft),
-      0 2px 12px rgba(0, 0, 0, 0.9);
-  }
-  50% {
-    text-shadow:
-      0 0 1px #ffffff,
-      0 0 9px var(--lyric-accent, #fff),
-      0 0 30px var(--lyric-accent-soft),
-      0 2px 12px rgba(0, 0, 0, 0.9);
-  }
-}
-
-/* ---- 涟漪：字距扩散的波纹式浮现 ---- */
-.lyrics-fx-ripple .lyric-3d-text.is-entering {
-  animation: lyric-fx-ripple-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes lyric-fx-ripple-in {
-  0% {
-    opacity: 0;
-    filter: blur(14px);
-    letter-spacing: 0.16em;
-    transform: scale(1.035);
-  }
-  60% {
-    opacity: 1;
-    filter: blur(0);
-  }
-  100% {
-    opacity: 1;
-    letter-spacing: normal;
-    transform: none;
-  }
 }
 @keyframes lyric-3d-in {
   from {
@@ -5747,15 +5619,7 @@ select option:checked {
 
 /* 暂停歌曲时冻结歌词装饰动画，避免静态播放页继续消耗合成资源。 */
 .now-playing:not(.np-playing) .lyrics-3d-sway-x,
-.now-playing:not(.np-playing) .lyrics-3d-sway-y,
-.now-playing:not(.np-playing) .lyric-fx-core {
-  animation-play-state: paused !important;
-}
-
-/* 暂停歌曲时冻结歌词装饰动画，避免静态播放页继续消耗合成资源。 */
-.now-playing:not(.np-playing) .lyrics-3d-sway-x,
-.now-playing:not(.np-playing) .lyrics-3d-sway-y,
-.now-playing:not(.np-playing) .lyric-fx-core {
+.now-playing:not(.np-playing) .lyrics-3d-sway-y {
   animation-play-state: paused !important;
 }
 @keyframes lyrics-sway-x {

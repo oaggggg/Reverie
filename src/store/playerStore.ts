@@ -217,27 +217,6 @@ function readAccentColor(): AccentColor {
 /** 播放页歌词布局：两行浮层 / 多行滚动列表。 */
 export type LyricLayout = "dual" | "full";
 
-/**
- * 播放页歌词效果预设（与颜色无关，作用于当前句的持续观感）：
- * shine 流光 / thunder 雷电 / shatter 碎裂 / neon 霓虹 / ripple 涟漪。
- */
-export type LyricFx = "shine" | "thunder" | "shatter" | "neon" | "ripple";
-
-const LYRIC_FX_IDS: ReadonlyArray<LyricFx> = [
-  "shine",
-  "thunder",
-  "shatter",
-  "neon",
-  "ripple",
-];
-
-function readLyricFx(): LyricFx {
-  const v = readStr("reverie_lyricfx", "shine");
-  return (LYRIC_FX_IDS as readonly string[]).includes(v)
-    ? (v as LyricFx)
-    : "shine";
-}
-
 /** 播放页 Wallpaper Engine 壁纸背景（仅 mp4 视频壁纸）。 */
 export interface NpWallpaper {
   id: string;
@@ -744,8 +723,6 @@ interface PlayerState {
   launchFmOnStart: boolean;
   /** 跨端续播开关（开启后本机作为续播设备上报）。 */
   crossDeviceResume: boolean;
-  /** 播放页歌词动效预设；颜色始终自动取自背景，无手动颜色项。 */
-  lyricFx: LyricFx;
   lyricFontSize: number;
   /** 播放页渲染帧率上限；0 表示跟随显示器刷新率。 */
   npFrameRate: number;
@@ -869,7 +846,6 @@ interface PlayerState {
   setShowListCover: (v: boolean) => void;
   setLaunchFmOnStart: (v: boolean) => void;
   setCrossDeviceResume: (v: boolean) => void;
-  setLyricFx: (fx: LyricFx) => void;
   setLyricFontSize: (s: number) => void;
   setNpFrameRate: (fps: number) => void;
   setLyricLayout: (layout: LyricLayout) => void;
@@ -1235,7 +1211,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   showListCover: readBool("reverie_list_cover", true),
   launchFmOnStart: readBool("reverie_launch_fm", false),
   crossDeviceResume: readBool("reverie_cross_resume", false),
-  lyricFx: readLyricFx(),
   lyricFontSize: readNum("reverie_lyricfont", 22),
   npFrameRate: [0, 30, 60, 120].includes(readNum("reverie_np_fps", 30))
     ? readNum("reverie_np_fps", 30)
@@ -1929,10 +1904,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
     set({ crossDeviceResume: v });
     write("reverie_cross_resume", v ? "1" : "0");
   },
-  setLyricFx: (fx) => {
-    set({ lyricFx: fx });
-    write("reverie_lyricfx", fx);
-  },
   setLyricFontSize: (s) => {
     set({ lyricFontSize: s });
     write("reverie_lyricfont", String(s));
@@ -1987,7 +1958,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   },
   resetVisualDefaults: () => {
     set({
-      lyricFx: "shine",
       lyricLayout: "dual",
       lyricFontSize: 22,
       showTranslation: false,
@@ -1999,7 +1969,6 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       npVoid: false,
       npWallpaper: null,
     });
-    write("reverie_lyricfx", "shine");
     write("reverie_lyriclayout", "dual");
     write("reverie_lyricfont", "22");
     write("reverie_translation", "0");

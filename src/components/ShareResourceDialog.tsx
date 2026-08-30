@@ -5,7 +5,6 @@ import type { Song } from "../api/types";
 import { usePlayerStore } from "../store/playerStore";
 import { useOriginTransition } from "../utils/originTransition";
 import { useModalBehavior } from "../utils/modalBehavior";
-import SongBadges from "./SongBadges";
 
 export default function ShareResourceDialog({
   song,
@@ -58,8 +57,7 @@ export default function ShareResourceDialog({
           <div>
             <h2>分享歌曲</h2>
             <p>
-              {song.name}
-              <SongBadges song={song} /> · {song.artists}
+              {song.name} · {song.artists}
             </p>
           </div>
           <button className="icon-btn" onClick={onClose} title="关闭">

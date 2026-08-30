@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ImagePlay, Music4, X } from "lucide-react";
+import { ImagePlay, LayoutGrid, List, Music4, X } from "lucide-react";
 import { usePlayerStore } from "../store/playerStore";
 import type { NpWallpaper } from "../store/playerStore";
 
@@ -24,6 +24,8 @@ export default function WallpaperPickerModal({
   // null = 扫描中；[] = 扫描完成但没有可用的 mp4 视频壁纸
   const [items, setItems] = useState<WallpaperEngineItem[] | null>(null);
   const [error, setError] = useState("");
+  // 展示形态：卡片网格 / 紧凑列表（一个按钮一体切换）。
+  const [view, setView] = useState<"grid" | "list">("grid");
 
   // 打开时扫描 Wallpaper Engine 工坊库，仅桌面版可用。
   useEffect(() => {
@@ -73,6 +75,28 @@ export default function WallpaperPickerModal({
     onClose();
   };
 
+  // item 为 null 表示"不使用壁纸"选项。
+  const renderThumb = (item: WallpaperEngineItem | null) => (
+    <span className="wp-picker-thumb">
+      {item === null ? (
+        <Music4 size={22} />
+      ) : item.preview ? (
+        <img src={item.preview} alt="" loading="lazy" />
+      ) : (
+        <ImagePlay size={22} />
+      )}
+    </span>
+  );
+
+  const renderMeta = (item: WallpaperEngineItem | null) => (
+    <span className="wp-picker-meta">
+      <span className="wp-picker-name">
+        {item === null ? "不使用壁纸" : item.title}
+      </span>
+      <small>{item === null ? "恢复粒子封面背景" : "视频"}</small>
+    </span>
+  );
+
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
@@ -88,6 +112,20 @@ export default function WallpaperPickerModal({
             来自 Wallpaper Engine 的视频壁纸
           </span>
           <div className="notification-modal-actions">
+            {items !== null && items.length > 0 && (
+              <button
+                className="topnav-icon-btn"
+                title={view === "grid" ? "切换为列表" : "切换为卡片"}
+                aria-label={view === "grid" ? "切换为列表" : "切换为卡片"}
+                onClick={() => setView(view === "grid" ? "list" : "grid")}
+              >
+                {view === "grid" ? (
+                  <List size={16} />
+                ) : (
+                  <LayoutGrid size={16} />
+                )}
+              </button>
+            )}
             <button className="topnav-icon-btn" title="关闭" onClick={onClose}>
               <X size={16} />
             </button>
@@ -104,38 +142,18 @@ export default function WallpaperPickerModal({
             </div>
           )}
           {!error && items !== null && items.length > 0 && (
-            <div className="wp-picker-grid">
-              <button
-                className={`wp-picker-card ${npWallpaper === null ? "active" : ""}`}
-                onClick={() => select(null)}
-                title="不使用壁纸"
-              >
-                <span className="wp-picker-thumb">
-                  <Music4 size={22} />
-                </span>
-                <span className="wp-picker-meta">
-                  <span className="wp-picker-name">不使用壁纸</span>
-                  <small>恢复粒子封面背景</small>
-                </span>
-              </button>
-              {items.map((item) => (
+            <div
+              className={view === "grid" ? "wp-picker-grid" : "wp-picker-list"}
+            >
+              {[null, ...items].map((item, index) => (
                 <button
-                  key={item.id}
-                  className={`wp-picker-card ${npWallpaper?.id === item.id ? "active" : ""}`}
+                  key={item === null ? "off" : `${item.id}-${index}`}
+                  className={`wp-picker-card ${item === null ? npWallpaper === null : npWallpaper?.id === item.id ? "active" : ""}`}
                   onClick={() => select(item)}
-                  title={item.title}
+                  title={item === null ? "不使用壁纸" : item.title}
                 >
-                  <span className="wp-picker-thumb">
-                    {item.preview ? (
-                      <img src={item.preview} alt="" loading="lazy" />
-                    ) : (
-                      <ImagePlay size={22} />
-                    )}
-                  </span>
-                  <span className="wp-picker-meta">
-                    <span className="wp-picker-name">{item.title}</span>
-                    <small>视频</small>
-                  </span>
+                  {renderThumb(item)}
+                  {renderMeta(item)}
                 </button>
               ))}
             </div>
