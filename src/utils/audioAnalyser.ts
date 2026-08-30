@@ -79,6 +79,15 @@ export function resumeAnalyser(): void {
 }
 
 /**
+ * 暂停播放时挂起上下文：AudioContext 的渲染线程停止空转（否则即使
+ * 静音也按采样率持续调度），后台挂机时音频侧 CPU 占用归零。
+ * 所有恢复播放的路径都会调用 resumeAnalyser()，无须在此恢复。
+ */
+export function suspendAnalyser(): void {
+  if (ctx && ctx.state === "running") ctx.suspend().catch(() => {});
+}
+
+/**
  * 当前音频图状态：未接入 Web Audio 时返回 null。
  * "suspended"/"interrupted"/"closed" 的上下文会让媒体元素照常走表但整条
  * 输出链静音（播放栏一切正常却没有声音），调用方需要据此自愈重试。

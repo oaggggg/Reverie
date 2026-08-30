@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -111,6 +111,30 @@ function ParticleAlbumCover({
 
   const wakeRef = useRef<(() => void) | null>(null);
 
+  // 深度休眠：页面隐藏持续 60s 后整体卸载 WebGL 场景（cleanup 会
+  // dispose 全部资源并 forceContextLoss，显存全额释放），恢复可见时
+  // 重建。着色器与纹理缓存仍热，重建在亚秒级；后台长时间挂机时
+  // 播放页的 GPU 占用归零。
+  const [deepSleep, setDeepSleep] = useState(false);
+  useEffect(() => {
+    const HIDE_SLEEP_MS = 60_000;
+    let timer = 0;
+    const onVis = () => {
+      window.clearTimeout(timer);
+      if (document.hidden) {
+        timer = window.setTimeout(() => setDeepSleep(true), HIDE_SLEEP_MS);
+      } else {
+        setDeepSleep(false);
+      }
+    };
+    onVis();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
   // 场景对象跨 imageUrl 复用：换歌只重采样颜色，绝不重建 WebGL 上下文。
   // 反复 forceContextLoss + 重建是切歌时整个 WebView 白屏一瞬的元凶。
   const recolorRef = useRef<{
@@ -121,7 +145,8 @@ function ParticleAlbumCover({
   } | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    // 深度休眠时不持有任何 WebGL 资源。
+    if (!containerRef.current || deepSleep) return;
     const container = containerRef.current;
     const GRID = Math.max(16, Math.min(grid, 160)); // 限制最大网格防止内存爆炸
     const PARTICLE_COUNT = GRID * GRID;
@@ -502,7 +527,8 @@ function ParticleAlbumCover({
     };
     // grid changes the buffer layout, so rebuilding on it is correct.
     // imageUrl 不在此列：换歌走独立的重采样 effect，不重建场景。
-  }, [grid, rotationRef]);
+    // deepSleep：休眠即卸载场景，唤醒重建。
+  }, [grid, rotationRef, deepSleep]);
 
   // 换歌：复用现有场景，仅重采样封面颜色。加载完成前保留上一首的颜色，
   // 避免粒子云闪空。grid 变化时场景重建、此 effect 随后重新填充颜色。
@@ -551,7 +577,8 @@ function ParticleAlbumCover({
       img.onerror = null;
       img.src = "";
     };
-  }, [imageUrl, grid]);
+    // deepSleep：深度休眠唤醒后场景重建，需重新采样颜色。
+  }, [imageUrl, grid, deepSleep]);
 
   return <div ref={containerRef} className="particle-album-cover" />;
 }

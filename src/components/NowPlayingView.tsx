@@ -86,6 +86,11 @@ export default function NowPlayingView() {
     soft: "rgba(125, 249, 255, 0.32)",
   });
   const [wallpaperSrc, setWallpaperSrc] = useState("");
+  const [wallpaperPreviewSrc, setWallpaperPreviewSrc] = useState("");
+  // 深度休眠：页面隐藏 60s 后卸载视频解码器/网页 iframe（pause 挂起
+  // 并不释放显存中的解码缓冲与合成层），恢复可见时重新挂载。后台长
+  // 时间挂机时壁纸的 GPU/内存占用归零，只保留静态预览图。
+  const [wallpaperSleep, setWallpaperSleep] = useState(false);
   const wallpaperRef = useRef<HTMLVideoElement>(null);
   // 顶部按钮（返回 / DIY）与底部播放栏的显隐：进入页面展示，
   // 停顿后自动隐藏。呼出区按各控件收窄：返回=左上角、DIY=右上角、
@@ -133,6 +138,9 @@ export default function NowPlayingView() {
       .then(({ convertFileSrc }) => {
         if (disposed) return;
         setWallpaperSrc(convertFileSrc(npWallpaper.path));
+        setWallpaperPreviewSrc(
+          npWallpaper.preview ? convertFileSrc(npWallpaper.preview) : "",
+        );
         if (npWallpaper.preview) {
           void extractCoverAccent(convertFileSrc(npWallpaper.preview)).then(
             (accent) => {
@@ -151,7 +159,7 @@ export default function NowPlayingView() {
   // when audio is paused or the document is hidden, then resume on return.
   useEffect(() => {
     const video = wallpaperRef.current;
-    if (!video || !wallpaperSrc) return;
+    if (!video || !wallpaperSrc || wallpaperSleep) return;
     const sync = () => {
       if (playing && !document.hidden) {
         void video.play().catch(() => {});
@@ -162,7 +170,30 @@ export default function NowPlayingView() {
     sync();
     document.addEventListener("visibilitychange", sync);
     return () => document.removeEventListener("visibilitychange", sync);
-  }, [playing, wallpaperSrc]);
+  }, [playing, wallpaperSrc, wallpaperSleep]);
+
+  // 壁纸深度休眠计时：视频壁纸在页面隐藏持续 60s 后整体卸载
+  // <video> 载体（pause 挂起并不释放解码缓冲与合成层显存），
+  // 恢复可见立即唤醒重挂载，休眠期间以静态预览图顶替。
+  useEffect(() => {
+    if (!npWallpaper || !wallpaperSrc) return;
+    const HIDE_SLEEP_MS = 60_000;
+    let timer = 0;
+    const onVis = () => {
+      window.clearTimeout(timer);
+      if (document.hidden) {
+        timer = window.setTimeout(() => setWallpaperSleep(true), HIDE_SLEEP_MS);
+      } else {
+        setWallpaperSleep(false);
+      }
+    };
+    onVis();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [npWallpaper, wallpaperSrc]);
 
   // 播放页 chrome 自动隐藏：进入页面展示。呼出范围就是各控件自身的
   // 矩形范围（外扩 8px 容差）：悬停在返回/DIY 按钮或播放栏本体上才
@@ -407,8 +438,20 @@ export default function NowPlayingView() {
     onSeekLine: (time: number) => seek(time),
   };
 
-  const wallpaperBackground =
-    npWallpaper && wallpaperSrc ? (
+  const wallpaperBackground = (() => {
+    if (!npWallpaper || !wallpaperSrc) return null;
+    // 深度休眠：视频壁纸卸载后以预览图顶替，视觉几乎无感。
+    if (wallpaperSleep) {
+      return wallpaperPreviewSrc ? (
+        <img
+          className="np-wallpaper"
+          src={wallpaperPreviewSrc}
+          alt=""
+          aria-hidden
+        />
+      ) : null;
+    }
+    return (
       <video
         key={wallpaperSrc}
         ref={wallpaperRef}
@@ -419,7 +462,8 @@ export default function NowPlayingView() {
         muted
         playsInline
       />
-    ) : null;
+    );
+  })();
 
   return (
     <div
