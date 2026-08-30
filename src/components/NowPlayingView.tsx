@@ -105,6 +105,11 @@ export default function NowPlayingView() {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) return;
+      // 壁纸选择弹窗虽 portal 到 body，但逻辑上是 DIY 面板的子级：
+      // 在弹窗内按下不视为"点击面板外部"，否则面板连同弹窗一起被关。
+      if (target instanceof Element && target.closest(".wp-picker-modal")) {
+        return;
+      }
       if (visualTransition.surfaceRef.current?.contains(target)) return;
       if (visualTriggerRef.current?.contains(target)) return;
       setVisualOpen(false);
